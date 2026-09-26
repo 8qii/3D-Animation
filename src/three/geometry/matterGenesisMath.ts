@@ -19,22 +19,22 @@ const INV_NORM = 1.0 / Math.sqrt(1 + PHI * PHI);
  */
 export const RAW_ICOSAHEDRON_VERTICES: [number, number, number][] = [
   // XY Plane Rectangle
-  [-1 * INV_NORM,  PHI * INV_NORM,  0],
-  [ 1 * INV_NORM,  PHI * INV_NORM,  0],
-  [-1 * INV_NORM, -PHI * INV_NORM,  0],
-  [ 1 * INV_NORM, -PHI * INV_NORM,  0],
+  [-1 * INV_NORM,  PHI * INV_NORM,  0], // 0
+  [ 1 * INV_NORM,  PHI * INV_NORM,  0], // 1
+  [-1 * INV_NORM, -PHI * INV_NORM,  0], // 2
+  [ 1 * INV_NORM, -PHI * INV_NORM,  0], // 3
 
   // YZ Plane Rectangle
-  [0, -1 * INV_NORM,  PHI * INV_NORM],
-  [0,  1 * INV_NORM,  PHI * INV_NORM],
-  [0, -1 * INV_NORM, -PHI * INV_NORM],
-  [0,  1 * INV_NORM, -PHI * INV_NORM],
+  [0, -1 * INV_NORM,  PHI * INV_NORM], // 4
+  [0,  1 * INV_NORM,  PHI * INV_NORM], // 5
+  [0, -1 * INV_NORM, -PHI * INV_NORM], // 6
+  [0,  1 * INV_NORM, -PHI * INV_NORM], // 7
 
   // ZX Plane Rectangle
-  [ PHI * INV_NORM, 0, -1 * INV_NORM],
-  [ PHI * INV_NORM, 0,  1 * INV_NORM],
-  [-PHI * INV_NORM, 0, -1 * INV_NORM],
-  [-PHI * INV_NORM, 0,  1 * INV_NORM],
+  [ PHI * INV_NORM, 0, -1 * INV_NORM], // 8
+  [ PHI * INV_NORM, 0,  1 * INV_NORM], // 9
+  [-PHI * INV_NORM, 0, -1 * INV_NORM], // 10
+  [-PHI * INV_NORM, 0,  1 * INV_NORM], // 11
 ];
 
 /**
@@ -74,12 +74,26 @@ export const ICOSAHEDRON_FACES: [number, number, number][] = [
 ];
 
 /**
- * Generates vertex buffers for the 12 Golden Ratio nodes
+ * 6 Antipodal vertex pairs passing through the crystal origin:
+ * Light chords representing internal refractive caustic paths
+ */
+export const ANTIPODAL_PAIRS: [number, number][] = [
+  [0, 3],
+  [1, 2],
+  [4, 7],
+  [5, 6],
+  [8, 11],
+  [9, 10],
+];
+
+/**
+ * Generates vertex buffers for the 12 Golden Ratio nodes with sequential indices
  */
 export function generateMatterNodes(radius = 1.45) {
   const count = RAW_ICOSAHEDRON_VERTICES.length;
   const positions = new Float32Array(count * 3);
   const targetPositions = new Float32Array(count * 3);
+  const vertexIndices = new Float32Array(count);
 
   for (let i = 0; i < count; i++) {
     const v = RAW_ICOSAHEDRON_VERTICES[i];
@@ -90,13 +104,15 @@ export function generateMatterNodes(radius = 1.45) {
     targetPositions[i * 3]     = v[0] * radius;
     targetPositions[i * 3 + 1] = v[1] * radius;
     targetPositions[i * 3 + 2] = v[2] * radius;
+
+    vertexIndices[i] = i;
   }
 
-  return { count, positions, targetPositions };
+  return { count, positions, targetPositions, vertexIndices };
 }
 
 /**
- * Generates edge line segments with progress attributes [0..1]
+ * Generates edge line segments with mathematical necessity activation thresholds
  */
 export function generateMatterWireframe(radius = 1.45) {
   const edgeCount = ICOSAHEDRON_EDGES.length; // 30 edges * 2 vertices = 60 vertices
@@ -106,6 +122,7 @@ export function generateMatterWireframe(radius = 1.45) {
   const targets = new Float32Array(totalVerts * 3);
   const edgeProgress = new Float32Array(totalVerts); // 0 at start vertex, 1 at end vertex
   const edgeIndices = new Float32Array(totalVerts);
+  const activationThresholds = new Float32Array(totalVerts);
 
   for (let i = 0; i < edgeCount; i++) {
     const [idxA, idxB] = ICOSAHEDRON_EDGES[i];
@@ -114,6 +131,9 @@ export function generateMatterWireframe(radius = 1.45) {
 
     const v1 = i * 2;
     const v2 = i * 2 + 1;
+
+    // Edge activates only when BOTH vertices have awakened
+    const threshold = (Math.max(idxA, idxB) / 12.0) * 0.75;
 
     // Start vertex
     positions[v1 * 3]     = 0;
@@ -126,6 +146,7 @@ export function generateMatterWireframe(radius = 1.45) {
 
     edgeProgress[v1] = 0.0;
     edgeIndices[v1] = i;
+    activationThresholds[v1] = threshold;
 
     // End vertex
     positions[v2 * 3]     = 0;
@@ -138,9 +159,17 @@ export function generateMatterWireframe(radius = 1.45) {
 
     edgeProgress[v2] = 1.0;
     edgeIndices[v2] = i;
+    activationThresholds[v2] = threshold;
   }
 
-  return { totalVerts, positions, targets, edgeProgress, edgeIndices };
+  return {
+    totalVerts,
+    positions,
+    targets,
+    edgeProgress,
+    edgeIndices,
+    activationThresholds,
+  };
 }
 
 /**
@@ -210,4 +239,36 @@ export function generateMatterFacets(radius = 1.45) {
   }
 
   return { totalVerts, positions, normals, barycentric };
+}
+
+/**
+ * Generates 6 antipodal laser chords crossing through the internal singularity center
+ */
+export function generateAntipodalChords(radius = 1.45) {
+  const pairCount = ANTIPODAL_PAIRS.length; // 6 pairs * 2 vertices = 12 vertices
+  const totalVerts = pairCount * 2;
+
+  const positions = new Float32Array(totalVerts * 3);
+  const chordIndices = new Float32Array(totalVerts);
+
+  for (let i = 0; i < pairCount; i++) {
+    const [idxA, idxB] = ANTIPODAL_PAIRS[i];
+    const vA = RAW_ICOSAHEDRON_VERTICES[idxA];
+    const vB = RAW_ICOSAHEDRON_VERTICES[idxB];
+
+    const v1 = i * 2;
+    const v2 = i * 2 + 1;
+
+    positions[v1 * 3]     = vA[0] * radius;
+    positions[v1 * 3 + 1] = vA[1] * radius;
+    positions[v1 * 3 + 2] = vA[2] * radius;
+    chordIndices[v1]      = i;
+
+    positions[v2 * 3]     = vB[0] * radius;
+    positions[v2 * 3 + 1] = vB[1] * radius;
+    positions[v2 * 3 + 2] = vB[2] * radius;
+    chordIndices[v2]      = i;
+  }
+
+  return { totalVerts, positions, chordIndices };
 }

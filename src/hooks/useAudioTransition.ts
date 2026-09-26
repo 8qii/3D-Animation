@@ -8,6 +8,7 @@ export function useAudioTransition() {
   const isMuted = useExperienceStore((state) => state.isMuted);
   const transitionProgress = useExperienceStore((state) => state.transitionProgress);
   const act2Progress = useExperienceStore((state) => state.act2Progress);
+  const matterProgress = useExperienceStore((state) => state.matterProgress);
   const scrollEnergy = useExperienceStore((state) => state.scrollEnergy);
   const pointer = useExperienceStore((state) => state.pointer);
   const attentionLevel = useExperienceStore((state) => state.attentionLevel);
@@ -34,10 +35,20 @@ export function useAudioTransition() {
       } else if (transitionProgress < 0.2 && act2Progress < 0.1) {
         soundEngine.resetChimeTrigger();
       }
+
+      // Cinematic Silence Event:
+      // When matter reaches pre-materialization lock (matterProgress >= 0.82),
+      // the universe ducks into absolute silence before the final materialization.
+      if (matterProgress >= 0.82) {
+        soundEngine.triggerCinematicSilence();
+      } else if (matterProgress < 0.45) {
+        soundEngine.resetSilence(isMuted);
+      }
     }
   }, [
     transitionProgress,
     act2Progress,
+    matterProgress,
     scrollEnergy,
     pointer.x,
     attentionLevel,

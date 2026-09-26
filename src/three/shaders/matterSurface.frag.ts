@@ -11,7 +11,7 @@ export const matterSurfaceFragmentShader = /* glsl */ `
   varying float vFresnel;
 
   void main() {
-    if (uSurfaceProgress <= 0.001) {
+    if (uSurfaceProgress <= 0.005) {
       discard;
     }
 
@@ -21,28 +21,32 @@ export const matterSurfaceFragmentShader = /* glsl */ `
     float edgeFactor = min(min(a3.x, a3.y), a3.z);
     float wireframeEdge = 1.0 - edgeFactor;
 
-    // 2. Translucent obsidian glass facet interior
-    vec3 colDeepObsidian = vec3(0.04, 0.07, 0.14);
-    vec3 colCyanGlow      = vec3(0.22, 0.74, 0.97); // #38bdf8
-    vec3 colAmberPrism    = vec3(0.96, 0.62, 0.15); // #f59e0b
+    // 2. Holographic Thin-Film Iridescence Fringes
+    float thinFilmPhase = vFresnel * 18.0 - uTime * 1.4;
+    float fringe = sin(thinFilmPhase) * 0.5 + 0.5;
+    vec3 colIridescent = mix(
+      vec3(0.20, 0.85, 0.98), // Cyan interference
+      vec3(0.98, 0.65, 0.20), // Amber interference
+      fringe
+    );
+
+    // Subtle holographic quantum lattice scanlines
+    float scanline = sin((vBarycentric.x + vBarycentric.y * 1.732) * 55.0 + uTime * 2.0) * 0.12;
+
+    // 3. Facet Colors
+    vec3 colDeepObsidian = vec3(0.03, 0.06, 0.12);
     vec3 colWhiteEdge     = vec3(0.98, 0.99, 1.00);
 
-    // Facet interior gradient
     vec3 surfaceColor = colDeepObsidian;
+    surfaceColor += colIridescent * (vFresnel * 1.8 + scanline);
+    surfaceColor += colWhiteEdge * wireframeEdge * 1.25;
 
-    // Chromatic dispersion hooks along Fresnel rim
-    vec3 fresnelColor = mix(colCyanGlow, colAmberPrism, vFresnel * 0.7);
-    surfaceColor += fresnelColor * vFresnel * 1.6;
-
-    // Facet boundary edge highlight
-    surfaceColor += colWhiteEdge * wireframeEdge * 1.2;
-
-    // 3. Progressive opacity reveal:
-    // Stays translucent (max alpha ~ 0.45) to preserve the mystery for Act III
-    float baseAlpha = mix(0.12, 0.35, vFresnel);
-    float edgeAlpha = wireframeEdge * 0.65;
+    // 4. Strict Translucent Holographic Constraint:
+    // Stays strictly non-opaque (maximum alpha <= 0.45)
+    float baseAlpha = mix(0.08, 0.32, vFresnel);
+    float edgeAlpha = wireframeEdge * 0.55;
     float totalAlpha = (baseAlpha + edgeAlpha) * uSurfaceProgress;
-    totalAlpha = clamp(totalAlpha, 0.0, 0.55);
+    totalAlpha = clamp(totalAlpha, 0.0, 0.45);
 
     gl_FragColor = vec4(surfaceColor, totalAlpha);
   }

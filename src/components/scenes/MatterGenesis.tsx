@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import {
@@ -14,6 +14,7 @@ import { matterWireframeVertexShader } from '@/three/shaders/matterWireframe.ver
 import { matterWireframeFragmentShader } from '@/three/shaders/matterWireframe.frag';
 import { matterSurfaceVertexShader } from '@/three/shaders/matterSurface.vert';
 import { matterSurfaceFragmentShader } from '@/three/shaders/matterSurface.frag';
+import { InternalCaustics } from './InternalCaustics';
 import { useExperienceStore } from '@/store/experienceStore';
 import { clamp } from '@/utils/helpers';
 
@@ -23,6 +24,8 @@ export function MatterGenesis() {
   const nodeMatRef = useRef<THREE.ShaderMaterial>(null);
   const wireframeMatRef = useRef<THREE.ShaderMaterial>(null);
   const surfaceMatRef = useRef<THREE.ShaderMaterial>(null);
+
+  const [causticProgress, setCausticProgress] = useState(0);
 
   // Pre-generate geometry buffers
   const nodes = useMemo(() => generateMatterNodes(1.45), []);
@@ -86,12 +89,14 @@ export function MatterGenesis() {
       }
     }
 
-    // Stage 1: Vertex Genesis (0.0 -> 0.45)
-    const vertexProgress = clamp(matter / 0.45, 0.0, 1.0);
-    // Stage 2: Edge Formation (0.35 -> 0.80)
-    const edgeProgress = clamp((matter - 0.35) / 0.45, 0.0, 1.0);
-    // Stage 3: Surface Translucent Emergence (0.70 -> 1.00)
-    const surfaceProgress = clamp((matter - 0.70) / 0.30, 0.0, 1.0);
+    // Stage 1: Sequential Vertex Awakening (0.0 -> 0.50)
+    const vertexProgress = clamp(matter / 0.50, 0.0, 1.0);
+    // Stage 2: Edge Formation Choreography (0.30 -> 0.85)
+    const edgeProgress = clamp((matter - 0.30) / 0.55, 0.0, 1.0);
+    // Stage 3: Surface Translucent Emergence (0.65 -> 1.00)
+    const surfaceProgress = clamp((matter - 0.65) / 0.35, 0.0, 1.0);
+
+    setCausticProgress(surfaceProgress);
 
     if (groupRef.current) {
       groupRef.current.visible = matter > 0.005;
@@ -124,6 +129,9 @@ export function MatterGenesis() {
 
   return (
     <group ref={groupRef} name="matter-genesis-framework" position={[0, 0, 0]}>
+      {/* 0. Internal Crystal Caustic Light Paths & Density Web */}
+      <InternalCaustics progress={causticProgress} />
+
       {/* 1. Translucent 20-Facet Obsidian Surface Precursor */}
       <mesh renderOrder={3}>
         <bufferGeometry>
@@ -171,6 +179,10 @@ export function MatterGenesis() {
             attach="attributes-aEdgeIndex"
             args={[wireframe.edgeIndices, 1]}
           />
+          <bufferAttribute
+            attach="attributes-aActivationThreshold"
+            args={[wireframe.activationThresholds, 1]}
+          />
         </bufferGeometry>
         <shaderMaterial
           ref={wireframeMatRef}
@@ -183,7 +195,7 @@ export function MatterGenesis() {
         />
       </lineSegments>
 
-      {/* 3. 12 Golden Ratio Quantum Nodes Emerging from Coordinate DNA */}
+      {/* 3. 12 Golden Ratio Quantum Nodes with Sequential Awakening */}
       <instancedMesh
         args={[undefined, undefined, nodes.count]}
         renderOrder={5}
@@ -193,6 +205,10 @@ export function MatterGenesis() {
           <instancedBufferAttribute
             attach="attributes-aTarget"
             args={[nodes.targetPositions, 3]}
+          />
+          <instancedBufferAttribute
+            attach="attributes-aVertexIndex"
+            args={[nodes.vertexIndices, 1]}
           />
         </planeGeometry>
         <shaderMaterial

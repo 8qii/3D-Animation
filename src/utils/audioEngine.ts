@@ -25,6 +25,7 @@ class SoundEngine {
 
   private isInitialized = false;
   private chimeTriggered = false;
+  private isSilent = false;
 
   private initContext() {
     if (this.ctx || typeof window === 'undefined') return;
@@ -191,6 +192,56 @@ class SoundEngine {
 
   public resetChimeTrigger() {
     this.chimeTriggered = false;
+  }
+
+  /**
+   * Cinematic Silence Event:
+   * Aggressively ducks the universe into absolute silence before the final materialization,
+   * coupled with a deep vacuum inhalation sweep.
+   */
+  public triggerCinematicSilence() {
+    if (!this.ctx || !this.masterGain || this.isSilent) return;
+    if (this.ctx.state === 'suspended') return;
+
+    this.isSilent = true;
+    const now = this.ctx.currentTime;
+
+    // 1. Steep 350ms duck into dead silence
+    this.masterGain.gain.cancelScheduledValues(now);
+    this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
+    this.masterGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+
+    // 2. Vacuum Inhalation Infrasonic Sweep (85Hz down to 24Hz)
+    const suckOsc = this.ctx.createOscillator();
+    const suckFilter = this.ctx.createBiquadFilter();
+    const suckGain = this.ctx.createGain();
+
+    suckOsc.type = 'sine';
+    suckOsc.frequency.setValueAtTime(85.0, now);
+    suckOsc.frequency.exponentialRampToValueAtTime(24.0, now + 0.65);
+
+    suckFilter.type = 'lowpass';
+    suckFilter.frequency.setValueAtTime(300.0, now);
+    suckFilter.frequency.exponentialRampToValueAtTime(60.0, now + 0.65);
+
+    suckGain.gain.setValueAtTime(0.0001, now);
+    suckGain.gain.linearRampToValueAtTime(0.25, now + 0.08);
+    suckGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.65);
+
+    suckOsc.connect(suckFilter);
+    suckFilter.connect(suckGain);
+    suckGain.connect(this.ctx.destination);
+
+    suckOsc.start(now);
+    suckOsc.stop(now + 0.7);
+  }
+
+  public resetSilence(isMuted = false) {
+    if (!this.isSilent || !this.ctx || !this.masterGain) return;
+    this.isSilent = false;
+    const now = this.ctx.currentTime;
+    const target = isMuted ? 0.0 : 0.65;
+    this.masterGain.gain.setTargetAtTime(target, now, 0.25);
   }
 
   public destroy() {
