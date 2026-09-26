@@ -2,6 +2,12 @@ import { create } from 'zustand';
 
 export type SceneId = 'scene-01' | 'scene-02' | 'scene-03';
 
+export type TransitionState =
+  | 'VACUUM_RESTING'
+  | 'SINGULARITY_APPROACH'
+  | 'QUANTUM_IGNITION'
+  | 'SINGULARITY_STABILIZED';
+
 export interface SceneMeta {
   id: SceneId;
   index: number;
@@ -55,6 +61,12 @@ interface ExperienceState {
   // Scroll Progress
   scrollProgress: number; // 0 to 1 overall
   setScrollProgress: (progress: number) => void;
+
+  // Cross-Scene Transition Engine
+  transitionProgress: number; // 0 (pure Act I) to 1 (pure Act II)
+  transitionState: TransitionState;
+  setTransitionProgress: (progress: number) => void;
+  setTransitionState: (state: TransitionState) => void;
 
   // Cursor Parallax (Screen Normalized [-1, 1])
   pointer: { x: number; y: number };
@@ -141,6 +153,16 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
       scrollProgress: Math.min(1, Math.max(0, progress)),
     }),
 
+  // Cross-Scene Transition Initial State
+  transitionProgress: 0,
+  transitionState: 'VACUUM_RESTING',
+  setTransitionProgress: (progress: number) =>
+    set({
+      transitionProgress: Math.min(1.0, Math.max(0.0, progress)),
+    }),
+  setTransitionState: (transitionState: TransitionState) =>
+    set({ transitionState }),
+
   // Pointer parallax initial state
   pointer: { x: 0, y: 0 },
   setPointer: (x: number, y: number) => set({ pointer: { x, y } }),
@@ -152,7 +174,7 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   setAttentionLevel: (level: number) =>
     set({ attentionLevel: Math.min(1.0, Math.max(0.0, level)) }),
 
-  // Kinetic Scroll Energy (Surges on scroll, decays over ~1.8s half-life)
+  // Kinetic Scroll Energy
   scrollEnergy: 0,
   addScrollEnergy: (amount: number) =>
     set((state) => ({

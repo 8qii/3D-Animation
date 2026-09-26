@@ -15,13 +15,14 @@ import { deepSpaceVertexShader } from '@/three/shaders/deepSpaceParticles.vert';
 import { deepSpaceFragmentShader } from '@/three/shaders/deepSpaceParticles.frag';
 import { volumetricGlowVertexShader } from '@/three/shaders/volumetricGlow.vert';
 import { volumetricGlowFragmentShader } from '@/three/shaders/volumetricGlow.frag';
+import { vectorGridVertexShader } from '@/three/shaders/vectorGrid.vert';
+import { vectorGridFragmentShader } from '@/three/shaders/vectorGrid.frag';
 import { useExperienceStore } from '@/store/experienceStore';
 
 const MID_PARTICLE_COUNT = 1200;
 const LENS_DUST_COUNT = 90;
 const DEEP_SPACE_COUNT = 1800;
 
-// Deterministic PRNG for pure idempotency during render
 function createPrng(initialSeed: number) {
   let s = initialSeed;
   return () => {
@@ -30,7 +31,6 @@ function createPrng(initialSeed: number) {
   };
 }
 
-// 1. Foreground Lens Dust (right in front of 45mm camera lens)
 function generateLensDust(count: number) {
   const rng = createPrng(1103);
   const offsets = new Float32Array(count * 3);
@@ -41,7 +41,7 @@ function generateLensDust(count: number) {
   for (let i = 0; i < count; i++) {
     offsets[i * 3]     = (rng() - 0.5) * 6.5;
     offsets[i * 3 + 1] = (rng() - 0.5) * 4.8;
-    offsets[i * 3 + 2] = 5.2 + rng() * 1.6; // Right in front of camera at z=7
+    offsets[i * 3 + 2] = 5.2 + rng() * 1.6;
 
     scales[i] = 0.6 + rng() * 1.4;
     phases[i] = rng();
@@ -50,7 +50,6 @@ function generateLensDust(count: number) {
   return { offsets, scales, phases, speeds };
 }
 
-// 2. Mid-Field Reactive Quantum Motes (the primary reactive field)
 function generateMidDust(count: number) {
   const rng = createPrng(9821);
   const offsets = new Float32Array(count * 3);
@@ -70,7 +69,6 @@ function generateMidDust(count: number) {
   return { offsets, scales, phases, speeds };
 }
 
-// 3. Deep-Space Celestial Dust (infinite astronomical depth)
 function generateDeepSpace(count: number) {
   const rng = createPrng(4433);
   const offsets = new Float32Array(count * 3);
@@ -81,7 +79,7 @@ function generateDeepSpace(count: number) {
   for (let i = 0; i < count; i++) {
     offsets[i * 3]     = (rng() - 0.5) * 32.0;
     offsets[i * 3 + 1] = (rng() - 0.5) * 26.0;
-    offsets[i * 3 + 2] = -3.0 - rng() * 16.0; // Deep in the void
+    offsets[i * 3 + 2] = -3.0 - rng() * 16.0;
 
     scales[i] = 0.5 + rng() * 1.2;
     phases[i] = rng();
@@ -101,6 +99,7 @@ export function VoidScene() {
   const fluctuationMatRef = useRef<THREE.ShaderMaterial>(null);
   const midDustMatRef = useRef<THREE.ShaderMaterial>(null);
   const lensDustMatRef = useRef<THREE.ShaderMaterial>(null);
+  const vectorGridMatRef = useRef<THREE.ShaderMaterial>(null);
 
   const particleTimeAccumulator = useRef(0);
 
@@ -131,6 +130,7 @@ export function VoidScene() {
     uBreathPhase: { value: 0 },
     uExcitation: { value: 0 },
     uAttention: { value: 0 },
+    uTransition: { value: 0 },
     uColorCore: { value: new THREE.Color('#e0f2fe') },
     uColorAura: { value: new THREE.Color('#38bdf8') },
   }), []);
@@ -145,6 +145,7 @@ export function VoidScene() {
     uAttention: { value: 0 },
     uExcitation: { value: 0 },
     uBreathPhase: { value: 0 },
+    uTransition: { value: 0 },
   }), []);
 
   // Foreground Lens Dust Uniforms
@@ -155,17 +156,23 @@ export function VoidScene() {
     },
   }), []);
 
+  // Vector Blueprint Grid Uniforms
+  const vectorGridUniforms = useMemo(() => ({
+    uTime: { value: 0 },
+    uGridReveal: { value: 0 },
+  }), []);
+
   // Frame animation loop
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
 
-    // Transient store access (60 FPS zero-allocation)
     const store = useExperienceStore.getState();
     const mouseWorld = store.mouseWorld;
     const attention = store.attentionLevel;
     const excitation = store.scrollEnergy;
     const breath = store.breathPhase;
     const speedMult = store.particleSpeedMultiplier;
+    const transition = store.transitionProgress;
 
     // 1. Atmosphere Shader
     if (atmosphereMatRef.current) {
@@ -185,12 +192,13 @@ export function VoidScene() {
       deepSpaceMatRef.current.uniforms.uTime.value = time * 0.5;
     }
 
-    // 4. Central Quantum Fluctuation (refined life-pulse)
+    // 4. Central Quantum Fluctuation (Transition Contraction & Solar Amber Shift)
     if (fluctuationMatRef.current) {
       fluctuationMatRef.current.uniforms.uTime.value = time;
       fluctuationMatRef.current.uniforms.uBreathPhase.value = breath;
       fluctuationMatRef.current.uniforms.uExcitation.value = excitation;
       fluctuationMatRef.current.uniforms.uAttention.value = attention;
+      fluctuationMatRef.current.uniforms.uTransition.value = transition;
     }
 
     // 5. Kinetic Particle Time Accumulator
@@ -207,11 +215,18 @@ export function VoidScene() {
       midDustMatRef.current.uniforms.uAttention.value = attention;
       midDustMatRef.current.uniforms.uExcitation.value = excitation;
       midDustMatRef.current.uniforms.uBreathPhase.value = breath;
+      midDustMatRef.current.uniforms.uTransition.value = transition;
     }
 
     // 7. Foreground Lens Dust
     if (lensDustMatRef.current) {
       lensDustMatRef.current.uniforms.uTime.value = time;
+    }
+
+    // 8. Vector Blueprint Cartesian Grid
+    if (vectorGridMatRef.current) {
+      vectorGridMatRef.current.uniforms.uTime.value = time;
+      vectorGridMatRef.current.uniforms.uGridReveal.value = transition;
     }
   });
 
@@ -279,7 +294,21 @@ export function VoidScene() {
         />
       </mesh>
 
-      {/* 4. Central Quantum Light Fluctuation */}
+      {/* 4. Cartesian Vector Blueprint Grid (Emerges as Singularity Forms) */}
+      <mesh position={[0, 0, -0.05]} renderOrder={0.5}>
+        <planeGeometry args={[6.0, 6.0]} />
+        <shaderMaterial
+          ref={vectorGridMatRef}
+          vertexShader={vectorGridVertexShader}
+          fragmentShader={vectorGridFragmentShader}
+          uniforms={vectorGridUniforms}
+          transparent
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+
+      {/* 5. Central Quantum Light Fluctuation (Morphs to Singularity) */}
       <mesh position={[0, 0, 0]} renderOrder={1}>
         <planeGeometry args={[2.8, 2.8]} />
         <shaderMaterial
@@ -293,7 +322,7 @@ export function VoidScene() {
         />
       </mesh>
 
-      {/* 5. Layer 2: Mid-Field Reactive Quantum Particles */}
+      {/* 6. Layer 2: Mid-Field Reactive Quantum Particles */}
       <instancedMesh
         args={[undefined, undefined, MID_PARTICLE_COUNT]}
         renderOrder={2}
@@ -328,7 +357,7 @@ export function VoidScene() {
         />
       </instancedMesh>
 
-      {/* 6. Layer 1: Foreground Defocused Lens Dust */}
+      {/* 7. Layer 1: Foreground Defocused Lens Dust */}
       <instancedMesh
         args={[undefined, undefined, LENS_DUST_COUNT]}
         renderOrder={3}

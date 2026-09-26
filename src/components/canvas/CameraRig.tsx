@@ -24,7 +24,9 @@ export function CameraRig() {
 
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
-    const scrollEnergy = useExperienceStore.getState().scrollEnergy;
+    const store = useExperienceStore.getState();
+    const scrollEnergy = store.scrollEnergy;
+    const transition = store.transitionProgress;
 
     // 1. FPS Calculation (smoothed over 0.25 seconds)
     frameCounter.current += 1;
@@ -38,20 +40,19 @@ export function CameraRig() {
 
     const activeCamera = state.camera as THREE.PerspectiveCamera;
 
-    // 2. Optical Realism: Cinematic Lens Breathing (45mm equivalent)
-    // Breathing oscillates subtly (0.05 Hz) and compresses on scroll energy surge
-    const baseFov = 45.0;
+    // 2. Optical Realism & Transition Handoff FOV Compression:
+    // Base FOV starts at 45.0° and tightens to 42.0° as camera tracks into Singularity
+    const baseFov = 45.0 - transition * 3.0;
     const lensBreathing = Math.sin(time * 0.314159) * 0.25 - scrollEnergy * 0.65;
     const targetFov = baseFov + lensBreathing;
 
     if (Math.abs(activeCamera.fov - targetFov) > 0.01) {
-      activeCamera.fov = damp(activeCamera.fov, targetFov, 2.5, delta);
+      activeCamera.fov = damp(activeCamera.fov, targetFov, 2.8, delta);
       activeCamera.updateProjectionMatrix();
     }
 
-    // 3. Automatic 30-Second Cinematic Sequence vs. Default Contemplative Drift
+    // 3. Automatic 30-Second Cinematic Sequence vs. Transition & Observer Handoff
     if (isPreviewMode) {
-      // Advance preview clock (loops continuously at 30 seconds)
       const nextTime = (previewTime + delta) % 30.0;
       setPreviewTime(nextTime);
 
@@ -70,7 +71,7 @@ export function CameraRig() {
       } else if (t < 16.0) {
         // Phase 2 (7s - 16s): Orbital Vitrine Arc
         const progress = (t - 7.0) / 9.0;
-        const angle = progress * Math.PI; // Sweep 180 degrees
+        const angle = progress * Math.PI;
         targetCamPos.current.set(
           Math.sin(angle) * 2.8,
           -0.15 + Math.sin(progress * Math.PI) * 0.9,
@@ -107,7 +108,6 @@ export function CameraRig() {
         targetLookAt.current.set(0, 0, 0);
       }
 
-      // Responsive flight damping in preview mode
       activeCamera.position.x = damp(activeCamera.position.x, targetCamPos.current.x, 3.0, delta);
       activeCamera.position.y = damp(activeCamera.position.y, targetCamPos.current.y, 3.0, delta);
       activeCamera.position.z = damp(activeCamera.position.z, targetCamPos.current.z, 3.0, delta);
@@ -132,13 +132,14 @@ export function CameraRig() {
       const parallaxX = pointer.x * 0.32;
       const parallaxY = pointer.y * 0.24;
 
-      // Kinetic scroll energy pulls the observer slightly deeper into the focal void
+      // Camera Handoff: Seamless forward push toward singularity z=5.5 as transition progresses
+      const targetBaseZ = THREE.MathUtils.lerp(7.0, 5.5, transition);
       const kineticDepth = -scrollEnergy * 0.35;
 
       targetCamPos.current.set(
         0.0 + driftX + parallaxX,
         0.0 + breathingY + lifePulseY + parallaxY,
-        7.0 + driftZ + kineticDepth
+        targetBaseZ + driftZ + kineticDepth
       );
 
       targetLookAt.current.set(
@@ -147,6 +148,7 @@ export function CameraRig() {
         0.0
       );
 
+      // High-inertia physical damping
       activeCamera.position.x = damp(activeCamera.position.x, targetCamPos.current.x, 2.8, delta);
       activeCamera.position.y = damp(activeCamera.position.y, targetCamPos.current.y, 2.8, delta);
       activeCamera.position.z = damp(activeCamera.position.z, targetCamPos.current.z, 2.8, delta);

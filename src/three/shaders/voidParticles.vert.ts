@@ -5,6 +5,7 @@ export const voidParticlesVertexShader = /* glsl */ `
   uniform float uAttention;
   uniform float uExcitation;
   uniform float uBreathPhase;
+  uniform float uTransition; // Cross-scene transition progress [0..1]
 
   attribute vec3 aOffset;
   attribute float aScale;
@@ -16,14 +17,16 @@ export const voidParticlesVertexShader = /* glsl */ `
   varying float vPhase;
   varying float vExcitation;
   varying float vInfluence;
+  varying float vTransition;
 
   void main() {
     vUv = uv;
     vPhase = aPhase;
     vExcitation = uExcitation;
+    vTransition = uTransition;
 
-    // 1. Thermodynamic kinetic acceleration based on scroll energy
-    float effectiveSpeed = aSpeed * (1.0 + uExcitation * 2.2);
+    // 1. Thermodynamic kinetic acceleration based on scroll energy & transition
+    float effectiveSpeed = aSpeed * (1.0 + uExcitation * 2.2 + uTransition * 1.8);
 
     // 2. Slow Brownian-like micro-drift on GPU
     vec3 brownianOffset;
@@ -36,37 +39,33 @@ export const voidParticlesVertexShader = /* glsl */ `
     // Subtle synchronized breathing pulse
     brownianOffset *= (0.85 + uBreathPhase * 0.30);
 
-    vec3 initialPos = aOffset + brownianOffset;
+    // Singularity Gravitational Inflow: particles gently contract inward during transition
+    vec3 basePos = aOffset * (1.0 - uTransition * 0.35) + brownianOffset;
 
     // 3. Observer Gravitational Influence Field & Swirl
-    vec3 toMouse = uMouseWorld - initialPos;
-    float distToMouse = length(toMouse.xy); // Radial distance on front projection
+    vec3 toMouse = uMouseWorld - basePos;
+    float distToMouse = length(toMouse.xy);
 
-    // Influence envelope (radius ~ 4.2 units with smooth Gaussian decay)
     float influence = exp(-distToMouse * distToMouse / 5.5) * (0.35 + uAttention * 0.95);
     vInfluence = clamp(influence, 0.0, 1.0);
 
-    // Attractive radial force vector
     vec3 radialForce = normalize(vec3(toMouse.xy, 0.0)) * influence * 0.85;
 
-    // Tangential orbital swirl force (perpendicular vector)
     vec3 swirlForce = vec3(-toMouse.y, toMouse.x, 0.0);
     float swirlLen = length(swirlForce);
     if (swirlLen > 0.001) {
       swirlForce = (swirlForce / swirlLen) * influence * 0.55;
     }
 
-    // Displaced world coordinate under observer gravity
-    vec3 worldCenter = initialPos + radialForce + swirlForce;
+    vec3 worldCenter = basePos + radialForce + swirlForce;
 
-    // Camera view transform of instance center
     vec4 mvCenter = modelViewMatrix * vec4(worldCenter, 1.0);
     vDepth = -mvCenter.z;
 
-    // Dynamic bokeh sizing: expands when observed (attention) or awakened (excitation)
-    float focalDistance = 7.0;
+    // Dynamic bokeh sizing
+    float focalDistance = 7.0 - uTransition * 1.5;
     float defocus = abs(vDepth - focalDistance) * 0.08;
-    float expansion = 1.0 + vInfluence * 0.65 + uExcitation * 0.85;
+    float expansion = 1.0 + vInfluence * 0.65 + uExcitation * 0.85 + uTransition * 0.45;
     float bokehSize = aScale * (0.042 + defocus * 0.065) * expansion;
 
     vec3 billboardingVertex = mvCenter.xyz + vec3(position.xy * bokehSize, 0.0);
