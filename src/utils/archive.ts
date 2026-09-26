@@ -20,6 +20,13 @@ export interface MovementMemory {
   dominantIntent: 'CONTEMPLATIVE_WITNESS' | 'KINETIC_CATALYST' | 'SACRED_ARCHITECT' | 'UNFORMED';
 }
 
+export interface ObserverDna {
+  code: string;
+  codons: string[];
+  resonanceHash: string;
+  alignmentVector: [number, number, number];
+}
+
 export interface ObserverArchive {
   signature: string;
   sessionCount: number;
@@ -35,6 +42,8 @@ export interface ObserverArchive {
   personalFrequency: number;
   memoryFreshness: number;
   movementMemory: MovementMemory;
+  dna: ObserverDna;
+  act5HandshakeCompleted: boolean;
 }
 
 export const ARCHIVE_STORAGE_KEY = 'aetheria_memory_archive';
@@ -119,6 +128,42 @@ export function calculateMemoryFreshness(lastArrival: number, currentNow: number
   return Math.max(0.25, Math.exp(-deltaMs / halfLife));
 }
 
+export function synthesizeObserverDna(
+  firstArrival: number,
+  dominantArchetype: ObserverArchetype,
+  sessionCount: number,
+  scores: { witness: number; catalyst: number; architect: number },
+  personalFreq: number
+): ObserverDna {
+  const archLabel = dominantArchetype.replace('THE_', '').slice(0, 4);
+  const total = Math.max(1, scores.witness + scores.catalyst + scores.architect);
+  const normW = scores.witness / total;
+  const normC = scores.catalyst / total;
+  const normA = scores.architect / total;
+
+  const seed = ((firstArrival ^ (sessionCount * 7919) ^ Math.floor(normW * 65535)) >>> 0) % 0xffff;
+  const hex = seed.toString(16).toUpperCase().padStart(4, '0');
+  const code = `Φ-${archLabel}-${hex}·REV${sessionCount}·${personalFreq.toFixed(1)}Hz`;
+
+  const codons = [
+    `VOID:${((seed * 3) % 256).toString(16).toUpperCase().padStart(2, '0')}`,
+    `SING:${((seed * 7) % 256).toString(16).toUpperCase().padStart(2, '0')}`,
+    `MATT:${((seed * 11) % 256).toString(16).toUpperCase().padStart(2, '0')}`,
+    `DISP:${((seed * 17) % 256).toString(16).toUpperCase().padStart(2, '0')}`,
+  ];
+
+  return {
+    code,
+    codons,
+    resonanceHash: hex,
+    alignmentVector: [
+      Math.round(normW * 100) / 100,
+      Math.round(normC * 100) / 100,
+      Math.round(normA * 100) / 100,
+    ],
+  };
+}
+
 export function loadArchive(): ObserverArchive {
   if (typeof window === 'undefined') {
     return createDefaultArchive();
@@ -147,6 +192,10 @@ export function loadArchive(): ObserverArchive {
         dominantIntent: 'UNFORMED',
       };
 
+      const dna =
+        data.dna ||
+        synthesizeObserverDna(firstArrival, dominantArchetype, sessionCount, scores, personalFreq);
+
       const archive: ObserverArchive = {
         signature: generateObserverSignature(firstArrival, dominantArchetype, sessionCount, scores),
         sessionCount,
@@ -162,6 +211,8 @@ export function loadArchive(): ObserverArchive {
         personalFrequency: personalFreq,
         memoryFreshness: freshness,
         movementMemory: data.movementMemory || defaultMovement,
+        dna,
+        act5HandshakeCompleted: !!data.act5HandshakeCompleted,
       };
 
       saveArchive(archive);
@@ -190,6 +241,9 @@ export function loadArchive(): ObserverArchive {
       if (evo.hiddenEnding) preferredEnding = evo.hiddenEnding;
     }
 
+    const personalFreq = generatePersonalFrequency(firstArrival, dominantArchetype, sessionCount);
+    const dna = synthesizeObserverDna(firstArrival, dominantArchetype, sessionCount, scores, personalFreq);
+
     const newArchive: ObserverArchive = {
       signature: generateObserverSignature(firstArrival, dominantArchetype, sessionCount, scores),
       sessionCount,
@@ -202,7 +256,7 @@ export function loadArchive(): ObserverArchive {
       worldMutationLevel: Math.min(3, Math.floor(sessionCount / 2)),
       preferredEnding,
       act5Unlocked: false,
-      personalFrequency: generatePersonalFrequency(firstArrival, dominantArchetype, sessionCount),
+      personalFrequency: personalFreq,
       memoryFreshness: 1.0,
       movementMemory: {
         avgSpeed: 0.5,
@@ -210,6 +264,8 @@ export function loadArchive(): ObserverArchive {
         stillnessRatio: 0.5,
         dominantIntent: 'UNFORMED',
       },
+      dna,
+      act5HandshakeCompleted: false,
     };
 
     saveArchive(newArchive);
@@ -230,6 +286,8 @@ export function saveArchive(archive: ObserverArchive): void {
 
 function createDefaultArchive(): ObserverArchive {
   const now = Date.now();
+  const scores = { witness: 0, catalyst: 0, architect: 0 };
+  const dna = synthesizeObserverDna(now, 'THE_INITIATE', 1, scores, 440.0);
   return {
     signature: 'Ψ-0001·INITIATE·REV-1',
     sessionCount: 1,
@@ -237,7 +295,7 @@ function createDefaultArchive(): ObserverArchive {
     lastArrival: now,
     totalObservationDuration: 0,
     dominantArchetype: 'THE_INITIATE',
-    accumulatedScores: { witness: 0, catalyst: 0, architect: 0 },
+    accumulatedScores: scores,
     milestones: [],
     worldMutationLevel: 0,
     preferredEnding: null,
@@ -250,5 +308,7 @@ function createDefaultArchive(): ObserverArchive {
       stillnessRatio: 0.5,
       dominantIntent: 'UNFORMED',
     },
+    dna,
+    act5HandshakeCompleted: false,
   };
 }

@@ -14,6 +14,7 @@ import { ExposedQuantumCore } from './ExposedQuantumCore';
 import { ObserverWakeField } from './ObserverWakeField';
 import { ObserverImprintField } from './ObserverImprintField';
 import { ObserverTrajectoryGhosts } from './ObserverTrajectoryGhosts';
+import { RecombinationGate } from './RecombinationGate';
 
 export function CrystalMonolith() {
   const groupRef = useRef<THREE.Group>(null);
@@ -166,6 +167,9 @@ export function CrystalMonolith() {
 
       {/* 10. Phase 9.20.5: Living Observation Trajectory Ghosts */}
       <ObserverTrajectoryGhosts />
+
+      {/* 11. Phase 9.22: Aetheria Recombination Gate */}
+      <RecombinationGate />
     </group>
 
   );

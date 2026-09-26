@@ -49,6 +49,7 @@ class SoundEngine {
   private consciousFilter: BiquadFilterNode | null = null;
   private consciousGain: GainNode | null = null;
   private intentionChimeTriggered = false;
+  private gateOpenTriggered = false;
 
   private isInitialized = false;
   private chimeTriggered = false;
@@ -890,6 +891,60 @@ class SoundEngine {
 
       osc.start(now + idx * 0.08);
       osc.stop(now + idx * 0.08 + 2.4);
+    });
+  }
+
+  /**
+   * Phase 9.22 Recombination Gate Opening & ACT V Handshake Resolution
+   * Grand sub-bass gravitational release + ascending Solfeggio overtone unison resolution.
+   */
+  public playRecombinationGateOpen(personalFreq: number) {
+    if (!this.ctx || !this.masterGain || this.gateOpenTriggered) return;
+    this.gateOpenTriggered = true;
+    const now = this.ctx.currentTime;
+    const fundamental = personalFreq > 100 ? personalFreq : 432.0;
+
+    // 1. Deep Sub-Bass Gravitational Release sweep (48Hz down to 16Hz)
+    const subRelease = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+    subRelease.type = 'sine';
+    subRelease.frequency.setValueAtTime(48.0, now);
+    subRelease.frequency.exponentialRampToValueAtTime(16.0, now + 3.0);
+
+    subGain.gain.setValueAtTime(0.0001, now);
+    subGain.gain.linearRampToValueAtTime(0.45, now + 0.15);
+    subGain.gain.exponentialRampToValueAtTime(0.0001, now + 3.2);
+
+    subRelease.connect(subGain);
+    subGain.connect(this.masterGain);
+    subRelease.start(now);
+    subRelease.stop(now + 3.4);
+
+    // 2. Celestial Recombination Golden Unison Chord
+    const chordRatios = [0.5, 1.0, 1.25, 1.5, 1.6180339887, 2.0];
+    chordRatios.forEach((ratio, idx) => {
+      if (!this.ctx || !this.masterGain) return;
+      const osc = this.ctx.createOscillator();
+      const filter = this.ctx.createBiquadFilter();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(fundamental * ratio, now);
+
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(fundamental * ratio, now);
+      filter.Q.setValueAtTime(12.0, now);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.18 / Math.sqrt(idx + 1), now + 0.3 + idx * 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 4.5);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(now);
+      osc.stop(now + 4.6);
     });
   }
 

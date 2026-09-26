@@ -5,7 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useExperienceStore } from '@/store/experienceStore';
 import { damp } from '@/utils/helpers';
-import { loadArchive, saveArchive, computeWorldMutation, generateObserverSignature } from '@/utils/archive';
+import { loadArchive, saveArchive, computeWorldMutation, generateObserverSignature, synthesizeObserverDna } from '@/utils/archive';
 import { soundEngine } from '@/utils/audioEngine';
 
 const STORAGE_KEY = 'aetheria_observer_memory';
@@ -79,6 +79,15 @@ export function ObserverController() {
   const setObserverIntention = useExperienceStore((state) => state.setObserverIntention);
   const setIntentionVerified = useExperienceStore((state) => state.setIntentionVerified);
 
+  // Phase 9.22 Aetheria Recombination Gate Hooks
+  const setObserverDna = useExperienceStore((state) => state.setObserverDna);
+  const setMemoryReciprocityProgress = useExperienceStore((state) => state.setMemoryReciprocityProgress);
+  const setUniverseSynchronized = useExperienceStore((state) => state.setUniverseSynchronized);
+  const setGateApertureProgress = useExperienceStore((state) => state.setGateApertureProgress);
+  const setGateActivationProgress = useExperienceStore((state) => state.setGateActivationProgress);
+  const setAct5HandshakeCompleted = useExperienceStore((state) => state.setAct5HandshakeCompleted);
+  const setAct5Active = useExperienceStore((state) => state.setAct5Active);
+
   // Pre-allocated geometries and vectors
   const focalPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
   const crystalSphere = useRef(new THREE.Sphere(new THREE.Vector3(0, 0.1, 0), 1.9));
@@ -99,6 +108,12 @@ export function ObserverController() {
   const lastPointerCoord = useRef<THREE.Vector2>(new THREE.Vector2(0, 0));
   const consciousProgRef = useRef(0);
   const facetAwakeArrayRef = useRef<number[]>(new Array(20).fill(0));
+
+  // Phase 9.22 Recombination Gate dynamics
+  const reciprocityProgRef = useRef(0);
+  const gateApertureRef = useRef(0);
+  const gateActivationRef = useRef(0);
+  const gazeHoldTimerRef = useRef(0);
 
   // Evolution & scoring accumulators
   const scoreFlushTimer = useRef(0);
@@ -150,6 +165,13 @@ export function ObserverController() {
       if (archive.personalFrequency) {
         setPersonalFrequency(archive.personalFrequency);
       }
+      if (archive.dna) {
+        setObserverDna(archive.dna);
+      }
+      if (archive.act5HandshakeCompleted) {
+        setAct5HandshakeCompleted(true);
+        setAct5Active(true);
+      }
     } catch {
       // Graceful fallback if storage disabled
     }
@@ -166,6 +188,9 @@ export function ObserverController() {
     setAct5Prepared,
     setUniverseCoherenceScore,
     setPersonalFrequency,
+    setObserverDna,
+    setAct5HandshakeCompleted,
+    setAct5Active,
   ]);
 
   // 2. Mobile Gyroscope Layer (Optional Subtle Shift ±5°)
@@ -590,7 +615,62 @@ export function ObserverController() {
       }
     }
 
-    // 14. Periodic Archive Sync & Time Accumulation
+    // 14. Phase 9.22 Memory Reciprocity & Universe Response Synchronization
+    const corePulse = Math.sin(time * 2.5) * 0.5 + 0.5;
+    const breathSync = 1.0 - Math.abs(breathOscillation - corePulse);
+    const isReciprocal =
+      isHovering &&
+      attentionRef.current > 0.35 &&
+      stillnessScoreRef.current > 0.55 &&
+      cState === 'AWAKENED' &&
+      awakeCount >= 16;
+
+    if (isReciprocal) {
+      reciprocityProgRef.current = Math.min(1.0, reciprocityProgRef.current + delta * 0.28 * (0.6 + 0.4 * breathSync));
+    } else {
+      reciprocityProgRef.current = Math.max(0.0, reciprocityProgRef.current - delta * 0.06);
+    }
+    setMemoryReciprocityProgress(reciprocityProgRef.current);
+
+    // Universe Response Synchronization Event
+    const isSync = reciprocityProgRef.current >= 0.95;
+    if (isSync && !storeState.universeSynchronized) {
+      setUniverseSynchronized(true);
+    }
+
+    // 15. Gaze / Stillness Recombination Gate Activation
+    const isGateArmed = storeState.act5GateArmed || (calculatedCoherence >= 90 && singularity >= 0.92 && isIntentionVerified);
+    if (storeState.universeSynchronized && isGateArmed) {
+      // Focus detection: pointer centered on singularity core and high stillness
+      const distToCore = Math.sqrt(pointer.x * pointer.x + pointer.y * pointer.y);
+      const isGazeCentered = distToCore < 0.32 && stillnessScoreRef.current >= 0.82;
+
+      if (isGazeCentered) {
+        gazeHoldTimerRef.current += delta;
+        gateActivationRef.current = Math.min(1.0, gazeHoldTimerRef.current / 3.5);
+        gateApertureRef.current = damp(gateApertureRef.current, 0.40 + 0.60 * gateActivationRef.current, 3.0, delta);
+      } else {
+        gazeHoldTimerRef.current = Math.max(0.0, gazeHoldTimerRef.current - delta * 1.5);
+        gateActivationRef.current = Math.max(0.0, gateActivationRef.current - delta * 0.5);
+        gateApertureRef.current = damp(gateApertureRef.current, 0.40, 2.0, delta);
+      }
+
+      setGateApertureProgress(gateApertureRef.current);
+      setGateActivationProgress(gateActivationRef.current);
+
+      // ACT V Final Transition Handshake
+      if (gateActivationRef.current >= 1.0 && !storeState.act5HandshakeCompleted) {
+        setAct5HandshakeCompleted(true);
+        setAct5Active(true);
+        soundEngine.playRecombinationGateOpen(pFreq);
+        if (archive) {
+          archive.act5HandshakeCompleted = true;
+          saveArchive(archive);
+        }
+      }
+    }
+
+    // 16. Periodic Archive Sync & Time Accumulation
     sessionDurationRef.current += delta;
     archiveSyncTimer.current += delta;
     if (archiveSyncTimer.current > 4.0) {
@@ -608,6 +688,14 @@ export function ObserverController() {
           dominantIntent: currentIntent,
         };
         currentArchive.personalFrequency = pFreq;
+        currentArchive.dna = synthesizeObserverDna(
+          currentArchive.firstArrival,
+          currentArchive.dominantArchetype,
+          currentArchive.sessionCount,
+          currentArchive.accumulatedScores,
+          pFreq
+        );
+        setObserverDna(currentArchive.dna);
         currentArchive.signature = generateObserverSignature(
           currentArchive.firstArrival,
           currentArchive.dominantArchetype,

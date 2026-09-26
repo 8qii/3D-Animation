@@ -80,6 +80,10 @@ export function CinematicTextSystem() {
   const personalFrequency = useExperienceStore((state) => state.personalFrequency);
   const observerIntention = useExperienceStore((state) => state.observerIntention);
   const intentionVerified = useExperienceStore((state) => state.intentionVerified);
+  const observerDna = useExperienceStore((state) => state.observerDna);
+  const memoryReciprocityProgress = useExperienceStore((state) => state.memoryReciprocityProgress);
+  const gateActivationProgress = useExperienceStore((state) => state.gateActivationProgress);
+  const act5HandshakeCompleted = useExperienceStore((state) => state.act5HandshakeCompleted);
 
   // Determine active narrative line and conscious theme with Archetype & Multi-Visit Adaptation
   const narrative = useMemo(() => {
@@ -92,6 +96,30 @@ export function CinematicTextSystem() {
         borderColor: 'border-yellow-400/80 shadow-[0_0_35px_rgba(234,179,8,0.4)]',
         badgeBg: 'bg-yellow-950/75',
         dotColor: 'bg-yellow-300 shadow-[0_0_14px_#fde047]',
+      };
+    }
+
+    if (act5HandshakeCompleted) {
+      return {
+        title: 'THE UNIVERSE DOES NOT OPEN BECAUSE YOU ARRIVED',
+        subtitle: 'It opens because you are recognized. ACT V: The Recombination is initiated.',
+        status: 'ACT V: RECOMBINATION PROTOCOL ACTIVE',
+        color: 'gold' as const,
+        borderColor: 'border-yellow-400/90 shadow-[0_0_35px_rgba(250,204,21,0.5)]',
+        badgeBg: 'bg-yellow-950/80',
+        dotColor: 'bg-yellow-300 shadow-[0_0_16px_#fde047]',
+      };
+    }
+
+    if (gateActivationProgress > 0.05) {
+      return {
+        title: 'RECOMBINATION GATE DILATING',
+        subtitle: 'Hold gaze on the quantum core. Sacred event horizon responds to verified stillness.',
+        status: `GATE APERTURE: ${(gateActivationProgress * 100).toFixed(0)}%`,
+        color: 'cyan' as const,
+        borderColor: 'border-cyan-400/80 shadow-[0_0_30px_rgba(56,189,248,0.4)]',
+        badgeBg: 'bg-cyan-950/75',
+        dotColor: 'bg-cyan-300 shadow-[0_0_14px_#38bdf8]',
       };
     }
 
@@ -209,6 +237,8 @@ export function CinematicTextSystem() {
     consciousState,
     intentionVerified,
     personalFrequency,
+    gateActivationProgress,
+    act5HandshakeCompleted,
   ]);
 
   if (!narrative) return null;
@@ -282,7 +312,10 @@ export function CinematicTextSystem() {
           {intentionVerified && (
             <span className="text-emerald-300 font-bold tracking-wider animate-pulse">VERIFIED</span>
           )}
-          <span>SIG: <strong className="text-sky-300 font-mono tracking-wider">{observerSignature}</strong></span>
+          {memoryReciprocityProgress > 0.05 && (
+            <span>RECIPROCITY: <strong className="text-emerald-300">{(memoryReciprocityProgress * 100).toFixed(0)}%</strong></span>
+          )}
+          <span>DNA: <strong className="text-sky-300 font-mono tracking-wider">{observerDna?.code.slice(0, 15) || observerSignature}</strong></span>
         </div>
       </div>
 

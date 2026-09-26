@@ -34,6 +34,10 @@ export function CinematicTextReveal() {
   const awakenedFacetCount = useExperienceStore((state) => state.awakenedFacetCount);
   const observerIntention = useExperienceStore((state) => state.observerIntention);
   const intentionVerified = useExperienceStore((state) => state.intentionVerified);
+  const observerDna = useExperienceStore((state) => state.observerDna);
+  const memoryReciprocityProgress = useExperienceStore((state) => state.memoryReciprocityProgress);
+  const gateActivationProgress = useExperienceStore((state) => state.gateActivationProgress);
+  const act5HandshakeCompleted = useExperienceStore((state) => state.act5HandshakeCompleted);
 
   // Compute opacities based on narrative progression
   const isAct4 = fractureProgress > 0.001 || collapseProgress > 0.001 || singularityThresholdProgress > 0.001;
@@ -313,9 +317,13 @@ export function CinematicTextReveal() {
                 {`DESTINY TRAJECTORY: ${hiddenEnding} // ARCHETYPE: ${observerArchetype.replace('THE_', '')}`}
               </div>
             )}
-            {act5GateArmed && intentionVerified ? (
+            {act5HandshakeCompleted ? (
+              <div className="text-yellow-200 font-bold tracking-[0.42em] animate-pulse drop-shadow-[0_0_16px_rgba(250,204,21,0.9)]">
+                {`ACT V: THE RECOMBINATION INITIATED // APERTURE OPEN`}
+              </div>
+            ) : act5GateArmed && intentionVerified ? (
               <div className="text-cyan-200 font-bold tracking-[0.40em] animate-pulse drop-shadow-[0_0_12px_rgba(56,189,248,0.8)]">
-                {`ACT V RECOGNITION GATE: UNLOCKED // INTENTION: ${observerIntention.replace('_', ' ')} // CONSCIOUS RECOMBINATION`}
+                {`RECOMBINATION GATE ARMED // GAZE FOCUS: ${(gateActivationProgress * 100).toFixed(0)}% // RECIPROCITY: ${(memoryReciprocityProgress * 100).toFixed(0)}%`}
               </div>
             ) : act5GateArmed ? (
               <div className="text-cyan-200 font-bold tracking-[0.40em] animate-pulse drop-shadow-[0_0_12px_rgba(56,189,248,0.8)]">
@@ -327,8 +335,8 @@ export function CinematicTextReveal() {
               </div>
             ) : null}
             <div className="text-slate-400 font-mono text-[8px] tracking-[0.28em] flex flex-wrap gap-x-4">
-              <span>{`AETHERIA MEMORY ARCHIVE // SIGNATURE: ${observerSignature}`}</span>
-              <span>{`CONSCIOUSNESS: ${consciousState} // FREQ: ${personalFrequency.toFixed(1)}Hz // FACETS: ${awakenedFacetCount}/20`}</span>
+              <span>{`OBSERVER DNA: ${observerDna?.code || observerSignature}`}</span>
+              <span>{`CONSCIOUSNESS: ${consciousState} // RECIPROCITY: ${(memoryReciprocityProgress * 100).toFixed(0)}% // FREQ: ${personalFrequency.toFixed(1)}Hz`}</span>
             </div>
           </div>
         </div>

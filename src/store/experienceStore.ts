@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ObserverArchive, WorldMutation } from '@/utils/archive';
+import type { ObserverArchive, WorldMutation, ObserverDna } from '@/utils/archive';
 
 export type SceneId = 'scene-01' | 'scene-02' | 'scene-03';
 
@@ -235,6 +235,22 @@ interface ExperienceState {
   setObserverIntention: (intention: 'CONTEMPLATIVE_WITNESS' | 'KINETIC_CATALYST' | 'SACRED_ARCHITECT' | 'UNFORMED') => void;
   intentionVerified: boolean;
   setIntentionVerified: (verified: boolean) => void;
+
+  // Phase 9.22 Aetheria Recombination Gate
+  observerDna: ObserverDna | null;
+  setObserverDna: (dna: ObserverDna) => void;
+  memoryReciprocityProgress: number; // 0 to 1
+  setMemoryReciprocityProgress: (val: number) => void;
+  universeSynchronized: boolean;
+  setUniverseSynchronized: (val: boolean) => void;
+  gateApertureProgress: number; // 0 to 1
+  setGateApertureProgress: (val: number) => void;
+  gateActivationProgress: number; // 0 to 1
+  setGateActivationProgress: (val: number) => void;
+  act5HandshakeCompleted: boolean;
+  setAct5HandshakeCompleted: (val: boolean) => void;
+  act5Active: boolean;
+  setAct5Active: (val: boolean) => void;
 
 
   // Kinetic Scroll Energy (Thermodynamics)
@@ -548,6 +564,23 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   ) => set({ observerIntention }),
   intentionVerified: false,
   setIntentionVerified: (intentionVerified: boolean) => set({ intentionVerified }),
+
+  // Phase 9.22 Aetheria Recombination Gate
+  observerDna: null,
+  setObserverDna: (observerDna: ObserverDna) => set({ observerDna }),
+  memoryReciprocityProgress: 0,
+  setMemoryReciprocityProgress: (memoryReciprocityProgress: number) =>
+    set({ memoryReciprocityProgress }),
+  universeSynchronized: false,
+  setUniverseSynchronized: (universeSynchronized: boolean) => set({ universeSynchronized }),
+  gateApertureProgress: 0,
+  setGateApertureProgress: (gateApertureProgress: number) => set({ gateApertureProgress }),
+  gateActivationProgress: 0,
+  setGateActivationProgress: (gateActivationProgress: number) => set({ gateActivationProgress }),
+  act5HandshakeCompleted: false,
+  setAct5HandshakeCompleted: (act5HandshakeCompleted: boolean) => set({ act5HandshakeCompleted }),
+  act5Active: false,
+  setAct5Active: (act5Active: boolean) => set({ act5Active }),
 
 
 
