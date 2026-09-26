@@ -31,6 +31,7 @@ export function useTimelineController() {
   const setStillnessFactor = useExperienceStore((state) => state.setStillnessFactor);
   const setAct4Progress = useExperienceStore((state) => state.setAct4Progress);
   const setFractureProgress = useExperienceStore((state) => state.setFractureProgress);
+  const setFacetMemoryProgress = useExperienceStore((state) => state.setFacetMemoryProgress);
 
   useEffect(() => {
     // 1. Cross-Scene Transition Progress (Act I -> Act II boundary)
@@ -64,6 +65,7 @@ export function useTimelineController() {
     let stillness = 0.0;
     let act4Prog = 0.0;
     let fractureProg = 0.0;
+    let facetMemProg = 0.0;
 
     if (isPreviewMode) {
       // 0 - 60s Cinematic sequence:
@@ -104,13 +106,21 @@ export function useTimelineController() {
         tensionProg = 1.0;
         stillness = 1.0;
       } else if (previewTime >= 47.5) {
-        // Phase 9.0 Act IV: Fracture Initiation
+        // Phase 9.0 & 9.15 Act IV: Fracture Initiation & Facet Memory Drift
         const t = clamp((previewTime - 47.5) / 12.5, 0.0, 1.0);
-        fractureProg = t;
         act4Prog = t;
         memProg = 1.0;
         tensionProg = 1.0;
         stillness = Math.max(0.0, 1.0 - t * 4.0); // Quick unfreeze on fracture snap
+
+        if (previewTime >= 53.5) {
+          // Phase 9.15: Facet Memory Drift & 2-second time dilation moment
+          fractureProg = 1.0;
+          facetMemProg = clamp((previewTime - 53.5) / 4.0, 0.0, 1.0);
+        } else {
+          fractureProg = clamp((previewTime - 47.5) / 6.0, 0.0, 1.0);
+          facetMemProg = 0.0;
+        }
       } else if (previewTime >= 35.0) {
         tensionProg = clamp((previewTime - 35.0) / 3.0, 0.0, 0.85);
       }
@@ -154,12 +164,22 @@ export function useTimelineController() {
         act3Prog = rawAct3 * rawAct3 * (3 - 2 * rawAct3);
       }
 
-      // Phase 8.75 & Phase 9.0 Act IV Timeline
-      if (scrollProgress >= 0.93) {
-        // S = 0.93 - 1.00: Phase 9.0 Act IV Fracture Initiation
-        const t = clamp((scrollProgress - 0.93) / 0.07, 0.0, 1.0);
+      // Phase 8.75 & Phase 9.0 & Phase 9.15 Act IV Timeline
+      if (scrollProgress >= 0.965) {
+        // S = 0.965 - 1.00: Phase 9.15 Facet Memory Drift
+        fractureProg = 1.0;
+        facetMemProg = clamp((scrollProgress - 0.965) / 0.035, 0.0, 1.0);
+        act4Prog = 1.0;
+        monolithPh = 'FINAL_STILLNESS';
+        memProg = 1.0;
+        tensionProg = 1.0;
+        stillness = 0.0;
+      } else if (scrollProgress >= 0.93) {
+        // S = 0.93 - 0.965: Phase 9.0 / 9.1 Fracture & Facet Separation
+        const t = clamp((scrollProgress - 0.93) / 0.035, 0.0, 1.0);
         fractureProg = t;
-        act4Prog = t;
+        facetMemProg = 0.0;
+        act4Prog = clamp((scrollProgress - 0.93) / 0.07, 0.0, 1.0);
         monolithPh = 'FINAL_STILLNESS';
         memProg = 1.0;
         tensionProg = 1.0;
@@ -203,6 +223,7 @@ export function useTimelineController() {
     setStillnessFactor(stillness);
     setAct4Progress(act4Prog);
     setFractureProgress(fractureProg);
+    setFacetMemoryProgress(facetMemProg);
   }, [
     scrollProgress,
     isPreviewMode,
@@ -220,5 +241,6 @@ export function useTimelineController() {
     setStillnessFactor,
     setAct4Progress,
     setFractureProgress,
+    setFacetMemoryProgress,
   ]);
 }

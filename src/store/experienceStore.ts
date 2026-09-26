@@ -101,11 +101,13 @@ interface ExperienceState {
   setMemoryProgress: (progress: number) => void;
   setStillnessFactor: (factor: number) => void;
 
-  // Act IV: The Dispersion Engine (Phase 9.0 Fracture Initiation)
+  // Act IV: The Dispersion Engine (Phase 9.0 Fracture & Phase 9.15 Facet Memory Drift)
   act4Progress: number; // 0 to 1 across Act IV timeline
-  fractureProgress: number; // 0 to 1 (initial crack fissure opening and photon leakage)
+  fractureProgress: number; // 0 to 1 (initial crack fissure opening and facet separation)
+  facetMemoryProgress: number; // 0 to 1 (Phase 9.15 facet memory drift & invisible mathematical connection)
   setAct4Progress: (progress: number) => void;
   setFractureProgress: (progress: number) => void;
+  setFacetMemoryProgress: (progress: number) => void;
 
   // Cursor Parallax (Screen Normalized [-1, 1])
   pointer: { x: number; y: number };
@@ -248,6 +250,7 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   // Act IV: The Dispersion Initial State
   act4Progress: 0,
   fractureProgress: 0,
+  facetMemoryProgress: 0,
   setAct4Progress: (progress: number) =>
     set({
       act4Progress: Math.min(1.0, Math.max(0.0, progress)),
@@ -255,6 +258,10 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   setFractureProgress: (progress: number) =>
     set({
       fractureProgress: Math.min(1.0, Math.max(0.0, progress)),
+    }),
+  setFacetMemoryProgress: (progress: number) =>
+    set({
+      facetMemoryProgress: Math.min(1.0, Math.max(0.0, progress)),
     }),
 
   // Pointer parallax initial state

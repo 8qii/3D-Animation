@@ -14,6 +14,7 @@ export function CinematicTextReveal() {
   const monolithPhase = useExperienceStore((state) => state.monolithPhase);
   const stillnessFactor = useExperienceStore((state) => state.stillnessFactor);
   const fractureProgress = useExperienceStore((state) => state.fractureProgress);
+  const facetMemoryProgress = useExperienceStore((state) => state.facetMemoryProgress);
   const mouseWorld = useExperienceStore((state) => state.mouseWorld);
   const isMuted = useExperienceStore((state) => state.isMuted);
   const toggleMute = useExperienceStore((state) => state.toggleMute);
@@ -33,7 +34,11 @@ export function CinematicTextReveal() {
   // Formatting phase badge text
   let phaseLabel = 'QUANTUM VACUUM';
   if (isAct4) {
-    phaseLabel = fractureProgress > 0.45 ? 'ACT IV: GEOMETRIC SEPARATION' : 'ACT IV: FRACTURE INITIATION';
+    if (facetMemoryProgress > 0.05) {
+      phaseLabel = 'STATE: GEOMETRY RELEASED';
+    } else {
+      phaseLabel = fractureProgress > 0.45 ? 'ACT IV: GEOMETRIC SEPARATION' : 'ACT IV: FRACTURE INITIATION';
+    }
   } else if (monolithPhase === 'FINAL_STILLNESS') {
     phaseLabel = 'ACT III: FINAL STILLNESS';
   } else if (monolithPhase === 'MEMORY_RESONANCE') {
@@ -248,10 +253,14 @@ export function CinematicTextReveal() {
 
           <div className="pt-2 font-mono text-[9px] tracking-[0.32em] text-cyan-400/90 uppercase space-y-1">
             <div>
-              {`STRUCTURE: SEPARATING // FACET COUNT: ${Math.max(0, Math.round(20 * (1.0 - Math.min(1.0, fractureProgress * 1.1))))} → 0`}
+              {facetMemoryProgress > 0.05
+                ? 'STRUCTURE: SUSPENDED IN MEMORY // 20 FACETS ENTANGLED'
+                : `STRUCTURE: SEPARATING // FACET COUNT: ${Math.max(0, Math.round(20 * (1.0 - Math.min(1.0, fractureProgress * 1.1))))} → 0`}
             </div>
             <div className="text-amber-400/90">
-              ENERGY CONTAINMENT: FAILED // WAVE: EXPANDING
+              {facetMemoryProgress > 0.05
+                ? 'ENERGY: AWAITING DISPERSION // TIME DILATION: ACTIVE (0.2x)'
+                : 'ENERGY CONTAINMENT: FAILED // WAVE: EXPANDING'}
             </div>
           </div>
         </div>

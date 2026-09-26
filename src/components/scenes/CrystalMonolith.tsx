@@ -9,6 +9,8 @@ import { TrappedEnergyField } from './TrappedEnergyField';
 import { CrystalMemoryField } from './CrystalMemoryField';
 import { PhotonLeakage } from './PhotonLeakage';
 import { CrystalShatter } from './CrystalShatter';
+import { FacetMemoryField } from './FacetMemoryField';
+import { ExposedQuantumCore } from './ExposedQuantumCore';
 
 export function CrystalMonolith() {
   const groupRef = useRef<THREE.Group>(null);
@@ -32,10 +34,13 @@ export function CrystalMonolith() {
     const tension = store.tensionProgress;
     const stillness = store.stillnessFactor;
     const fracture = store.fractureProgress;
+    const facetMemory = store.facetMemoryProgress;
 
-    // Motion scale decelerates from 1.0 down to 0.0 at complete stillness,
-    // and remains deeply arrested during fracture initiation
-    const motionScale = Math.max(0.0, 1.0 - stillness) * (1.0 - fracture * 0.7);
+    // Time Dilation: facet velocity and tumbling motion slows 100% -> 20%
+    const memoryDilation = 1.0 - facetMemory * 0.80;
+
+    // Motion scale decelerates into stillness and is time-dilated during facet memory drift
+    const motionScale = Math.max(0.0, 1.0 - stillness) * (1.0 - fracture * 0.7) * memoryDilation;
 
     if (materialRef.current) {
       materialRef.current.update(time);
@@ -55,7 +60,7 @@ export function CrystalMonolith() {
       // Visible once material lock begins
       groupRef.current.visible = materialLock > 0.01;
 
-      // Accumulated tumbling rotation that decelerates into perfect stillness
+      // Accumulated tumbling rotation that decelerates into perfect stillness and time dilation
       rotationAccum.current.x += delta * 0.12 * motionScale;
       rotationAccum.current.y += delta * 0.16 * motionScale;
       rotationAccum.current.z += delta * 0.08 * motionScale;
@@ -67,7 +72,7 @@ export function CrystalMonolith() {
       // Microscopic facet vibration reduces down during pre-stillness, freezes,
       // and then experiences high-frequency fracture shear jitter when fracture initiates
       const vibeFactor = motionScale * 0.9 + 0.1 * (1.0 - stillness);
-      const fractureJitter = Math.sin(time * 65.0) * 0.005 * fracture;
+      const fractureJitter = Math.sin(time * 65.0) * 0.005 * fracture * memoryDilation;
       const microVibe = (Math.sin(time * 30.0) * 0.0035 * tension * vibeFactor) + fractureJitter;
       const targetScale = THREE.MathUtils.lerp(0.94, 1.0, materialLock) * (1.0 + microVibe);
       groupRef.current.scale.set(targetScale, targetScale, targetScale);
@@ -85,10 +90,16 @@ export function CrystalMonolith() {
       {/* 3. Escaping Photons & Golden-Ratio Light Sheets */}
       <PhotonLeakage />
 
-      {/* 4. Act IV Golden Ratio Facet Separation System */}
+      {/* 4. Revealed Internal Quantum Core (Pulsing with Genesis Memory) */}
+      <ExposedQuantumCore />
+
+      {/* 5. Phase 9.15 Mathematical Memory Lattice & Inter-Facet Photon Streams */}
+      <FacetMemoryField />
+
+      {/* 6. Act IV Golden Ratio Facet Separation System */}
       <CrystalShatter />
 
-      {/* 5. Sacred Obsidian Monolith Mesh (Hands over to CrystalShatter on separation) */}
+      {/* 7. Sacred Obsidian Monolith Mesh (Hands over to CrystalShatter on separation) */}
       <mesh
         ref={meshRef}
         name="sacred-crystal-monolith"

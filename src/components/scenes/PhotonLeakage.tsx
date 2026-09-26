@@ -37,9 +37,13 @@ function LightSheetMesh({ quaternion, geometry }: LightSheetProps) {
   );
 
   useFrame((state) => {
-    const fracture = useExperienceStore.getState().fractureProgress;
+    const store = useExperienceStore.getState();
+    const fracture = store.fractureProgress;
+    const facetMemory = store.facetMemoryProgress;
+    const dilation = 1.0 - facetMemory * 0.70; // 100% -> 30%
+
     if (materialRef.current) {
-      materialRef.current.uniforms.uTime.value = state.clock.getElapsedTime();
+      materialRef.current.uniforms.uTime.value = state.clock.getElapsedTime() * dilation;
       materialRef.current.uniforms.uFractureProgress.value = fracture;
     }
   });
@@ -150,14 +154,17 @@ export function PhotonLeakage() {
 
   useFrame((state) => {
     const time = state.clock.getElapsedTime();
-    const fracture = useExperienceStore.getState().fractureProgress;
+    const store = useExperienceStore.getState();
+    const fracture = store.fractureProgress;
+    const facetMemory = store.facetMemoryProgress;
+    const dilation = 1.0 - facetMemory * 0.70; // 100% -> 30%
 
     if (groupRef.current) {
-      groupRef.current.visible = fracture > 0.001;
+      groupRef.current.visible = fracture > 0.001 || facetMemory > 0.001;
     }
 
     if (particleMaterialRef.current) {
-      particleMaterialRef.current.uniforms.uTime.value = time;
+      particleMaterialRef.current.uniforms.uTime.value = time * dilation;
       particleMaterialRef.current.uniforms.uFractureProgress.value = fracture;
     }
   });

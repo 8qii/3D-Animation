@@ -15,6 +15,7 @@ export function useAudioTransition() {
   const monolithPhase = useExperienceStore((state) => state.monolithPhase);
   const stillnessFactor = useExperienceStore((state) => state.stillnessFactor);
   const fractureProgress = useExperienceStore((state) => state.fractureProgress);
+  const facetMemoryProgress = useExperienceStore((state) => state.facetMemoryProgress);
   const scrollEnergy = useExperienceStore((state) => state.scrollEnergy);
   const pointer = useExperienceStore((state) => state.pointer);
   const attentionLevel = useExperienceStore((state) => state.attentionLevel);
@@ -42,10 +43,10 @@ export function useAudioTransition() {
       const isPreDispersion = (monolithPhase === 'MEMORY_RESONANCE' || monolithPhase === 'FINAL_STILLNESS') && fractureProgress <= 0.001;
       soundEngine.preDispersionState(isPreDispersion, stillnessFactor);
 
-      // Phase 9.0 & 9.1 Act IV Fracture Snap & Instability / Debris Evolution
+      // Phase 9.0 & 9.1 & 9.15 Act IV Fracture Snap & Instability / Debris / Facet Memory Drift
       if (fractureProgress >= 0.02) {
         soundEngine.triggerFractureSnap();
-        soundEngine.updateFractureInstability(fractureProgress, pointer.x);
+        soundEngine.updateFractureInstability(fractureProgress, pointer.x, facetMemoryProgress);
       } else if (fractureProgress < 0.01) {
         soundEngine.resetFractureSnap();
       }
@@ -84,6 +85,7 @@ export function useAudioTransition() {
     monolithPhase,
     stillnessFactor,
     fractureProgress,
+    facetMemoryProgress,
     scrollEnergy,
     pointer.x,
     attentionLevel,
