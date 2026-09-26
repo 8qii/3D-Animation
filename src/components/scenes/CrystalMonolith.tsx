@@ -12,6 +12,7 @@ import { CrystalShatter } from './CrystalShatter';
 import { FacetMemoryField } from './FacetMemoryField';
 import { ExposedQuantumCore } from './ExposedQuantumCore';
 import { ObserverWakeField } from './ObserverWakeField';
+import { ObserverImprintField } from './ObserverImprintField';
 
 export function CrystalMonolith() {
   const groupRef = useRef<THREE.Group>(null);
@@ -157,6 +158,9 @@ export function CrystalMonolith() {
 
       {/* 8. Phase 9.18.5: Hand Presence Gravitational Wake & Photon Trail Field */}
       <ObserverWakeField />
+
+      {/* 9. Phase 9.20: Aetheria Memory Archive Imprint Field */}
+      <ObserverImprintField />
     </group>
 
   );

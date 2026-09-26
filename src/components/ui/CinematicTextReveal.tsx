@@ -25,6 +25,9 @@ export function CinematicTextReveal() {
   const hiddenDiscoveryActive = useExperienceStore((state) => state.hiddenDiscoveryActive);
   const observerArchetype = useExperienceStore((state) => state.observerArchetype);
   const hiddenEnding = useExperienceStore((state) => state.hiddenEnding);
+  const act5Prepared = useExperienceStore((state) => state.act5Prepared);
+  const universeCoherenceScore = useExperienceStore((state) => state.universeCoherenceScore);
+  const observerSignature = useExperienceStore((state) => state.observerSignature);
 
   // Compute opacities based on narrative progression
   const isAct4 = fractureProgress > 0.001 || collapseProgress > 0.001 || singularityThresholdProgress > 0.001;
@@ -304,6 +307,14 @@ export function CinematicTextReveal() {
                 {`DESTINY TRAJECTORY: ${hiddenEnding} // ARCHETYPE: ${observerArchetype.replace('THE_', '')}`}
               </div>
             )}
+            {act5Prepared && (
+              <div className="text-emerald-300 font-bold tracking-[0.38em] animate-pulse">
+                {`ACT V READY: RECOMBINATION PROTOCOL ARMED // UNIVERSE COHERENCE: ${universeCoherenceScore}%`}
+              </div>
+            )}
+            <div className="text-slate-400 font-mono text-[8px] tracking-[0.28em]">
+              {`AETHERIA MEMORY ARCHIVE // SIGNATURE: ${observerSignature}`}
+            </div>
           </div>
         </div>
       </div>

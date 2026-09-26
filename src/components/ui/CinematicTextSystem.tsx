@@ -73,8 +73,10 @@ export function CinematicTextSystem() {
   const isReturningObserver = useExperienceStore((state) => state.isReturningObserver);
   const observerArchetype = useExperienceStore((state) => state.observerArchetype);
   const hiddenEnding = useExperienceStore((state) => state.hiddenEnding);
+  const observerArchive = useExperienceStore((state) => state.observerArchive);
+  const observerSignature = useExperienceStore((state) => state.observerSignature);
 
-  // Determine active narrative line and conscious theme with Archetype Adaptation
+  // Determine active narrative line and conscious theme with Archetype & Multi-Visit Adaptation
   const narrative = useMemo(() => {
     if (hiddenDiscoveryActive) {
       return {
@@ -88,11 +90,15 @@ export function CinematicTextSystem() {
       };
     }
 
+    const sessionCount = observerArchive?.sessionCount || 1;
+
     if (observerState === 'GENESIS_RESPONSE_ACTIVE') {
       if (observerArchetype === 'THE_WITNESS') {
         return {
           title: 'THE MONOLITH SETTLES IN YOUR STILLNESS',
-          subtitle: 'Time yields to unbroken contemplation. The crystal surrenders its perimeter.',
+          subtitle: sessionCount > 1
+            ? 'The lattice recognizes your prior peace. Time yields to unbroken contemplation.'
+            : 'Time yields to unbroken contemplation. The crystal surrenders its perimeter.',
           status: 'WITNESS RESONANCE: TRANSCENDENCE',
           color: 'transcendence' as const,
           borderColor: 'border-sky-300/70 shadow-[0_0_30px_rgba(186,230,253,0.35)]',
@@ -102,7 +108,9 @@ export function CinematicTextSystem() {
       } else if (observerArchetype === 'THE_CATALYST') {
         return {
           title: 'THE SINGULARITY HEATS BENEATH YOUR TOUCH',
-          subtitle: 'Kinetic entropy accelerates. The crystalline lattice yields to dynamic force.',
+          subtitle: sessionCount > 1
+            ? 'Your previous fires still excite the singularity. Kinetic entropy accelerates.'
+            : 'Kinetic entropy accelerates. The crystalline lattice yields to dynamic force.',
           status: 'CATALYST PULSE: SUPERNOVA',
           color: 'cyan' as const,
           borderColor: 'border-cyan-400/70 shadow-[0_0_30px_rgba(56,189,248,0.35)]',
@@ -112,7 +120,9 @@ export function CinematicTextSystem() {
       } else if (observerArchetype === 'THE_ARCHITECT') {
         return {
           title: 'THE GEOMETRY ALIGNS WITH YOUR INTELLECT',
-          subtitle: 'Golden ratio planes resonate. Mathematical memory recognizes its co-creator.',
+          subtitle: sessionCount > 1
+            ? 'The sacred blueprint bears your prior corrections. Mathematical memory awakens.'
+            : 'Golden ratio planes resonate. Mathematical memory recognizes its co-creator.',
           status: 'ARCHITECT BLUEPRINT: ASCENSION',
           color: 'gold' as const,
           borderColor: 'border-amber-400/70 shadow-[0_0_30px_rgba(245,158,11,0.35)]',
@@ -136,7 +146,11 @@ export function CinematicTextSystem() {
       case 'OBSERVER_SYNCHRONIZED':
         return {
           title: 'THE STRUCTURE REMEMBERS',
-          subtitle: 'Sacred fault planes attune to the observer’s presence.',
+          subtitle: sessionCount > 2
+            ? 'The universe does not remember your presence. It remembers your transformation.'
+            : sessionCount === 2
+            ? 'The memory of your first arrival has not faded. Sacred planes attune.'
+            : 'Sacred fault planes attune to the observer’s presence.',
           status: 'THE STRUCTURE HAS RECOGNIZED YOU',
           color: 'amber' as const,
           borderColor: 'border-amber-400/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]',
@@ -146,7 +160,9 @@ export function CinematicTextSystem() {
       case 'OBSERVER_DETECTED':
         return {
           title: 'CONSCIOUSNESS DETECTED',
-          subtitle: 'Consciousness penetrates the crystalline boundary.',
+          subtitle: sessionCount > 1
+            ? 'Consciousness returns. The crystalline boundary dissolves once more.'
+            : 'Consciousness penetrates the crystalline boundary.',
           status: 'THE OBSERVER HAS ARRIVED',
           color: 'cyan' as const,
           borderColor: 'border-cyan-400/50 shadow-[0_0_20px_rgba(56,189,248,0.2)]',
@@ -156,7 +172,7 @@ export function CinematicTextSystem() {
       default:
         return null;
     }
-  }, [observerState, hiddenDiscoveryActive, observerArchetype]);
+  }, [observerState, hiddenDiscoveryActive, observerArchetype, observerArchive]);
 
   if (!narrative) return null;
 
@@ -164,11 +180,16 @@ export function CinematicTextSystem() {
   const stillnessPercent = Math.round(observerStillnessScore * 100);
   const hoverSeconds = observerHoverDuration.toFixed(1);
 
-  // Return greeting text adapted to persona
-  let greetingLabel = 'WELCOME BACK, OBSERVER';
-  if (observerArchetype === 'THE_WITNESS') greetingLabel = 'WELCOME BACK, WITNESS';
-  else if (observerArchetype === 'THE_CATALYST') greetingLabel = 'WELCOME BACK, CATALYST';
-  else if (observerArchetype === 'THE_ARCHITECT') greetingLabel = 'WELCOME BACK, ARCHITECT';
+  // Return greeting text adapted to persona and archive cycle
+  const sessionCount = observerArchive?.sessionCount || 1;
+  let greetingLabel = sessionCount > 1 ? `CYCLE ${sessionCount} // OBSERVER RETURN` : 'FIRST CONTACT // OBSERVER DETECTED';
+  if (observerArchetype === 'THE_WITNESS') {
+    greetingLabel = `CYCLE ${sessionCount} // WELCOME BACK, WITNESS`;
+  } else if (observerArchetype === 'THE_CATALYST') {
+    greetingLabel = `CYCLE ${sessionCount} // WELCOME BACK, CATALYST`;
+  } else if (observerArchetype === 'THE_ARCHITECT') {
+    greetingLabel = `CYCLE ${sessionCount} // WELCOME BACK, ARCHITECT`;
+  }
 
   return (
     <div className="fixed inset-x-0 bottom-6 md:bottom-10 z-20 flex flex-col items-center pointer-events-none select-none px-4 [perspective:1200px]">
@@ -211,6 +232,7 @@ export function CinematicTextSystem() {
           {hiddenEnding && (
             <span>ENDING: <strong className="text-yellow-300 font-semibold">{hiddenEnding}</strong></span>
           )}
+          <span>SIG: <strong className="text-sky-300 font-mono tracking-wider">{observerSignature}</strong></span>
         </div>
       </div>
 

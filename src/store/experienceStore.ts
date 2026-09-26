@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { ObserverArchive, WorldMutation } from '@/utils/archive';
 
 export type SceneId = 'scene-01' | 'scene-02' | 'scene-03';
 
@@ -195,6 +196,19 @@ interface ExperienceState {
   // Adaptive GPU Quality System
   gpuTier: GpuTier;
   setGpuTier: (tier: GpuTier) => void;
+
+  // Phase 9.20 Aetheria Memory Archive
+  observerArchive: ObserverArchive | null;
+  setObserverArchive: (archive: ObserverArchive) => void;
+  observerSignature: string;
+  setObserverSignature: (signature: string) => void;
+  worldMutation: WorldMutation;
+  setWorldMutation: (mutation: WorldMutation) => void;
+  act5Prepared: boolean;
+  setAct5Prepared: (prepared: boolean) => void;
+  universeCoherenceScore: number;
+  setUniverseCoherenceScore: (score: number) => void;
+  recordMilestone: (id: string, act: number) => void;
 
 
   // Kinetic Scroll Energy (Thermodynamics)
@@ -435,6 +449,43 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   // Adaptive GPU Quality System
   gpuTier: 'TIER_ULTRA',
   setGpuTier: (gpuTier: GpuTier) => set({ gpuTier }),
+
+  // Phase 9.20 Aetheria Memory Archive
+  observerArchive: null,
+  setObserverArchive: (archive: ObserverArchive) => set({ observerArchive: archive }),
+  observerSignature: 'Ψ-0001·INITIATE·REV-1',
+  setObserverSignature: (observerSignature: string) => set({ observerSignature }),
+  worldMutation: {
+    tint: [1.0, 1.0, 1.0],
+    particleExcitation: 0.5,
+    gridIntensity: 0.2,
+  },
+  setWorldMutation: (worldMutation: WorldMutation) => set({ worldMutation }),
+  act5Prepared: false,
+  setAct5Prepared: (act5Prepared: boolean) => set({ act5Prepared }),
+  universeCoherenceScore: 0,
+  setUniverseCoherenceScore: (universeCoherenceScore: number) => set({ universeCoherenceScore }),
+  recordMilestone: (id: string, act: number) =>
+    set((state) => {
+      if (!state.observerArchive) return state;
+      const alreadyHas = state.observerArchive.milestones.some((m) => m.id === id);
+      if (alreadyHas) return state;
+
+      const newMilestones = [
+        ...state.observerArchive.milestones,
+        {
+          id,
+          timestamp: Date.now(),
+          act,
+          archetypeAtMoment: state.observerArchetype,
+        },
+      ];
+      const updatedArchive: ObserverArchive = {
+        ...state.observerArchive,
+        milestones: newMilestones,
+      };
+      return { observerArchive: updatedArchive };
+    }),
 
 
 

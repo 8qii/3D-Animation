@@ -5,6 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useExperienceStore } from '@/store/experienceStore';
 import { damp } from '@/utils/helpers';
+import { loadArchive, saveArchive, computeWorldMutation, generateObserverSignature } from '@/utils/archive';
 
 const STORAGE_KEY = 'aetheria_observer_memory';
 const EVOLUTION_STORAGE_KEY = 'aetheria_observer_evolution';
@@ -37,6 +38,14 @@ export function ObserverController() {
   const setCursorGravitationalForce = useExperienceStore((state) => state.setCursorGravitationalForce);
   const setGpuTier = useExperienceStore((state) => state.setGpuTier);
 
+  // Phase 9.20 Aetheria Memory Archive Hooks
+  const setObserverArchive = useExperienceStore((state) => state.setObserverArchive);
+  const setObserverSignature = useExperienceStore((state) => state.setObserverSignature);
+  const setWorldMutation = useExperienceStore((state) => state.setWorldMutation);
+  const setAct5Prepared = useExperienceStore((state) => state.setAct5Prepared);
+  const setUniverseCoherenceScore = useExperienceStore((state) => state.setUniverseCoherenceScore);
+  const recordMilestone = useExperienceStore((state) => state.recordMilestone);
+
   // Pre-allocated geometries and vectors
   const focalPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
   const crystalSphere = useRef(new THREE.Sphere(new THREE.Vector3(0, 0.1, 0), 1.9));
@@ -57,55 +66,64 @@ export function ObserverController() {
   const accumScores = useRef({ witness: 0, catalyst: 0, architect: 0 });
   const gravForceRef = useRef(0);
 
+  // Archive sync & session tracking
+  const sessionDurationRef = useRef(0);
+  const archiveSyncTimer = useRef(0);
+
   // Adaptive Quality rolling FPS trackers
   const fpsTimer = useRef(0);
   const frameCount = useRef(0);
   const lowFpsDuration = useRef(0);
   const highFpsDuration = useRef(0);
 
-  // 1. Observer Memory & Evolution Persistence (localStorage)
+  // 1. Observer Memory, Evolution & Aetheria Archive Persistence (localStorage)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const data = JSON.parse(raw);
-        setIsReturningObserver(true);
-        if (data.hasSynchronized) setHasSynchronizedBefore(true);
-        if (data.discoveryLevel) setDiscoveryLevel(data.discoveryLevel);
+      const archive = loadArchive();
+      setObserverArchive(archive);
+      setObserverSignature(archive.signature);
 
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({
-            ...data,
-            visits: (data.visits || 1) + 1,
-            lastVisit: Date.now(),
-          })
-        );
-      } else {
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({
-            visits: 1,
-            firstVisit: Date.now(),
-            hasSynchronized: false,
-            discoveryLevel: 0,
-          })
-        );
+      const mutation = computeWorldMutation(archive);
+      setWorldMutation(mutation);
+
+      setIsReturningObserver(archive.sessionCount > 1);
+
+      if (archive.dominantArchetype && archive.dominantArchetype !== 'THE_INITIATE') {
+        setObserverArchetype(archive.dominantArchetype);
       }
-
-      // Load Evolution Memory
-      const evoRaw = localStorage.getItem(EVOLUTION_STORAGE_KEY);
-      if (evoRaw) {
-        const evoData = JSON.parse(evoRaw);
-        if (evoData.scores) updateArchetypeScores(evoData.scores);
-        if (evoData.archetype) setObserverArchetype(evoData.archetype);
-        if (evoData.hiddenEnding) setHiddenEnding(evoData.hiddenEnding);
+      if (archive.accumulatedScores) {
+        updateArchetypeScores(archive.accumulatedScores);
+      }
+      if (archive.preferredEnding) {
+        setHiddenEnding(archive.preferredEnding);
+      }
+      if (archive.milestones.some((m) => m.id === 'ACT_III_CRYSTALLIZATION')) {
+        setHasSynchronizedBefore(true);
+      }
+      if (archive.milestones.some((m) => m.id === 'HIDDEN_SANCTUM_DISCOVERY')) {
+        setDiscoveryLevel(1);
+      }
+      if (archive.act5Unlocked) {
+        setAct5Prepared(true);
+        setUniverseCoherenceScore(100);
       }
     } catch {
       // Graceful fallback if storage disabled
     }
-  }, [setIsReturningObserver, setHasSynchronizedBefore, setDiscoveryLevel, updateArchetypeScores, setObserverArchetype, setHiddenEnding]);
+  }, [
+    setIsReturningObserver,
+    setHasSynchronizedBefore,
+    setDiscoveryLevel,
+    updateArchetypeScores,
+    setObserverArchetype,
+    setHiddenEnding,
+    setObserverArchive,
+    setObserverSignature,
+    setWorldMutation,
+    setAct5Prepared,
+    setUniverseCoherenceScore,
+  ]);
 
   // 2. Mobile Gyroscope Layer (Optional Subtle Shift ±5°)
   useEffect(() => {
@@ -377,6 +395,61 @@ export function ObserverController() {
     if (touchRipple.active) {
       const nextIntensity = Math.max(0, touchRipple.intensity - delta * 0.75);
       setTouchRippleIntensity(nextIntensity);
+    }
+
+    // 11. Phase 9.20 Journey Milestone Tracking & Act V Recognition Preparation
+    const storeState = useExperienceStore.getState();
+    const transition = storeState.transitionProgress;
+    const act2 = storeState.act2Progress;
+    const lock = storeState.materialLockProgress;
+    const fracture = storeState.fractureProgress;
+    const singularity = storeState.singularityThresholdProgress;
+    const hiddenActive = storeState.hiddenDiscoveryActive;
+
+    if (transition >= 0.70) recordMilestone('ACT_I_IGNITION', 1);
+    if (act2 >= 0.80) recordMilestone('ACT_II_COHERENCE', 2);
+    if (lock >= 0.85) recordMilestone('ACT_III_CRYSTALLIZATION', 3);
+    if (fracture >= 0.75) recordMilestone('ACT_IV_DISPERSION', 4);
+    if (hiddenActive) recordMilestone('HIDDEN_SANCTUM_DISCOVERY', 3);
+
+    // Act V Recognition Preparation
+    if (singularity > 0.80) {
+      const archive = storeState.observerArchive;
+      const milestoneBonus = (archive?.milestones.length || 0) * 12;
+      const sessionBonus = Math.min(25, ((archive?.sessionCount || 1) - 1) * 8);
+      const stillnessBonus = Math.round(stillnessScoreRef.current * 15);
+      const coherence = Math.min(100, 50 + milestoneBonus + sessionBonus + stillnessBonus);
+      setUniverseCoherenceScore(coherence);
+
+      if (coherence >= 75 && singularity >= 0.90 && !storeState.act5Prepared) {
+        setAct5Prepared(true);
+        if (archive) {
+          archive.act5Unlocked = true;
+          saveArchive(archive);
+        }
+      }
+    }
+
+    // 12. Periodic Archive Sync & Time Accumulation
+    sessionDurationRef.current += delta;
+    archiveSyncTimer.current += delta;
+    if (archiveSyncTimer.current > 4.0) {
+      archiveSyncTimer.current = 0;
+      const currentArchive = useExperienceStore.getState().observerArchive;
+      if (currentArchive) {
+        currentArchive.totalObservationDuration += 4.0;
+        currentArchive.dominantArchetype = useExperienceStore.getState().observerArchetype;
+        currentArchive.accumulatedScores = useExperienceStore.getState().archetypeScores;
+        currentArchive.preferredEnding = useExperienceStore.getState().hiddenEnding;
+        currentArchive.signature = generateObserverSignature(
+          currentArchive.firstArrival,
+          currentArchive.dominantArchetype,
+          currentArchive.sessionCount,
+          currentArchive.accumulatedScores
+        );
+        setObserverSignature(currentArchive.signature);
+        saveArchive(currentArchive);
+      }
     }
   });
 

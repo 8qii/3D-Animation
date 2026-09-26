@@ -257,7 +257,9 @@ export function VoidScene() {
     // 8. Vector Blueprint Cartesian Grid
     if (vectorGridMatRef.current) {
       vectorGridMatRef.current.uniforms.uTime.value = time;
-      vectorGridMatRef.current.uniforms.uGridReveal.value = transition;
+      // Phase 9.20: World Mutation baseline grid revelation from archive history
+      const archiveGrid = store.worldMutation?.gridIntensity ?? 0;
+      vectorGridMatRef.current.uniforms.uGridReveal.value = Math.max(transition, archiveGrid * 0.35);
     }
   });
 
