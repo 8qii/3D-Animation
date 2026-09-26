@@ -4,6 +4,7 @@ export const crystalFragmentShader = /* glsl */ `
   uniform float uTime;
   uniform float uMaterialLock;   // 0 (hologram) to 1 (solid physical obsidian)
   uniform float uTension;        // 0 (quiescent) to 1 (critical internal stress)
+  uniform float uStressPreview;  // Phase 8.75 fracture prediction visualization (0 to 1)
   uniform float uTransmission;   // Base transmission factor
   uniform float uRoughness;      // Microfacet surface roughness
   uniform float uDispersion;     // Chromatic dispersion dlambda/dn
@@ -47,16 +48,20 @@ export const crystalFragmentShader = /* glsl */ `
     float scratchNoise = hash21(floor(vUv * 600.0)) * 0.08;
     float microRoughness = clamp(uRoughness + scratchNoise * 0.05, 0.02, 1.0);
 
-    // 2. Controlled Transmission & Density Reduction during Material Lock
-    // In hologram: transmission is high (0.85), surface density is low
-    // In solid obsidian: transmission drops to 0.28, surface density locks to 1.0
-    float effectiveTransmission = mix(0.85, 0.28, uMaterialLock);
+    // 2. Optical Refinement: Transmission Breathing & Micro-Variations
+    float transBreathing = sin(uTime * 0.22) * 0.025;
+    float baseTransmission = mix(0.85, 0.28, uMaterialLock);
+    float effectiveTransmission = clamp(baseTransmission + transBreathing, 0.18, 0.88);
     float surfaceDensity = mix(0.15, 1.0, uMaterialLock);
 
+    // Micro Refractive Index & Dispersion Instability
+    float dynamicIOR = uRefractiveIndex + sin(uTime * 0.18 + vPosition.x * 2.5) * 0.008;
+    float dynamicDispersion = uDispersion + sin(uTime * 0.32 + vPosition.y * 3.0) * 0.015;
+
     // 3. Chromatic Dispersion (Refractive Ray Tracing through Facets)
-    float etaR = 1.0 / uRefractiveIndex;
-    float etaG = 1.0 / (uRefractiveIndex + uDispersion * 0.04);
-    float etaB = 1.0 / (uRefractiveIndex + uDispersion * 0.08);
+    float etaR = 1.0 / dynamicIOR;
+    float etaG = 1.0 / (dynamicIOR + dynamicDispersion * 0.04);
+    float etaB = 1.0 / (dynamicIOR + dynamicDispersion * 0.08);
 
     vec3 refR = refract(-viewDir, normal, etaR);
     vec3 refG = refract(-viewDir, normal, etaG);
@@ -68,11 +73,12 @@ export const crystalFragmentShader = /* glsl */ `
       dot(refB, vec3(0.0, 0.0, 1.0)) * 0.5 + 0.5
     );
 
-    // 4. Moving Internal Caustic Lattice
+    // 4. Moving Internal Caustic Lattice with Sub-Surface Light Flicker
+    float internalFlicker = 0.96 + hash21(floor(vPosition.xy * 28.0 + uTime * 1.8)) * 0.07;
     vec3 causticCoord = vPosition * 5.0 + vec3(0.0, 0.0, uTime * 0.6);
     float c1 = abs(sin(causticCoord.x * 3.0 + sin(causticCoord.y * 2.5)));
     float c2 = abs(cos(causticCoord.y * 3.0 + cos(causticCoord.z * 2.5)));
-    float internalCaustics = pow(1.0 - (c1 * c2), 3.5) * effectiveTransmission;
+    float internalCaustics = pow(1.0 - (c1 * c2), 3.5) * effectiveTransmission * internalFlicker;
 
     // 5. Beer-Lambert Internal Volumetric Absorption
     float opticalDepth = length(vPosition) * 1.8;
@@ -81,7 +87,7 @@ export const crystalFragmentShader = /* glsl */ `
     // 6. Base Obsidian Material Color Gradient
     float facetShade = max(dot(normal, vec3(0.0, 1.0, 0.5)), 0.0);
     vec3 obsidianBase = mix(uColorA, uColorB, facetShade * 0.4);
-    obsidianBase = mix(obsidianBase, dispersionCol, uDispersion * (1.0 - uMaterialLock * 0.5));
+    obsidianBase = mix(obsidianBase, dispersionCol, dynamicDispersion * (1.0 - uMaterialLock * 0.5));
     obsidianBase *= absorption;
 
     // 7. Architectural Lighting Interaction:
@@ -97,7 +103,7 @@ export const crystalFragmentShader = /* glsl */ `
     float specRim = distributionGGX(normal, halfRim, microRoughness * 0.8);
     vec3 rimLighting = vec3(0.35, 0.80, 1.00) * specRim * 1.4 * pow(vFresnel, 1.8);
 
-    // 8. Phase 8.5 Internal Tension: Golden-Ratio Fracture Planes & Stress Birefringence
+    // 8. Phase 8.5 & 8.75 Fracture Prediction: Golden-Ratio Fault Planes
     const float PHI = 1.6180339887;
     vec3 n1 = normalize(vec3(1.0, PHI, 0.0));
     vec3 n2 = normalize(vec3(1.0, -PHI, 0.0));
@@ -115,6 +121,15 @@ export const crystalFragmentShader = /* glsl */ `
 
     float dFracture = min(min(min(d1, d2), min(d3, d4)), min(d5, d6));
 
+    // Phase 8.75 Fracture Prediction Visualization:
+    // When tension increases, golden-ratio fault planes become barely visible.
+    // Internal stress lines appear briefly, pulse slowly, and disappear.
+    // NEVER become cracks — "Something inside is calculating its breaking point."
+    float calcWave = sin(uTime * 1.5 - dFracture * 28.0);
+    float calcPulse = smoothstep(0.40, 0.92, calcWave);
+    float previewLine = smoothstep(0.010, 0.001, dFracture) * calcPulse * uStressPreview;
+    vec3 previewEmission = mix(vec3(0.98, 0.65, 0.20), vec3(0.40, 0.82, 1.00), calcPulse) * previewLine * 2.2;
+
     // Photoelastic Stress Fringes (Birefringence along shear planes)
     float planeStress = exp(-dFracture * dFracture * 160.0) * uTension;
     float photoPhase = planeStress * 20.0 - uTime * 4.0;
@@ -123,37 +138,32 @@ export const crystalFragmentShader = /* glsl */ `
       vec3(0.32, 0.82, 1.00), // Electric ionized cyan
       sin(photoPhase) * 0.5 + 0.5
     );
-    vec3 stressGlow = photoelasticCol * planeStress * (2.2 + vStress * 2.8);
-
-    // Fine Sub-surface Crack Shader Hooks (Hairline crystalline fractures)
-    float crackHash = hash21(floor(vPosition.xy * 60.0 + vPosition.yz * 30.0));
-    float crackIntensity = smoothstep(0.012, 0.001, dFracture) * step(0.64, crackHash) * uTension;
-    vec3 crackEmission = vec3(1.0, 0.85, 0.52) * crackIntensity * 4.5;
+    vec3 stressGlow = photoelasticCol * planeStress * (1.8 + vStress * 2.2);
 
     // Acoustic / Photonic Concentric Pressure Waves
     float pressureWave = sin(length(vPosition) * 24.0 - uTime * 14.0) * 0.5 + 0.5;
-    float pressurePulse = pow(pressureWave, 4.0) * uTension * 0.65;
+    float pressurePulse = pow(pressureWave, 4.0) * uTension * 0.45;
     vec3 pressureEmission = vec3(0.95, 0.60, 0.20) * pressurePulse;
 
     // 9. Internal Quantum Spark Self-Emission (Expanding Core under mounting pressure)
     float distToCore = length(vPosition);
-    float coreSpread = mix(6.0, 2.6, uTension); // Core expands as energy containment builds
-    float coreHeartbeat = sin(uTime * (3.0 + uTension * 9.0)) * 0.25 + 0.95;
-    float internalCoreGlow = exp(-distToCore * distToCore * coreSpread) * coreHeartbeat;
-    vec3 coreEmission = uGlowColor * internalCoreGlow * (2.8 + uTension * 3.8) * effectiveTransmission;
+    float coreSpread = mix(6.0, 2.8, uTension);
+    float coreHeartbeat = sin(uTime * (3.0 + uTension * 8.0)) * 0.22 + 0.95;
+    float internalCoreGlow = exp(-distToCore * distToCore * coreSpread) * coreHeartbeat * internalFlicker;
+    vec3 coreEmission = uGlowColor * internalCoreGlow * (2.8 + uTension * 3.2) * effectiveTransmission;
 
-    // 10. Composite Color & Alpha
+    // 10. Composite Color & Alpha (Controlled brightness - mysterious, never flashy)
     vec3 finalColor = obsidianBase * surfaceDensity;
     finalColor += keyLighting * uMaterialLock;
     finalColor += rimLighting * (0.6 + uMaterialLock * 0.4);
     finalColor += coreEmission;
     finalColor += stressGlow;
-    finalColor += crackEmission;
+    finalColor += previewEmission;
     finalColor += pressureEmission;
-    finalColor += vec3(0.25, 0.85, 1.0) * internalCaustics * 1.5;
+    finalColor += vec3(0.25, 0.85, 1.0) * internalCaustics * 1.2;
 
     // Fresnel specular rim glow
-    finalColor += uGlowColor * pow(vFresnel, 4.0) * uIntensity * 0.5;
+    finalColor += uGlowColor * pow(vFresnel, 4.0) * uIntensity * 0.45;
 
     // Alpha transitions from translucent hologram (0.45) to solid obsidian glass (0.96)
     float finalAlpha = mix(0.45, 0.96, uMaterialLock);

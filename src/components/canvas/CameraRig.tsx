@@ -76,9 +76,11 @@ export function CameraRig() {
     }
 
     const tension = store.tensionProgress;
+    const memoryProgress = store.memoryProgress;
+    const stillness = store.stillnessFactor;
 
     // Dynamic FOV based on choreo stage & tension optical compression:
-    // 45° (Act I) -> 42° (Act II) -> 39° (Witness) -> 38° (Contemplation) -> 34° (Tension Compression)
+    // 45° (Act I) -> 42° (Act II) -> 39° (Witness) -> 38° (Contemplation) -> 32° (Maximum Cinematic Compression)
     let baseFov = 45.0;
     if (choreoStage === 0) {
       baseFov = THREE.MathUtils.lerp(45.0, 42.0, stageProgress);
@@ -86,11 +88,14 @@ export function CameraRig() {
       baseFov = THREE.MathUtils.lerp(42.0, 39.0, stageProgress);
     } else {
       const stageFov = THREE.MathUtils.lerp(39.0, 38.0, stageProgress);
-      // Optical compression under tension: 38° down to 34°
-      baseFov = THREE.MathUtils.lerp(stageFov, 34.0, tension);
+      // Optical compression under tension & memory contemplation down to 32.0°
+      const compressionProg = Math.max(tension * 0.7, memoryProgress);
+      baseFov = THREE.MathUtils.lerp(stageFov, 32.0, compressionProg);
     }
 
-    const lensBreathing = Math.sin(time * 0.314159) * 0.25 - scrollEnergy * 0.65;
+    // Lens breathing freezes to 0 when entering complete stillness
+    const respirationScale = Math.max(0.0, 1.0 - stillness);
+    const lensBreathing = (Math.sin(time * 0.314159) * 0.25 - scrollEnergy * 0.65) * respirationScale;
     const targetFov = baseFov + lensBreathing;
 
     if (Math.abs(activeCamera.fov - targetFov) > 0.01) {
@@ -99,16 +104,17 @@ export function CameraRig() {
     }
 
     // Natural Organic Breathing & Pointer Parallax
-    // Slower, suspended breathing as internal tension builds
-    const breathFreq = THREE.MathUtils.lerp(0.314159, 0.12, tension);
-    const breathingY = Math.sin(time * breathFreq) * THREE.MathUtils.lerp(0.035, 0.014, tension);
-    const driftZ = Math.cos(time * 0.08) * 0.04;
-    const parallaxX = pointer.x * 0.25;
-    const parallaxY = pointer.y * 0.18;
+    // Slower, suspended breathing: 0.02Hz -> 0Hz at final stillness
+    const breathFreq = THREE.MathUtils.lerp(0.314159, 0.12, tension) * respirationScale;
+    const breathingY = Math.sin(time * breathFreq) * THREE.MathUtils.lerp(0.035, 0.014, tension) * respirationScale;
+    const driftZ = Math.cos(time * 0.08) * 0.04 * respirationScale;
+    const parallaxDamp = THREE.MathUtils.lerp(1.0, 0.1, stillness);
+    const parallaxX = pointer.x * 0.25 * parallaxDamp;
+    const parallaxY = pointer.y * 0.18 * parallaxDamp;
 
-    // Subliminal micro-tremor under extreme mechanical strain
-    const microTremorX = Math.sin(time * 52.0) * 0.0025 * tension;
-    const microTremorY = Math.cos(time * 58.0) * 0.0025 * tension;
+    // Subliminal micro-tremor under mechanical strain (fades out in final stillness)
+    const microTremorX = Math.sin(time * 52.0) * 0.0025 * tension * respirationScale;
+    const microTremorY = Math.cos(time * 58.0) * 0.0025 * tension * respirationScale;
 
     if (choreoStage === 0) {
       // Stage 0: OBSERVER
@@ -132,26 +138,33 @@ export function CameraRig() {
       );
       targetLookAt.current.set(0.08, 0.05, 0.0);
     } else {
-      // Stage 2: ARCHITECTURAL CONTEMPLATION & CLOSER TENSION PUSH-IN
-      // Glides gracefully to master position: [3.0, 1.5, 4.5],
-      // then pushes in closer to [2.3, 1.15, 3.45] as internal tension accumulates
+      // Stage 2: ARCHITECTURAL CONTEMPLATION & FINAL MONUMENTAL DOLLY-IN
+      // Moves from master position [3.0, 1.5, 4.5] to final contemplation: [2.1, 1.0, 3.2]
+      // Target: [0, 0.15, 0], FOV 32°
       const ease = THREE.MathUtils.smoothstep(stageProgress, 0, 1);
       const basePosX = THREE.MathUtils.lerp(2.2, 3.0, ease);
       const basePosY = THREE.MathUtils.lerp(1.2, 1.5, ease);
       const basePosZ = THREE.MathUtils.lerp(4.2, 4.5, ease);
 
-      const closePosX = THREE.MathUtils.lerp(basePosX, 2.3, tension);
-      const closePosY = THREE.MathUtils.lerp(basePosY, 1.15, tension);
-      const closePosZ = THREE.MathUtils.lerp(basePosZ, 3.45, tension);
+      const contemplationFactor = THREE.MathUtils.smoothstep(memoryProgress, 0, 1);
+      const closePosX = THREE.MathUtils.lerp(THREE.MathUtils.lerp(basePosX, 2.3, tension), 2.1, contemplationFactor);
+      const closePosY = THREE.MathUtils.lerp(THREE.MathUtils.lerp(basePosY, 1.15, tension), 1.0, contemplationFactor);
+      const closePosZ = THREE.MathUtils.lerp(THREE.MathUtils.lerp(basePosZ, 3.45, tension), 3.2, contemplationFactor);
 
       targetCamPos.current.set(
         closePosX + parallaxX * 0.25 + microTremorX,
         closePosY + breathingY + microTremorY,
         closePosZ + driftZ
       );
+
+      const targetY = THREE.MathUtils.lerp(
+        THREE.MathUtils.lerp(0.05, 0.18, ease),
+        0.15,
+        contemplationFactor
+      );
       targetLookAt.current.set(
         THREE.MathUtils.lerp(0.08, 0.0, ease),
-        THREE.MathUtils.lerp(0.05, 0.18, ease),
+        targetY,
         0.0
       );
     }

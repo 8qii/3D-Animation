@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useExperienceStore, TransitionState, Act2Phase } from '@/store/experienceStore';
+import { useExperienceStore, TransitionState, Act2Phase, MonolithPhase } from '@/store/experienceStore';
 import { clamp } from '@/utils/helpers';
 
 const TRANSITION_START = 0.10;
@@ -26,6 +26,9 @@ export function useTimelineController() {
   const setAct3Progress = useExperienceStore((state) => state.setAct3Progress);
   const setMaterialLockProgress = useExperienceStore((state) => state.setMaterialLockProgress);
   const setTensionProgress = useExperienceStore((state) => state.setTensionProgress);
+  const setMonolithPhase = useExperienceStore((state) => state.setMonolithPhase);
+  const setMemoryProgress = useExperienceStore((state) => state.setMemoryProgress);
+  const setStillnessFactor = useExperienceStore((state) => state.setStillnessFactor);
 
   useEffect(() => {
     // 1. Cross-Scene Transition Progress (Act I -> Act II boundary)
@@ -47,13 +50,16 @@ export function useTimelineController() {
     }
     setTransitionState(nextTransitionState);
 
-    // 2. Act II & Act III Timeline Calculations
+    // 2. Act II, Act III, & Phase 8.75 Timeline Calculations
     let act2Prog = 0.0;
     let act2Ph: Act2Phase = 'IDLE';
     let matterProg = 0.0;
     let act3Prog = 0.0;
     let materialLock = 0.0;
     let tensionProg = 0.0;
+    let monolithPh: MonolithPhase = 'MONOLITH_REST';
+    let memProg = 0.0;
+    let stillness = 0.0;
 
     if (isPreviewMode) {
       // 0 - 50s Cinematic sequence:
@@ -61,8 +67,10 @@ export function useTimelineController() {
       // 10-20s: Coordinate Genesis
       // 20-30s: Geometry Stabilization & Matter Genesis
       // 30-34s: Pre-Materialization Silence & Caustics
-      // 34-40s: Act III The Monolith Revealed & Solidified
-      // 40-50s: Phase 8.5 Monolith Internal Tension Escalation
+      // 34-38s: Act III The Monolith Revealed & Solidified
+      // 38-44s: Phase 8.75 MONOLITH_REST (memory awakens subtly)
+      // 44-48s: Phase 8.75 MEMORY_RESONANCE (fracture prediction, tension 0.85 -> 0.98)
+      // 48-50s: Phase 8.75 FINAL_STILLNESS (complete freeze, near absolute silence)
       act2Prog = clamp(previewTime / 40.0, 0.0, 1.0);
       if (previewTime < 10.0) {
         act2Ph = 'SPARK_IGNITION';
@@ -81,9 +89,27 @@ export function useTimelineController() {
         act3Prog = clamp((previewTime - 32.0) / 18.0, 0.0, 1.0);
       }
 
-      if (previewTime >= 40.0) {
-        const rawTension = clamp((previewTime - 40.0) / 10.0, 0.0, 1.0);
-        tensionProg = rawTension * rawTension; // Exponential ramp for dramatic tension
+      if (previewTime >= 38.0 && previewTime < 44.0) {
+        monolithPh = 'MONOLITH_REST';
+        memProg = clamp((previewTime - 38.0) / 6.0, 0.0, 0.4);
+        tensionProg = 0.85;
+      } else if (previewTime >= 44.0 && previewTime < 48.0) {
+        monolithPh = 'MEMORY_RESONANCE';
+        const t = (previewTime - 44.0) / 4.0;
+        memProg = 0.4 + t * 0.6;
+        tensionProg = 0.85 + t * 0.13; // 0.85 -> 0.98
+
+        // Motion reduction starts at 46.5s (tension >= 0.92)
+        if (previewTime >= 46.5) {
+          stillness = clamp((previewTime - 46.5) / 1.5, 0.0, 1.0);
+        }
+      } else if (previewTime >= 48.0) {
+        monolithPh = 'FINAL_STILLNESS';
+        memProg = 1.0;
+        tensionProg = 1.0;
+        stillness = 1.0;
+      } else if (previewTime >= 35.0) {
+        tensionProg = clamp((previewTime - 35.0) / 3.0, 0.0, 0.85);
       }
     } else {
       // Scroll-driven progression
@@ -114,7 +140,7 @@ export function useTimelineController() {
         act2Ph = 'IDLE';
       }
 
-      // Act III: The Monolith materialization & tension
+      // Act III: The Monolith materialization ($S \in [0.38, 0.65]$)
       if (scrollProgress >= ACT3_SCROLL_START) {
         materialLock = clamp((scrollProgress - ACT3_SCROLL_START) / 0.06, 0.0, 1.0);
         const rawAct3 = clamp(
@@ -123,12 +149,34 @@ export function useTimelineController() {
           1.0
         );
         act3Prog = rawAct3 * rawAct3 * (3 - 2 * rawAct3);
+      }
 
-        // Phase 8.5 Internal Tension Accumulation ($S \in [0.50, 0.65]$)
-        if (scrollProgress >= 0.50) {
-          const rawTension = clamp((scrollProgress - 0.50) / 0.15, 0.0, 1.0);
-          tensionProg = rawTension * rawTension;
+      // Phase 8.75: Monolith Memory & Final Stillness Timeline
+      if (scrollProgress >= 0.95) {
+        // S = 0.95 - 1.00: FINAL_STILLNESS
+        monolithPh = 'FINAL_STILLNESS';
+        memProg = 1.0;
+        tensionProg = 1.0;
+        stillness = 1.0;
+      } else if (scrollProgress >= 0.80) {
+        // S = 0.80 - 0.95: MEMORY_RESONANCE
+        monolithPh = 'MEMORY_RESONANCE';
+        const t = (scrollProgress - 0.80) / 0.15;
+        memProg = 0.35 + t * 0.65;
+        tensionProg = 0.85 + t * 0.13; // 0.85 -> 0.98
+
+        // At 0.92: begin reducing all motion
+        if (scrollProgress >= 0.92) {
+          stillness = clamp((scrollProgress - 0.92) / 0.03, 0.0, 1.0);
         }
+      } else if (scrollProgress >= 0.65) {
+        // S = 0.65 - 0.80: MONOLITH_REST
+        monolithPh = 'MONOLITH_REST';
+        memProg = clamp((scrollProgress - 0.65) / 0.15 * 0.35, 0.0, 0.35);
+        tensionProg = 0.85;
+      } else if (scrollProgress >= 0.50) {
+        const rawTension = clamp((scrollProgress - 0.50) / 0.15, 0.0, 0.85);
+        tensionProg = rawTension * rawTension;
       }
     }
 
@@ -138,6 +186,9 @@ export function useTimelineController() {
     setAct3Progress(act3Prog);
     setMaterialLockProgress(materialLock);
     setTensionProgress(tensionProg);
+    setMonolithPhase(monolithPh);
+    setMemoryProgress(memProg);
+    setStillnessFactor(stillness);
   }, [
     scrollProgress,
     isPreviewMode,
@@ -150,5 +201,8 @@ export function useTimelineController() {
     setAct3Progress,
     setMaterialLockProgress,
     setTensionProgress,
+    setMonolithPhase,
+    setMemoryProgress,
+    setStillnessFactor,
   ]);
 }

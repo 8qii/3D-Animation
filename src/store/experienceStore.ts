@@ -14,6 +14,11 @@ export type Act2Phase =
   | 'COORDINATE_GENESIS'
   | 'GEOMETRY_STABILIZATION';
 
+export type MonolithPhase =
+  | 'MONOLITH_REST'
+  | 'MEMORY_RESONANCE'
+  | 'FINAL_STILLNESS';
+
 export interface SceneMeta {
   id: SceneId;
   index: number;
@@ -82,13 +87,19 @@ interface ExperienceState {
   setAct2Phase: (phase: Act2Phase) => void;
   setMatterProgress: (progress: number) => void;
 
-  // Act III: The Monolith Engine
+  // Act III: The Monolith Engine & Phase 8.75 Memory & Stillness
   act3Progress: number; // 0 to 1 across Act III timeline
   materialLockProgress: number; // 0 (hologram) to 1 (solid physical obsidian)
   tensionProgress: number; // 0 (quiescent monolith) to 1 (critical internal stress)
+  monolithPhase: MonolithPhase;
+  memoryProgress: number; // 0 to 1 (memory intensity)
+  stillnessFactor: number; // 0 (active) to 1 (motionless freeze)
   setAct3Progress: (progress: number) => void;
   setMaterialLockProgress: (progress: number) => void;
   setTensionProgress: (progress: number) => void;
+  setMonolithPhase: (phase: MonolithPhase) => void;
+  setMemoryProgress: (progress: number) => void;
+  setStillnessFactor: (factor: number) => void;
 
   // Cursor Parallax (Screen Normalized [-1, 1])
   pointer: { x: number; y: number };
@@ -203,6 +214,9 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   act3Progress: 0,
   materialLockProgress: 0,
   tensionProgress: 0,
+  monolithPhase: 'MONOLITH_REST',
+  memoryProgress: 0,
+  stillnessFactor: 0,
   setAct3Progress: (progress: number) =>
     set({
       act3Progress: Math.min(1.0, Math.max(0.0, progress)),
@@ -214,6 +228,15 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   setTensionProgress: (progress: number) =>
     set({
       tensionProgress: Math.min(1.0, Math.max(0.0, progress)),
+    }),
+  setMonolithPhase: (monolithPhase: MonolithPhase) => set({ monolithPhase }),
+  setMemoryProgress: (progress: number) =>
+    set({
+      memoryProgress: Math.min(1.0, Math.max(0.0, progress)),
+    }),
+  setStillnessFactor: (factor: number) =>
+    set({
+      stillnessFactor: Math.min(1.0, Math.max(0.0, factor)),
     }),
 
   // Pointer parallax initial state

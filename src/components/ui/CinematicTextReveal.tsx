@@ -11,6 +11,8 @@ export function CinematicTextReveal() {
   const act3Progress = useExperienceStore((state) => state.act3Progress);
   const materialLockProgress = useExperienceStore((state) => state.materialLockProgress);
   const tensionProgress = useExperienceStore((state) => state.tensionProgress);
+  const monolithPhase = useExperienceStore((state) => state.monolithPhase);
+  const stillnessFactor = useExperienceStore((state) => state.stillnessFactor);
   const mouseWorld = useExperienceStore((state) => state.mouseWorld);
   const isMuted = useExperienceStore((state) => state.isMuted);
   const toggleMute = useExperienceStore((state) => state.toggleMute);
@@ -27,7 +29,11 @@ export function CinematicTextReveal() {
 
   // Formatting phase badge text
   let phaseLabel = 'QUANTUM VACUUM';
-  if (tensionProgress > 0.15) {
+  if (monolithPhase === 'FINAL_STILLNESS') {
+    phaseLabel = 'ACT III: FINAL STILLNESS';
+  } else if (monolithPhase === 'MEMORY_RESONANCE') {
+    phaseLabel = `HARMONIC TENSION: ${(tensionProgress * 100).toFixed(0)}%`;
+  } else if (tensionProgress > 0.15) {
     phaseLabel = `INTERNAL TENSION: ${(tensionProgress * 100).toFixed(0)}%`;
   } else if (isAct3) {
     phaseLabel = 'ACT III: MONOLITH CRYSTALLIZATION';
@@ -165,26 +171,42 @@ export function CinematicTextReveal() {
           <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full border border-amber-400/30 bg-slate-950/70 backdrop-blur-md shadow-[0_0_20px_rgba(245,158,11,0.2)]">
             <span
               className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${
-                tensionProgress > 0.35 ? 'bg-amber-300 shadow-[0_0_12px_#fde047]' : 'bg-amber-400 shadow-[0_0_8px_#f59e0b]'
-              } animate-pulse`}
+                monolithPhase === 'FINAL_STILLNESS'
+                  ? 'bg-cyan-200 shadow-[0_0_12px_#a5f3fc]'
+                  : monolithPhase === 'MEMORY_RESONANCE'
+                  ? 'bg-amber-300 shadow-[0_0_12px_#fde047]'
+                  : 'bg-amber-400 shadow-[0_0_8px_#f59e0b]'
+              } ${monolithPhase !== 'FINAL_STILLNESS' ? 'animate-pulse' : ''}`}
             />
             <span className="font-mono text-[10px] tracking-[0.35em] text-amber-300 uppercase font-medium">
-              {tensionProgress > 0.45 ? 'ACT III // MONOLITH TENSION' : 'ACT III // THE MONOLITH'}
+              {monolithPhase === 'MEMORY_RESONANCE' || monolithPhase === 'FINAL_STILLNESS'
+                ? 'ACT III // HARMONIC TENSION'
+                : tensionProgress > 0.45
+                ? 'ACT III // MONOLITH TENSION'
+                : 'ACT III // THE MONOLITH'}
             </span>
           </div>
 
           <h2 className="text-xl md:text-3xl font-extralight tracking-[0.22em] text-slate-100 uppercase italic">
-            &ldquo;Structure is the cage that gives energy its name.&rdquo;
+            {monolithPhase === 'MEMORY_RESONANCE' || monolithPhase === 'FINAL_STILLNESS'
+              ? <>&ldquo;Every structure contains the memory of its own transformation.&rdquo;</>
+              : <>&ldquo;Structure is the cage that gives energy its name.&rdquo;</>}
           </h2>
 
           <p className="max-w-lg font-sans text-xs md:text-sm font-light leading-relaxed tracking-[0.18em] text-slate-400/90">
-            {tensionProgress > 0.45
+            {monolithPhase === 'FINAL_STILLNESS'
+              ? 'All motion yields to absolute stillness. The structure holds its final breath.'
+              : monolithPhase === 'MEMORY_RESONANCE'
+              ? 'Void, singularity, and crystalline memory layers harmonize beneath the obsidian surface.'
+              : tensionProgress > 0.45
               ? 'Internal energy approaches critical threshold. Fracture planes awaken along golden-ratio symmetry.'
               : 'Twenty golden ratio facets resolve the quantum flux into eternal obsidian glass.'}
           </p>
 
           <div className="pt-2 font-mono text-[9px] tracking-[0.32em] text-amber-400/80 uppercase">
-            {tensionProgress > 0.15
+            {monolithPhase === 'MEMORY_RESONANCE' || monolithPhase === 'FINAL_STILLNESS'
+              ? `PHASE: STRUCTURAL EQUILIBRIUM // STRESS: ${(tensionProgress * 100).toFixed(0)}% // MEMORY FIELD: SYNCHRONIZED // FRACTURE: PREDICTIVE STATE ONLY`
+              : tensionProgress > 0.15
               ? `PHASE: INTERNAL TENSION // STRESS COEFFICIENT: ${(tensionProgress * 100).toFixed(0)}% // FRACTURE PLANES: GOLDEN RATIO DETECTED`
               : 'PHASE: ORDER // GEOMETRIC SYMMETRY: 1.618 // STATUS: MONOLITH STABILIZED'}
           </div>

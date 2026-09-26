@@ -396,6 +396,53 @@ class SoundEngine {
     this.resolutionTriggered = false;
   }
 
+  /**
+   * Phase 8.75 Pre-Dispersion Audio State:
+   * Removes harmonic stability, introduces unstable glass harmonics, low-frequency pressure,
+   * and smoothly drops into near absolute silence at final stillness.
+   */
+  public preDispersionState(isPreDispersion: boolean, stillnessFactor = 0) {
+    if (!this.ctx || !this.masterGain) return;
+    if (this.ctx.state === 'suspended') return;
+
+    const now = this.ctx.currentTime;
+
+    if (isPreDispersion) {
+      // 1. Remove harmonic stability with irregular detune drift
+      if (this.droneOsc && this.subOsc) {
+        const driftDetune = Math.sin(now * 1.8) * 25.0 + Math.cos(now * 0.7) * 15.0;
+        this.droneOsc.detune.setTargetAtTime(driftDetune, now, 0.1);
+      }
+
+      // 2. Unstable glass harmonics
+      if (this.crystalResonator1 && this.crystalResonator2) {
+        const glassHarmonic1 = 587.33 + Math.sin(now * 2.4) * 45.0;
+        const glassHarmonic2 = 880.00 + Math.cos(now * 3.1) * 60.0;
+        this.crystalResonator1.frequency.setTargetAtTime(glassHarmonic1, now, 0.08);
+        this.crystalResonator2.frequency.setTargetAtTime(glassHarmonic2, now, 0.08);
+      }
+
+      // 3. Final Stillness: At stillnessFactor >= 0.92, fade to near absolute silence
+      if (stillnessFactor >= 0.90) {
+        const quietFactor = Math.max(0.0001, (1.0 - (stillnessFactor - 0.90) / 0.10) * 0.65);
+        this.masterGain.gain.setTargetAtTime(quietFactor, now, 0.18);
+      }
+    }
+  }
+
+  /**
+   * Clean transition hook for Act IV: The Dispersion
+   */
+  private dispersionReadyCallback: (() => void) | null = null;
+
+  public onDispersionReady(callback?: () => void) {
+    if (callback) {
+      this.dispersionReadyCallback = callback;
+    } else if (this.dispersionReadyCallback) {
+      this.dispersionReadyCallback();
+    }
+  }
+
   public destroy() {
     if (this.ctx) {
       this.ctx.close();

@@ -10,6 +10,7 @@ const PARTICLE_COUNT = 320;
 const trappedVertexShader = /* glsl */ `
   uniform float uTime;
   uniform float uTension;
+  uniform float uStillness;
   uniform float uPixelRatio;
 
   attribute vec3 aSeed;
@@ -20,11 +21,14 @@ const trappedVertexShader = /* glsl */ `
 
   void main() {
     float tension = clamp(uTension, 0.0, 1.0);
+    // Phase 8.75 Final Stillness: Particle movement: 100% -> 5%
+    float motionScale = mix(1.0, 0.05, clamp(uStillness, 0.0, 1.0));
+    float t = uTime * motionScale;
 
     // 1. Magnetic Lorentz Orbital Confinement
     // Rotation around diagonal axis
     float speed = (1.2 + tension * 4.5) * (0.4 + aSeed.x * 0.8);
-    float angle = uTime * speed + aSeed.y * 6.28318;
+    float angle = t * speed + aSeed.y * 6.28318;
     
     // Base toroidal / spherical orbit inside the crystal
     float radius = mix(0.18, 1.05, aSeed.z) * (1.0 - tension * 0.15); // Compresses inward under tension
@@ -37,10 +41,10 @@ const trappedVertexShader = /* glsl */ `
 
     // 2. High-Energy Brownian Micro-Agitation
     vec3 jitter = vec3(
-      sin(uTime * (32.0 + tension * 40.0) + aSeed.x * 100.0),
-      cos(uTime * (36.0 + tension * 40.0) + aSeed.y * 100.0),
-      sin(uTime * (40.0 + tension * 40.0) + aSeed.z * 100.0)
-    ) * (0.015 + tension * 0.08);
+      sin(t * (32.0 + tension * 40.0) + aSeed.x * 100.0),
+      cos(t * (36.0 + tension * 40.0) + aSeed.y * 100.0),
+      sin(t * (40.0 + tension * 40.0) + aSeed.z * 100.0)
+    ) * (0.015 + tension * 0.08) * motionScale;
 
     vec3 finalPos = orbitPos + jitter;
 
@@ -131,6 +135,7 @@ export function TrappedEnergyField() {
     () => ({
       uTime: { value: 0 },
       uTension: { value: 0 },
+      uStillness: { value: 0 },
       uPixelRatio: { value: typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 1 },
     }),
     []
@@ -139,11 +144,13 @@ export function TrappedEnergyField() {
   useFrame((state) => {
     const time = state.clock.getElapsedTime();
     const tension = useExperienceStore.getState().tensionProgress;
+    const stillness = useExperienceStore.getState().stillnessFactor;
     const materialLock = useExperienceStore.getState().materialLockProgress;
 
     if (materialRef.current) {
       materialRef.current.uniforms.uTime.value = time;
       materialRef.current.uniforms.uTension.value = tension;
+      materialRef.current.uniforms.uStillness.value = stillness;
     }
 
     if (pointsRef.current) {
