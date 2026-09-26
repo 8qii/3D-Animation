@@ -24,6 +24,10 @@ export function Experience({ className = '', enablePostProcessing = true }: Expe
   const setAttentionLevel = useExperienceStore((state) => state.setAttentionLevel);
   const setCameraOffset = useExperienceStore((state) => state.setCameraOffset);
   const triggerTouchRipple = useExperienceStore((state) => state.triggerTouchRipple);
+  const gpuTier = useExperienceStore((state) => state.gpuTier);
+
+  // Compute adaptive device pixel ratio based on GPU tier
+  const dpr: [number, number] = gpuTier === 'TIER_ULTRA' ? [1, 2] : gpuTier === 'TIER_BALANCED' ? [1, 1.5] : [1, 1];
 
   const containerRef = useRef<HTMLDivElement>(null);
   const isPointerDown = useRef(false);
@@ -171,7 +175,7 @@ export function Experience({ className = '', enablePostProcessing = true }: Expe
       style={{ zIndex: 0 }}
     >
       <Canvas
-        dpr={[1, 2]}
+        dpr={dpr}
         gl={{
           antialias: true,
           alpha: true,

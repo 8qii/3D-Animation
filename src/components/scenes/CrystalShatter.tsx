@@ -80,7 +80,22 @@ function SingleFacetMesh({ facet }: SingleFacetProps) {
       // 1.0 = suspended memory drift (velocity slows to 20% -> 0%)
       const ease = THREE.MathUtils.smoothstep(localProg, 0, 1);
       const memoryDrift = Math.sin(time * 0.5 + facet.id * 1.618) * 0.025 * facetMemory * freezeFactor;
-      const currentDist = (ease * facet.maxDistance + memoryDrift) * (1.0 - 0.05 * (1.0 - facetVelocityScale));
+
+      // Phase 9.19 Observer Evolution Hidden Ending Facet Modulation
+      const ending = store.hiddenEnding;
+      let endingDistMod = 1.0;
+      if (ending === 'TRANSCENDENCE') {
+        // Harmonious, closer levitation halo
+        endingDistMod = 0.82;
+      } else if (ending === 'SUPERNOVA') {
+        // High energetic outward expansion
+        endingDistMod = 1.35;
+      } else if (ending === 'ASCENSION') {
+        // Stellate into sacred golden ratio geometric cage
+        endingDistMod = 1.0 + Math.sin(facet.id * 1.618) * 0.15;
+      }
+
+      const currentDist = (ease * facet.maxDistance * endingDistMod + memoryDrift) * (1.0 - 0.05 * (1.0 - facetVelocityScale));
 
       // Position: Centroid + outward direction along normal and cleavage slip
       meshRef.current.position.copy(facet.centroid).addScaledVector(facet.outwardDirection, currentDist);

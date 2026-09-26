@@ -10,6 +10,9 @@ export const crystalVertexShader = /* glsl */ `
   uniform vec3 uAttentionDirection;
   uniform float uAttentionStrength;
   uniform float uHiddenDiscovery;
+  uniform float uArchetypeMode;
+  uniform vec3 uArchetypeColor;
+  uniform float uGravitationalForce;
 
   varying vec3 vNormal;
   varying vec3 vPosition;
@@ -142,7 +145,16 @@ export const crystalVertexShader = /* glsl */ `
     // Phase 9.18.5: Hidden Discovery Memory Pulse
     float discoveryPulse = sin(uTime * 3.5 - length(position) * 4.5) * (0.025 * uHiddenDiscovery);
 
-    vec3 displacedPosition = position + normal * (noise * uDistortion + tensionDisplacement + observerRipple + touchWave + discoveryPulse) + fractureDeformation;
+    // Phase 9.19: Spacetime Curvature Gravitational Distortion
+    vec3 toObs = uObserverPos - position;
+    float distObs = length(toObs);
+    vec3 gravDisplacement = vec3(0.0);
+    if (uGravitationalForce > 0.001) {
+      float gravFactor = uGravitationalForce / (distObs * distObs + 0.85);
+      gravDisplacement = normalize(toObs) * clamp(gravFactor * 0.045, 0.0, 0.08);
+    }
+
+    vec3 displacedPosition = position + normal * (noise * uDistortion + tensionDisplacement + observerRipple + touchWave + discoveryPulse) + fractureDeformation + gravDisplacement;
 
     // Compute localized vertex stress metric for fragment shader photoelastic fringes
     vStress = clamp(uTension * (0.35 + 0.65 * abs(noise) + abs(facetJitter) * 60.0) + uFractureProgress * 0.8, 0.0, 1.0);

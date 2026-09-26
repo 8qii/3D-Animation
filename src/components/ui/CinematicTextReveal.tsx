@@ -23,6 +23,8 @@ export function CinematicTextReveal() {
   const toggleMute = useExperienceStore((state) => state.toggleMute);
   const observerState = useExperienceStore((state) => state.observerState);
   const hiddenDiscoveryActive = useExperienceStore((state) => state.hiddenDiscoveryActive);
+  const observerArchetype = useExperienceStore((state) => state.observerArchetype);
+  const hiddenEnding = useExperienceStore((state) => state.hiddenEnding);
 
   // Compute opacities based on narrative progression
   const isAct4 = fractureProgress > 0.001 || collapseProgress > 0.001 || singularityThresholdProgress > 0.001;
@@ -297,6 +299,11 @@ export function CinematicTextReveal() {
                 ? 'ENERGY: AWAITING DISPERSION // TIME DILATION: ACTIVE (0.2x)'
                 : 'ENERGY CONTAINMENT: FAILED // WAVE: EXPANDING'}
             </div>
+            {hiddenEnding && (
+              <div className="text-purple-300 font-semibold tracking-[0.35em]">
+                {`DESTINY TRAJECTORY: ${hiddenEnding} // ARCHETYPE: ${observerArchetype.replace('THE_', '')}`}
+              </div>
+            )}
           </div>
         </div>
       </div>

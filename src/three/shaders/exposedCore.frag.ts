@@ -6,6 +6,7 @@ export const exposedCoreFragmentShader = /* glsl */ `
   uniform float uFacetMemoryProgress;
   uniform float uCollapseProgress;
   uniform float uThresholdProgress;
+  uniform float uHiddenEnding;
 
   varying vec3 vNormal;
   varying vec3 vPosition;
@@ -54,6 +55,21 @@ export const exposedCoreFragmentShader = /* glsl */ `
       // Corona shifts to electric cyan-violet plasma rim
       vec3 plasmaRim = vec3(0.55, 0.80, 1.00);
       memoryCol += plasmaRim * pow(vFresnel, 1.5) * uThresholdProgress * 0.85;
+    }
+
+    // Phase 9.19 Observer Evolution Hidden Endings
+    if (uHiddenEnding > 0.5 && uHiddenEnding < 1.5) {
+      // TRANSCENDENCE (The Witness): Serene pearlescent white/indigo halo
+      vec3 transcendenceHalo = vec3(0.88, 0.94, 1.0);
+      memoryCol = mix(memoryCol, transcendenceHalo, 0.65);
+    } else if (uHiddenEnding > 1.5 && uHiddenEnding < 2.5) {
+      // SUPERNOVA (The Catalyst): Violent cosmic incandescent plasma bloom
+      vec3 supernovaBloom = mix(vec3(1.0, 0.2, 0.4), vec3(0.2, 0.9, 1.0), sin(uTime * 8.0) * 0.5 + 0.5);
+      memoryCol = mix(memoryCol, supernovaBloom, 0.75);
+    } else if (uHiddenEnding > 2.5) {
+      // ASCENSION (The Architect): Sacred geometric golden stellation
+      vec3 ascensionGold = vec3(1.0, 0.84, 0.25);
+      memoryCol = mix(memoryCol, ascensionGold, 0.70);
     }
 
     // Internal radiant heart

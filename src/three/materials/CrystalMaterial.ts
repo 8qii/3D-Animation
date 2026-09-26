@@ -27,6 +27,9 @@ export interface CrystalMaterialUniforms {
   uAttentionDirection: { value: THREE.Vector3 };
   uAttentionStrength: { value: number };
   uHiddenDiscovery: { value: number };
+  uArchetypeMode: { value: number };
+  uArchetypeColor: { value: THREE.Color };
+  uGravitationalForce: { value: number };
 }
 
 
@@ -73,6 +76,9 @@ export class CrystalMaterial extends THREE.ShaderMaterial {
       uAttentionDirection: { value: new THREE.Vector3(0, 0, -1) },
       uAttentionStrength: { value: 0 },
       uHiddenDiscovery: { value: 0 },
+      uArchetypeMode: { value: 0 },
+      uArchetypeColor: { value: new THREE.Color('#38bdf8') },
+      uGravitationalForce: { value: 0 },
     };
 
     super({
@@ -134,6 +140,13 @@ export class CrystalMaterial extends THREE.ShaderMaterial {
   setHiddenDiscovery(val: number) {
     const u = this.uniforms as unknown as CrystalMaterialUniforms;
     u.uHiddenDiscovery.value = val;
+  }
+
+  setArchetype(mode: number, color: THREE.ColorRepresentation, gravForce: number) {
+    const u = this.uniforms as unknown as CrystalMaterialUniforms;
+    u.uArchetypeMode.value = mode;
+    u.uArchetypeColor.value.set(color);
+    u.uGravitationalForce.value = gravForce;
   }
 }
 

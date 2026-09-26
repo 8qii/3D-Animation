@@ -25,6 +25,20 @@ export type ObserverRecognitionState =
   | 'OBSERVER_SYNCHRONIZED'
   | 'GENESIS_RESPONSE_ACTIVE';
 
+export type ObserverArchetype =
+  | 'THE_INITIATE'
+  | 'THE_WITNESS'
+  | 'THE_CATALYST'
+  | 'THE_ARCHITECT';
+
+export type HiddenEndingType =
+  | 'TRANSCENDENCE'
+  | 'SUPERNOVA'
+  | 'ASCENSION';
+
+export type GpuTier = 'TIER_ULTRA' | 'TIER_BALANCED' | 'TIER_EFFICIENT';
+
+
 export interface SceneMeta {
   id: SceneId;
   index: number;
@@ -167,6 +181,21 @@ interface ExperienceState {
   // Mobile Gyroscope Layer (±5°)
   gyroOffset: { x: number; y: number };
   setGyroOffset: (offset: { x: number; y: number }) => void;
+
+  // Phase 9.19 Observer Evolution Engine
+  observerArchetype: ObserverArchetype;
+  setObserverArchetype: (archetype: ObserverArchetype) => void;
+  archetypeScores: { witness: number; catalyst: number; architect: number };
+  updateArchetypeScores: (scores: Partial<{ witness: number; catalyst: number; architect: number }>) => void;
+  hiddenEnding: HiddenEndingType | null;
+  setHiddenEnding: (ending: HiddenEndingType | null) => void;
+  cursorGravitationalForce: number;
+  setCursorGravitationalForce: (force: number) => void;
+
+  // Adaptive GPU Quality System
+  gpuTier: GpuTier;
+  setGpuTier: (tier: GpuTier) => void;
+
 
   // Kinetic Scroll Energy (Thermodynamics)
   scrollEnergy: number; // 0 (cold vacuum) to 1 (excited plasma)
@@ -385,6 +414,28 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   // Mobile Gyroscope Layer
   gyroOffset: { x: 0, y: 0 },
   setGyroOffset: (gyroOffset: { x: number; y: number }) => set({ gyroOffset }),
+
+  // Phase 9.19 Observer Evolution Engine
+  observerArchetype: 'THE_INITIATE',
+  setObserverArchetype: (observerArchetype: ObserverArchetype) => set({ observerArchetype }),
+  archetypeScores: { witness: 0, catalyst: 0, architect: 0 },
+  updateArchetypeScores: (scores) =>
+    set((state) => ({
+      archetypeScores: {
+        witness: state.archetypeScores.witness + (scores.witness ?? 0),
+        catalyst: state.archetypeScores.catalyst + (scores.catalyst ?? 0),
+        architect: state.archetypeScores.architect + (scores.architect ?? 0),
+      },
+    })),
+  hiddenEnding: null,
+  setHiddenEnding: (hiddenEnding: HiddenEndingType | null) => set({ hiddenEnding }),
+  cursorGravitationalForce: 0.04,
+  setCursorGravitationalForce: (cursorGravitationalForce: number) => set({ cursorGravitationalForce }),
+
+  // Adaptive GPU Quality System
+  gpuTier: 'TIER_ULTRA',
+  setGpuTier: (gpuTier: GpuTier) => set({ gpuTier }),
+
 
 
   // Kinetic Scroll Energy

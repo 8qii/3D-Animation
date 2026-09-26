@@ -24,6 +24,9 @@ export const crystalFragmentShader = /* glsl */ `
   uniform vec3 uAttentionDirection;
   uniform float uAttentionStrength;
   uniform float uHiddenDiscovery;
+  uniform float uArchetypeMode;
+  uniform vec3 uArchetypeColor;
+  uniform float uGravitationalForce;
 
   varying vec3 vNormal;
   varying vec3 vPosition;
@@ -205,7 +208,22 @@ export const crystalFragmentShader = /* glsl */ `
     float discoveryWave = sin(length(vPosition) * 16.0 - uTime * 6.0) * 0.5 + 0.5;
     vec3 discoveryEmission = mix(vec3(0.98, 0.82, 0.35), vec3(0.40, 0.92, 1.00), discoveryWave) * (uHiddenDiscovery * (2.8 + latticeGlow));
 
-    finalColor += observerAura + localizedFresnelCol + rippleEmission + discoveryEmission;
+    // Phase 9.19: Crystal Personality Response
+    vec3 archetypeAura = vec3(0.0);
+    if (uArchetypeMode > 0.5 && uArchetypeMode < 1.5) {
+      // THE_WITNESS: Mirror obsidian, tranquil deep indigo/pure white rim, pure glassy clarity
+      archetypeAura = mix(vec3(0.12, 0.25, 0.45), vec3(0.95, 0.98, 1.0), pow(vFresnel, 3.0)) * 0.45;
+    } else if (uArchetypeMode > 1.5 && uArchetypeMode < 2.5) {
+      // THE_CATALYST: Ionized energetic flutter, electric cyan/magenta fringe, turbulent surface caustics
+      float flutter = sin(uTime * 12.0 + vPosition.y * 15.0) * 0.5 + 0.5;
+      archetypeAura = mix(vec3(0.1, 0.85, 1.0), vec3(0.95, 0.2, 0.65), flutter) * pow(vFresnel, 1.5) * 0.75;
+    } else if (uArchetypeMode > 2.5) {
+      // THE_ARCHITECT: Sacred geometry gold, heightened prismatic chromatic dispersion, luminous facet lattice
+      float architectLattice = smoothstep(0.02, 0.002, dFracture);
+      archetypeAura = mix(vec3(0.95, 0.75, 0.25), vec3(1.0, 0.92, 0.6), vFresnel) * (0.55 + architectLattice * 0.8);
+    }
+
+    finalColor += observerAura + localizedFresnelCol + rippleEmission + discoveryEmission + archetypeAura;
 
 
     // Alpha transitions from translucent hologram (0.45) to solid obsidian glass (0.96)

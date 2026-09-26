@@ -18,6 +18,7 @@ export function ExposedQuantumCore() {
       uFacetMemoryProgress: { value: 0 },
       uCollapseProgress: { value: 0 },
       uThresholdProgress: { value: 0 },
+      uHiddenEnding: { value: 0 },
     }),
     []
   );
@@ -31,6 +32,12 @@ export function ExposedQuantumCore() {
     const facetMemory = store.facetMemoryProgress;
     const collapse = store.collapseProgress;
     const threshold = store.singularityThresholdProgress;
+    const ending = store.hiddenEnding;
+
+    let endingVal = 0;
+    if (ending === 'TRANSCENDENCE') endingVal = 1;
+    else if (ending === 'SUPERNOVA') endingVal = 2;
+    else if (ending === 'ASCENSION') endingVal = 3;
 
     const isVisible = fracture > 0.02 || facetMemory > 0.001 || collapse > 0.001 || threshold > 0.001;
     if (meshRef.current) {
@@ -51,6 +58,7 @@ export function ExposedQuantumCore() {
       materialRef.current.uniforms.uFacetMemoryProgress.value = facetMemory;
       materialRef.current.uniforms.uCollapseProgress.value = collapse;
       materialRef.current.uniforms.uThresholdProgress.value = threshold;
+      materialRef.current.uniforms.uHiddenEnding.value = endingVal;
     }
   });
 

@@ -7,6 +7,7 @@ import { useExperienceStore } from '@/store/experienceStore';
 import { damp } from '@/utils/helpers';
 
 const STORAGE_KEY = 'aetheria_observer_memory';
+const EVOLUTION_STORAGE_KEY = 'aetheria_observer_evolution';
 
 export function ObserverController() {
   const { raycaster, camera, pointer } = useThree();
@@ -29,6 +30,13 @@ export function ObserverController() {
   const setDiscoveryLevel = useExperienceStore((state) => state.setDiscoveryLevel);
   const setGyroOffset = useExperienceStore((state) => state.setGyroOffset);
 
+  // Phase 9.19 Observer Evolution Engine & Quality Hooks
+  const setObserverArchetype = useExperienceStore((state) => state.setObserverArchetype);
+  const updateArchetypeScores = useExperienceStore((state) => state.updateArchetypeScores);
+  const setHiddenEnding = useExperienceStore((state) => state.setHiddenEnding);
+  const setCursorGravitationalForce = useExperienceStore((state) => state.setCursorGravitationalForce);
+  const setGpuTier = useExperienceStore((state) => state.setGpuTier);
+
   // Pre-allocated geometries and vectors
   const focalPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
   const crystalSphere = useRef(new THREE.Sphere(new THREE.Vector3(0, 0.1, 0), 1.9));
@@ -44,7 +52,18 @@ export function ObserverController() {
   const idleTimerRef = useRef(0);
   const discoveryTriggered = useRef(false);
 
-  // 1. Observer Memory Persistence (localStorage)
+  // Evolution & scoring accumulators
+  const scoreFlushTimer = useRef(0);
+  const accumScores = useRef({ witness: 0, catalyst: 0, architect: 0 });
+  const gravForceRef = useRef(0);
+
+  // Adaptive Quality rolling FPS trackers
+  const fpsTimer = useRef(0);
+  const frameCount = useRef(0);
+  const lowFpsDuration = useRef(0);
+  const highFpsDuration = useRef(0);
+
+  // 1. Observer Memory & Evolution Persistence (localStorage)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -74,10 +93,19 @@ export function ObserverController() {
           })
         );
       }
+
+      // Load Evolution Memory
+      const evoRaw = localStorage.getItem(EVOLUTION_STORAGE_KEY);
+      if (evoRaw) {
+        const evoData = JSON.parse(evoRaw);
+        if (evoData.scores) updateArchetypeScores(evoData.scores);
+        if (evoData.archetype) setObserverArchetype(evoData.archetype);
+        if (evoData.hiddenEnding) setHiddenEnding(evoData.hiddenEnding);
+      }
     } catch {
       // Graceful fallback if storage disabled
     }
-  }, [setIsReturningObserver, setHasSynchronizedBefore, setDiscoveryLevel]);
+  }, [setIsReturningObserver, setHasSynchronizedBefore, setDiscoveryLevel, updateArchetypeScores, setObserverArchetype, setHiddenEnding]);
 
   // 2. Mobile Gyroscope Layer (Optional Subtle Shift ±5°)
   useEffect(() => {
@@ -116,6 +144,11 @@ export function ObserverController() {
     // Point on or near the crystal
     const activePoint = hitSphere ? sphereIntersectPoint.current : worldPoint.current;
 
+    let pointerSpeed = 0;
+    let distFromCenter = 999;
+    let rawProximity = 0;
+    let isHovering = false;
+
     if (hitPlane || hitSphere) {
       setMouseWorld(activePoint.x, activePoint.y, activePoint.z);
 
@@ -123,7 +156,7 @@ export function ObserverController() {
       const distanceMoved = activePoint.distanceTo(lastWorldPoint.current);
       lastWorldPoint.current.copy(activePoint);
 
-      const pointerSpeed = distanceMoved / Math.max(0.0001, delta);
+      pointerSpeed = distanceMoved / Math.max(0.0001, delta);
 
       // Stillness metric: 1.0 when perfectly still, decaying as speed exceeds 1.5
       const instantStillness = Math.max(0, Math.min(1.0, 1.0 - pointerSpeed / 2.0));
@@ -131,12 +164,12 @@ export function ObserverController() {
       setObserverStillnessScore(stillnessScoreRef.current);
 
       // Proximity to crystal center (0, 0.1, 0)
-      const distFromCenter = activePoint.distanceTo(crystalSphere.current.center);
+      distFromCenter = activePoint.distanceTo(crystalSphere.current.center);
       // Normalized proximity: 1.0 at center/surface, 0 at radius 4.5
-      const rawProximity = Math.max(0, Math.min(1.0, 1.0 - (distFromCenter - 0.8) / 3.7));
+      rawProximity = Math.max(0, Math.min(1.0, 1.0 - (distFromCenter - 0.8) / 3.7));
       setObserverProximity(rawProximity);
 
-      const isHovering = distFromCenter < 2.5 || hitSphere !== null;
+      isHovering = distFromCenter < 2.5 || hitSphere !== null;
 
       if (isHovering) {
         hoverDurationRef.current += delta;
@@ -203,6 +236,18 @@ export function ObserverController() {
           }
         } catch {}
       }
+
+      // 6. Archetype Scoring Accumulation
+      if (isHovering && stillnessScoreRef.current > 0.65) {
+        // High stillness -> THE_WITNESS
+        accumScores.current.witness += delta * 1.6;
+      } else if (pointerSpeed > 1.8) {
+        // High kinetic excitation -> THE_CATALYST
+        accumScores.current.catalyst += delta * 1.8;
+      } else if (isHovering && pointerSpeed >= 0.1 && pointerSpeed <= 1.4) {
+        // Deliberate geometric inspection -> THE_ARCHITECT
+        accumScores.current.architect += delta * 1.5;
+      }
     } else {
       idleTimerRef.current += delta;
       attentionRef.current = damp(attentionRef.current, 0.0, 1.5, delta);
@@ -218,6 +263,105 @@ export function ObserverController() {
 
     setAttentionLevel(attentionRef.current);
 
+    // 7. Flush Archetype Evolution & Determine Dominant Persona
+    scoreFlushTimer.current += delta;
+    if (scoreFlushTimer.current > 0.3) {
+      scoreFlushTimer.current = 0;
+      const { witness, catalyst, architect } = accumScores.current;
+      if (witness > 0 || catalyst > 0 || architect > 0) {
+        updateArchetypeScores({ witness, catalyst, architect });
+        accumScores.current = { witness: 0, catalyst: 0, architect: 0 };
+
+        const currentScores = useExperienceStore.getState().archetypeScores;
+        const totalScore = currentScores.witness + currentScores.catalyst + currentScores.architect;
+
+        if (totalScore >= 5) {
+          let dominant: 'THE_INITIATE' | 'THE_WITNESS' | 'THE_CATALYST' | 'THE_ARCHITECT' = 'THE_INITIATE';
+          if (currentScores.witness >= currentScores.catalyst && currentScores.witness >= currentScores.architect) {
+            dominant = 'THE_WITNESS';
+          } else if (currentScores.catalyst >= currentScores.witness && currentScores.catalyst >= currentScores.architect) {
+            dominant = 'THE_CATALYST';
+          } else {
+            dominant = 'THE_ARCHITECT';
+          }
+
+          if (dominant !== useExperienceStore.getState().observerArchetype) {
+            setObserverArchetype(dominant);
+          }
+
+          // Determine hidden ending branch
+          let targetEnding: 'TRANSCENDENCE' | 'SUPERNOVA' | 'ASCENSION' | null = null;
+          if (dominant === 'THE_WITNESS') targetEnding = 'TRANSCENDENCE';
+          else if (dominant === 'THE_CATALYST') targetEnding = 'SUPERNOVA';
+          else if (dominant === 'THE_ARCHITECT') targetEnding = 'ASCENSION';
+
+          if (targetEnding !== useExperienceStore.getState().hiddenEnding) {
+            setHiddenEnding(targetEnding);
+          }
+
+          try {
+            localStorage.setItem(
+              EVOLUTION_STORAGE_KEY,
+              JSON.stringify({
+                archetype: dominant,
+                scores: currentScores,
+                hiddenEnding: targetEnding,
+                updatedAt: Date.now(),
+              })
+            );
+          } catch {}
+        }
+      }
+    }
+
+    // 8. Gravitational Cursor Distortion Calculation
+    let targetGravForce = 0;
+    if (isHovering) {
+      const currentArch = useExperienceStore.getState().observerArchetype;
+      if (currentArch === 'THE_CATALYST') {
+        targetGravForce = (0.4 + Math.min(1.0, pointerSpeed / 3.5) * 0.5) * attentionRef.current;
+      } else if (currentArch === 'THE_ARCHITECT') {
+        targetGravForce = 0.55 * attentionRef.current * (0.5 + rawProximity * 0.5);
+      } else if (currentArch === 'THE_WITNESS') {
+        targetGravForce = 0.38 * stillnessScoreRef.current * attentionRef.current;
+      } else {
+        targetGravForce = 0.28 * attentionRef.current;
+      }
+    }
+    gravForceRef.current = damp(gravForceRef.current, targetGravForce, 3.5, delta);
+    setCursorGravitationalForce(gravForceRef.current);
+
+    // 9. Adaptive GPU Quality System (Rolling FPS Monitor)
+    fpsTimer.current += delta;
+    frameCount.current += 1;
+    if (fpsTimer.current >= 0.5) {
+      const currentRollingFps = frameCount.current / fpsTimer.current;
+      frameCount.current = 0;
+      fpsTimer.current = 0;
+
+      const currentTier = useExperienceStore.getState().gpuTier;
+      if (currentRollingFps < 38) {
+        lowFpsDuration.current += 0.5;
+        highFpsDuration.current = 0;
+        if (lowFpsDuration.current >= 2.0) {
+          lowFpsDuration.current = 0;
+          if (currentTier === 'TIER_ULTRA') setGpuTier('TIER_BALANCED');
+          else if (currentTier === 'TIER_BALANCED') setGpuTier('TIER_EFFICIENT');
+        }
+      } else if (currentRollingFps > 56) {
+        highFpsDuration.current += 0.5;
+        lowFpsDuration.current = 0;
+        if (highFpsDuration.current >= 5.0) {
+          highFpsDuration.current = 0;
+          if (currentTier === 'TIER_EFFICIENT') setGpuTier('TIER_BALANCED');
+          else if (currentTier === 'TIER_BALANCED') setGpuTier('TIER_ULTRA');
+        }
+      } else {
+        lowFpsDuration.current = Math.max(0, lowFpsDuration.current - 0.25);
+        highFpsDuration.current = Math.max(0, highFpsDuration.current - 0.25);
+      }
+    }
+
     // Smooth hidden discovery pulse if active
     if (hiddenDiscoveryActive) {
       const store = useExperienceStore.getState();
@@ -228,7 +372,7 @@ export function ObserverController() {
       }
     }
 
-    // 6. Decay touch ripple if active
+    // 10. Decay touch ripple if active
     const touchRipple = useExperienceStore.getState().touchRipple;
     if (touchRipple.active) {
       const nextIntensity = Math.max(0, touchRipple.intensity - delta * 0.75);

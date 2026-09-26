@@ -75,6 +75,22 @@ export function CrystalMonolith() {
         materialRef.current.setAttention(attLocal, store.attentionStrength);
 
         materialRef.current.setHiddenDiscovery(store.hiddenDiscoveryProgress);
+
+        // Phase 9.19: Observer Evolution Engine Archetype & Gravitational Curvature
+        const archetype = store.observerArchetype;
+        let mode = 0;
+        let color = '#38bdf8';
+        if (archetype === 'THE_WITNESS') {
+          mode = 1;
+          color = '#e0f2fe';
+        } else if (archetype === 'THE_CATALYST') {
+          mode = 2;
+          color = '#06b6d4';
+        } else if (archetype === 'THE_ARCHITECT') {
+          mode = 3;
+          color = '#f59e0b';
+        }
+        materialRef.current.setArchetype(mode, color, store.cursorGravitationalForce);
       }
     }
 

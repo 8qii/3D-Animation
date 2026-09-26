@@ -26,8 +26,13 @@ export function PostProcessing({ enableDoF = true }: PostProcessingProps) {
   const attentionLevel = useExperienceStore((state) => state.attentionLevel);
   const touchRipple = useExperienceStore((state) => state.touchRipple);
   const stillnessScore = useExperienceStore((state) => state.observerStillnessScore);
+  const gpuTier = useExperienceStore((state) => state.gpuTier);
 
-  const shouldRenderDoF = enableDoF && dofEnabled;
+  // Phase 9.19: Adaptive GPU Quality feature gating
+  const shouldRenderDoF = enableDoF && dofEnabled && gpuTier === 'TIER_ULTRA';
+  const multisampling = gpuTier === 'TIER_ULTRA' ? 4 : gpuTier === 'TIER_BALANCED' ? 2 : 0;
+  const enableMipmapBlur = gpuTier !== 'TIER_EFFICIENT';
+  const enableNoise = gpuTier !== 'TIER_EFFICIENT';
 
   // Modulate bloom dynamically with synchronized breath, kinetic scroll excitation, and observer attention
   const rippleBloom = touchRipple.active ? touchRipple.intensity * 0.6 : 0;
@@ -47,14 +52,14 @@ export function PostProcessing({ enableDoF = true }: PostProcessingProps) {
   const vignetteDarkness = 0.86 + attentionLevel * 0.12;
 
   return (
-    <EffectComposer multisampling={4} enableNormalPass={false}>
+    <EffectComposer multisampling={multisampling} enableNormalPass={false}>
       {/* 1. Cinematic Bloom - glows bright central fluctuation & particle layers */}
       <Bloom
         intensity={effectiveBloom}
         luminanceThreshold={0.25}
         luminanceSmoothing={0.85}
         blendFunction={BlendFunction.SCREEN}
-        mipmapBlur
+        mipmapBlur={enableMipmapBlur}
       />
 
       {/* 2. Optical Depth of Field focusing around the central vacuum */}
@@ -75,10 +80,12 @@ export function PostProcessing({ enableDoF = true }: PostProcessingProps) {
       />
 
       {/* 4. Subtle 35mm Celluloid Film Grain clarifying with observer stillness */}
-      <Noise
-        opacity={grainOpacity}
-        blendFunction={BlendFunction.OVERLAY}
-      />
+      {enableNoise && (
+        <Noise
+          opacity={grainOpacity}
+          blendFunction={BlendFunction.OVERLAY}
+        />
+      )}
 
       {/* 5. Vignette framing the cinematic scene */}
       <Vignette
