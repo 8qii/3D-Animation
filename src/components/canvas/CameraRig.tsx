@@ -49,7 +49,7 @@ export function CameraRig() {
     let stageProgress = 0; // [0..1] within the active stage
 
     if (isPreviewMode) {
-      const nextTime = (previewTime + delta) % 50.0;
+      const nextTime = (previewTime + delta) % 61.0;
       setPreviewTime(nextTime);
 
       if (nextTime < 12.0) {
@@ -80,10 +80,11 @@ export function CameraRig() {
     const stillness = store.stillnessFactor;
     const fracture = store.fractureProgress;
     const facetMemory = store.facetMemoryProgress;
+    const collapse = store.collapseProgress;
 
     // Dynamic FOV based on choreo stage, tension optical compression, and fracture expansion:
     // 45° (Act I) -> 42° (Act II) -> 39° (Witness) -> 38° (Contemplation) -> 32° (Maximum Cinematic Compression)
-    // -> 38° (Act IV Fracture Expansion) -> 39.5° (Facet Memory Drift)
+    // -> 38° (Act IV Fracture Expansion) -> 39.5° (Facet Memory Drift) -> 36° (Phase 9.16 Collapse Lock)
     let baseFov = 45.0;
     if (choreoStage === 0) {
       baseFov = THREE.MathUtils.lerp(45.0, 42.0, stageProgress);
@@ -101,11 +102,16 @@ export function CameraRig() {
         if (facetMemory > 0.001) {
           baseFov = THREE.MathUtils.lerp(baseFov, 39.5, facetMemory);
         }
+        // Phase 9.16: Lock FOV to 36° during collapse
+        if (collapse > 0.001) {
+          baseFov = THREE.MathUtils.lerp(baseFov, 36.0, collapse);
+        }
       }
     }
 
-    // Lens breathing freezes to 0 when entering complete stillness
-    const respirationScale = Math.max(0.0, 1.0 - stillness);
+    // Lens breathing freezes to 0 when entering complete stillness or collapse
+    const collapseFreezeFactor = collapse >= 0.90 ? Math.max(0, 1.0 - (collapse - 0.90) / 0.10) : 1.0;
+    const respirationScale = Math.max(0.0, 1.0 - stillness) * (1.0 - collapse * 0.8) * collapseFreezeFactor;
     const lensBreathing = (Math.sin(time * 0.314159) * 0.25 - scrollEnergy * 0.65) * respirationScale;
     const targetFov = baseFov + lensBreathing;
 
@@ -119,7 +125,7 @@ export function CameraRig() {
     const breathFreq = THREE.MathUtils.lerp(0.314159, 0.12, tension) * respirationScale;
     const breathingY = Math.sin(time * breathFreq) * THREE.MathUtils.lerp(0.035, 0.014, tension) * respirationScale;
     const driftZ = Math.cos(time * 0.08) * 0.04 * respirationScale;
-    const parallaxDamp = THREE.MathUtils.lerp(1.0, 0.1, stillness);
+    const parallaxDamp = THREE.MathUtils.lerp(1.0, 0.1, stillness) * (1.0 - collapse * 0.9);
     const parallaxX = pointer.x * 0.25 * parallaxDamp;
     const parallaxY = pointer.y * 0.18 * parallaxDamp;
 
@@ -171,21 +177,23 @@ export function CameraRig() {
       const recoilPosY = THREE.MathUtils.lerp(closePosY, 2.5, shatterRecoilEase);
       const recoilPosZ = THREE.MathUtils.lerp(closePosZ, 5.0, shatterRecoilEase);
 
-      // Slow majestic orbit hold during facet memory drift
+      // Slow majestic orbit hold during facet memory drift, orbit velocity -> 0 during collapse
       const memoryOrbitPhase = time * 0.14;
-      const orbitX = Math.sin(memoryOrbitPhase) * 0.35 * facetMemory;
-      const orbitY = Math.cos(memoryOrbitPhase * 0.8) * 0.20 * facetMemory;
-      const orbitZ = Math.sin(memoryOrbitPhase * 0.5) * 0.35 * facetMemory;
+      const orbitDamp = (1.0 - collapse);
+      const orbitX = Math.sin(memoryOrbitPhase) * 0.35 * facetMemory * orbitDamp;
+      const orbitY = Math.cos(memoryOrbitPhase * 0.8) * 0.20 * facetMemory * orbitDamp;
+      const orbitZ = Math.sin(memoryOrbitPhase * 0.5) * 0.35 * facetMemory * orbitDamp;
 
-      const finalHoldX = THREE.MathUtils.lerp(recoilPosX, 4.0, facetMemory * 0.65) + orbitX;
-      const finalHoldY = THREE.MathUtils.lerp(recoilPosY, 3.0, facetMemory * 0.65) + orbitY;
-      const finalHoldZ = THREE.MathUtils.lerp(recoilPosZ, 5.8, facetMemory * 0.65) + orbitZ;
+      // Phase 9.16: Lock position at [4.0, 3.0, 5.8]
+      const finalHoldX = THREE.MathUtils.lerp(THREE.MathUtils.lerp(recoilPosX, 4.0, facetMemory * 0.65) + orbitX, 4.0, collapse);
+      const finalHoldY = THREE.MathUtils.lerp(THREE.MathUtils.lerp(recoilPosY, 3.0, facetMemory * 0.65) + orbitY, 3.0, collapse);
+      const finalHoldZ = THREE.MathUtils.lerp(THREE.MathUtils.lerp(recoilPosZ, 5.8, facetMemory * 0.65) + orbitZ, 5.8, collapse);
 
       // Impulse shock transient on initial crack (fades out as memory drift enters suspended stillness)
       const fractureShock = Math.sin(Math.min(fracture * Math.PI, Math.PI)) * Math.exp(-fracture * 2.2) * (1.0 - facetMemory);
-      const shockZ = fractureShock * 0.35;
-      const shockY = fractureShock * 0.12;
-      const tremorDecay = (1.0 - fracture * 0.6) * (1.0 - facetMemory * 0.9);
+      const shockZ = fractureShock * 0.35 * (1.0 - collapse);
+      const shockY = fractureShock * 0.12 * (1.0 - collapse);
+      const tremorDecay = (1.0 - fracture * 0.6) * (1.0 - facetMemory * 0.9) * (1.0 - collapse);
       const fractureTremorX = Math.sin(time * 74.0) * 0.007 * tremorDecay * Math.min(1.0, fracture * 4.0);
       const fractureTremorY = Math.cos(time * 82.0) * 0.007 * tremorDecay * Math.min(1.0, fracture * 4.0);
 
@@ -195,13 +203,18 @@ export function CameraRig() {
         finalHoldZ + driftZ + shockZ
       );
 
+      // LookAt locks directly onto the core [0, 0, 0] under collapse
       const targetY = THREE.MathUtils.lerp(
-        THREE.MathUtils.lerp(0.05, 0.18, ease),
-        0.15,
-        contemplationFactor
+        THREE.MathUtils.lerp(
+          THREE.MathUtils.lerp(0.05, 0.18, ease),
+          0.15,
+          contemplationFactor
+        ),
+        0.0,
+        collapse
       );
       targetLookAt.current.set(
-        THREE.MathUtils.lerp(0.08, 0.0, ease),
+        THREE.MathUtils.lerp(THREE.MathUtils.lerp(0.08, 0.0, ease), 0.0, collapse),
         targetY,
         0.0
       );

@@ -3,6 +3,7 @@ export const facetMemoryFragmentShader = /* glsl */ `
 
   uniform float uTime;
   uniform float uFacetMemoryProgress;
+  uniform float uCollapseProgress;
 
   varying float vLineCoord;
   varying float vAlpha;
@@ -21,10 +22,17 @@ export const facetMemoryFragmentShader = /* glsl */ `
     float colorShift = sin(vLineCoord * 3.14159 + uTime * 2.0) * 0.5 + 0.5;
     vec3 threadCol = mix(cyanTrace, goldTrace, colorShift);
 
+    // Phase 9.16: Under collapse, memory color shifts toward blinding white-hot photon energy
+    vec3 hotWhite = vec3(1.0, 0.98, 0.95);
+    threadCol = mix(threadCol, hotWhite, uCollapseProgress * 0.75);
+
     // Subtle edge fade
     float lineFade = sin(vLineCoord * 3.14159);
     float finalAlpha = vAlpha * pow(lineFade, 0.6) * 0.75;
 
-    gl_FragColor = vec4(threadCol * 1.8, finalAlpha);
+    // Brightness increases from 100% to 180% (1.8 -> 3.24)
+    float brightnessBoost = mix(1.8, 3.24, uCollapseProgress);
+
+    gl_FragColor = vec4(threadCol * brightnessBoost, finalAlpha);
   }
 `;

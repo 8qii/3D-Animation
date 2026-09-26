@@ -42,9 +42,12 @@ function SingleFacetMesh({ facet }: SingleFacetProps) {
     const store = useExperienceStore.getState();
     const fractureProgress = store.fractureProgress;
     const facetMemory = store.facetMemoryProgress;
+    const collapse = store.collapseProgress;
 
     // Time Dilation Moment: facet velocity decelerates 100% -> 20%
-    const facetVelocityScale = 1.0 - facetMemory * 0.80;
+    // Phase 9.16 Time Freeze: at final 10% (collapse > 0.90), motion drops 20% -> 0%
+    const freezeFactor = collapse >= 0.90 ? Math.max(0, 1.0 - (collapse - 0.90) / 0.10) : 1.0;
+    const facetVelocityScale = (1.0 - facetMemory * 0.80) * freezeFactor;
 
     if (materialRef.current) {
       materialRef.current.uniforms.uTime.value = time;
@@ -63,21 +66,21 @@ function SingleFacetMesh({ facet }: SingleFacetProps) {
         );
       }
 
-      // Smoothstep physics curve with Phase 9.15 memory drift:
+      // Smoothstep physics curve with Phase 9.15 memory drift and Phase 9.16 freeze:
       // 0.0 = perfect monolith
       // 0.3 = hairline separation
       // 0.6 = facets visibly detach
       // 0.9 = complete icosahedron breakup
-      // 1.0 = suspended memory drift (velocity slows to 20%)
+      // 1.0 = suspended memory drift (velocity slows to 20% -> 0%)
       const ease = THREE.MathUtils.smoothstep(localProg, 0, 1);
-      const memoryDrift = Math.sin(time * 0.5 + facet.id * 1.618) * 0.025 * facetMemory;
+      const memoryDrift = Math.sin(time * 0.5 + facet.id * 1.618) * 0.025 * facetMemory * freezeFactor;
       const currentDist = (ease * facet.maxDistance + memoryDrift) * (1.0 - 0.05 * (1.0 - facetVelocityScale));
 
       // Position: Centroid + outward direction along normal and cleavage slip
       meshRef.current.position.copy(facet.centroid).addScaledVector(facet.outwardDirection, currentDist);
 
       // Rotation: Gentle, dignified angular velocity preserving golden orientation
-      const currentAngle = (Math.sin(ease * Math.PI * 0.5) * facet.maxRotation) + Math.cos(time * 0.35 + facet.id) * 0.015 * facetMemory;
+      const currentAngle = (Math.sin(ease * Math.PI * 0.5) * facet.maxRotation) + Math.cos(time * 0.35 + facet.id) * 0.015 * facetMemory * freezeFactor;
       meshRef.current.quaternion.setFromAxisAngle(facet.rotationAxis, currentAngle);
     }
   });

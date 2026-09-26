@@ -16,6 +16,7 @@ export function ExposedQuantumCore() {
       uTime: { value: 0 },
       uFractureProgress: { value: 0 },
       uFacetMemoryProgress: { value: 0 },
+      uCollapseProgress: { value: 0 },
     }),
     []
   );
@@ -27,14 +28,16 @@ export function ExposedQuantumCore() {
     const store = useExperienceStore.getState();
     const fracture = store.fractureProgress;
     const facetMemory = store.facetMemoryProgress;
+    const collapse = store.collapseProgress;
 
-    const isVisible = fracture > 0.02 || facetMemory > 0.001;
+    const isVisible = fracture > 0.02 || facetMemory > 0.001 || collapse > 0.001;
     if (meshRef.current) {
       meshRef.current.visible = isVisible;
 
-      // Slow majestic core pulsation
-      const breath = Math.sin(time * 1.8) * 0.04;
-      const targetScale = (0.75 + fracture * 0.25 + facetMemory * 0.15) + breath;
+      // Pulse rate and internal compression
+      const pulseSpeed = 1.8 + collapse * 12.0;
+      const breath = Math.sin(time * pulseSpeed) * (0.04 + collapse * 0.06);
+      const targetScale = ((0.75 + fracture * 0.25 + facetMemory * 0.15) * (1.0 - collapse * 0.18)) + breath;
       meshRef.current.scale.set(targetScale, targetScale, targetScale);
     }
 
@@ -42,6 +45,7 @@ export function ExposedQuantumCore() {
       materialRef.current.uniforms.uTime.value = time;
       materialRef.current.uniforms.uFractureProgress.value = fracture;
       materialRef.current.uniforms.uFacetMemoryProgress.value = facetMemory;
+      materialRef.current.uniforms.uCollapseProgress.value = collapse;
     }
   });
 

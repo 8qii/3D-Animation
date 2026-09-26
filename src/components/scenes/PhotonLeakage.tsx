@@ -157,15 +157,19 @@ export function PhotonLeakage() {
     const store = useExperienceStore.getState();
     const fracture = store.fractureProgress;
     const facetMemory = store.facetMemoryProgress;
-    const dilation = 1.0 - facetMemory * 0.70; // 100% -> 30%
+    const collapse = store.collapseProgress;
+
+    // Time freeze at final 10%
+    const freezeFactor = collapse >= 0.90 ? Math.max(0, 1.0 - (collapse - 0.90) / 0.10) : 1.0;
+    const dilation = (1.0 - facetMemory * 0.70) * freezeFactor; // 100% -> 30% -> 0%
 
     if (groupRef.current) {
-      groupRef.current.visible = fracture > 0.001 || facetMemory > 0.001;
+      groupRef.current.visible = fracture > 0.001 || facetMemory > 0.001 || collapse > 0.001;
     }
 
     if (particleMaterialRef.current) {
       particleMaterialRef.current.uniforms.uTime.value = time * dilation;
-      particleMaterialRef.current.uniforms.uFractureProgress.value = fracture;
+      particleMaterialRef.current.uniforms.uFractureProgress.value = fracture * freezeFactor;
     }
   });
 

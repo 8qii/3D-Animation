@@ -35,9 +35,12 @@ export function CrystalMonolith() {
     const stillness = store.stillnessFactor;
     const fracture = store.fractureProgress;
     const facetMemory = store.facetMemoryProgress;
+    const collapse = store.collapseProgress;
 
     // Time Dilation: facet velocity and tumbling motion slows 100% -> 20%
-    const memoryDilation = 1.0 - facetMemory * 0.80;
+    // Phase 9.16 Time Freeze: at final 10% (collapse > 0.90), motion drops to 0%
+    const freezeFactor = collapse >= 0.90 ? Math.max(0, 1.0 - (collapse - 0.90) / 0.10) : 1.0;
+    const memoryDilation = (1.0 - facetMemory * 0.80) * freezeFactor;
 
     // Motion scale decelerates into stillness and is time-dilated during facet memory drift
     const motionScale = Math.max(0.0, 1.0 - stillness) * (1.0 - fracture * 0.7) * memoryDilation;

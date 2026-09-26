@@ -173,6 +173,7 @@ export function FacetMemoryField() {
     () => ({
       uTime: { value: 0 },
       uFacetMemoryProgress: { value: 0 },
+      uCollapseProgress: { value: 0 },
     }),
     []
   );
@@ -181,6 +182,7 @@ export function FacetMemoryField() {
     () => ({
       uTime: { value: 0 },
       uFractureProgress: { value: 0 },
+      uCollapseProgress: { value: 0 },
     }),
     []
   );
@@ -191,8 +193,9 @@ export function FacetMemoryField() {
     const store = useExperienceStore.getState();
     const fracture = store.fractureProgress;
     const facetMemory = store.facetMemoryProgress;
+    const collapse = store.collapseProgress;
 
-    const isActive = fracture > 0.05 || facetMemory > 0.001;
+    const isActive = fracture > 0.05 || facetMemory > 0.001 || collapse > 0.001;
     if (groupRef.current) {
       groupRef.current.visible = isActive;
     }
@@ -202,13 +205,18 @@ export function FacetMemoryField() {
     if (lineMatRef.current) {
       lineMatRef.current.uniforms.uTime.value = time;
       lineMatRef.current.uniforms.uFacetMemoryProgress.value = facetMemory;
+      lineMatRef.current.uniforms.uCollapseProgress.value = collapse;
     }
 
     if (streamMatRef.current) {
       streamMatRef.current.uniforms.uTime.value = time;
-      // Dilation slows photon stream velocity: 100% -> 30%
-      const dilation = 1.0 - facetMemory * 0.70;
+      // Dilation slows photon stream velocity: 100% -> 30%, freezes at 90% collapse
+      const freezeFactor = collapse >= 0.90 ? Math.max(0, 1.0 - (collapse - 0.90) / 0.10) : 1.0;
+      const dilation = (1.0 - facetMemory * 0.70) * freezeFactor;
       streamMatRef.current.uniforms.uFractureProgress.value = facetMemory * dilation;
+      if (streamMatRef.current.uniforms.uCollapseProgress) {
+        streamMatRef.current.uniforms.uCollapseProgress.value = collapse;
+      }
     }
 
     // Dynamic calculation of the 20 separated facet centroids
@@ -253,28 +261,42 @@ export function FacetMemoryField() {
       }
     }
 
-    // Update photon streams between facets
-    if (streamGeomRef.current && facetMemory > 0.01) {
+    // Update photon streams between facets:
+    // When collapse is active, stream direction reverses toward center core (0,0,0)
+    if (streamGeomRef.current && (facetMemory > 0.01 || collapse > 0.01)) {
       const posAttr = streamGeomRef.current.getAttribute('position') as THREE.BufferAttribute;
       if (posAttr) {
+        const freezeFactor = collapse >= 0.90 ? Math.max(0, 1.0 - (collapse - 0.90) / 0.10) : 1.0;
         for (let i = 0; i < PHOTON_STREAM_COUNT; i++) {
           const pairIndex = i % adjacencyPairs.length;
           const pair = adjacencyPairs[pairIndex];
           const pA = currentPositions[pair.faceA];
           const pB = currentPositions[pair.faceB];
 
-          const speed = streamSpeeds[i];
+          const speed = streamSpeeds[i] * freezeFactor;
           const seed = streamSeeds[i];
-          const cycle = (time * 0.4 * speed + seed) % 1.0;
 
-          // Interpolate along the connection vector between pair
-          const px = THREE.MathUtils.lerp(pA.x, pB.x, cycle);
-          const py = THREE.MathUtils.lerp(pA.y, pB.y, cycle);
-          const pz = THREE.MathUtils.lerp(pA.z, pB.z, cycle);
+          if (collapse > 0.001) {
+            // Reversing stream direction toward quantum core (0,0,0)
+            const midPoint = new THREE.Vector3().addVectors(pA, pB).multiplyScalar(0.5);
+            // Cycle flows backward from facet midpoint into (0,0,0)
+            const collapseCycle = (1.0 - (time * 0.8 * speed + seed) % 1.0);
+            const targetPos = midPoint.multiplyScalar(collapseCycle * (1.0 - collapse * 0.85));
 
-          posAttr.array[i * 3] = px;
-          posAttr.array[i * 3 + 1] = py;
-          posAttr.array[i * 3 + 2] = pz;
+            posAttr.array[i * 3] = targetPos.x;
+            posAttr.array[i * 3 + 1] = targetPos.y;
+            posAttr.array[i * 3 + 2] = targetPos.z;
+          } else {
+            // Normal inter-facet stream
+            const cycle = (time * 0.4 * speed + seed) % 1.0;
+            const px = THREE.MathUtils.lerp(pA.x, pB.x, cycle);
+            const py = THREE.MathUtils.lerp(pA.y, pB.y, cycle);
+            const pz = THREE.MathUtils.lerp(pA.z, pB.z, cycle);
+
+            posAttr.array[i * 3] = px;
+            posAttr.array[i * 3 + 1] = py;
+            posAttr.array[i * 3 + 2] = pz;
+          }
         }
         posAttr.needsUpdate = true;
       }
