@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { Lights } from './Lights';
 import { CameraRig } from './CameraRig';
 import { PostProcessing } from './PostProcessing';
-import { PlaceholderScene } from '../scenes/PlaceholderScene';
+import { VoidScene } from '../scenes/VoidScene';
 import { useExperienceStore } from '@/store/experienceStore';
 import { getNormalizedPointer } from '@/utils/helpers';
 
@@ -58,17 +58,17 @@ export function Experience({ className = '', enablePostProcessing = true }: Expe
           fov: 45,
           near: 0.1,
           far: 100,
-          position: [0, 0, 6],
+          position: [0, 0, 7],
         }}
         className="w-full h-full"
       >
         <color attach="background" args={['#030712']} />
 
         <Suspense fallback={null}>
-          <PerspectiveCamera makeDefault fov={45} position={[0, 0, 6]} />
+          <PerspectiveCamera makeDefault fov={45} position={[0, 0, 7]} />
           <Lights />
           <CameraRig />
-          <PlaceholderScene />
+          <VoidScene />
           {enablePostProcessing && <PostProcessing />}
         </Suspense>
       </Canvas>
