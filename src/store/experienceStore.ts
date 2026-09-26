@@ -82,6 +82,12 @@ interface ExperienceState {
   setAct2Phase: (phase: Act2Phase) => void;
   setMatterProgress: (progress: number) => void;
 
+  // Act III: The Monolith Engine
+  act3Progress: number; // 0 to 1 across Act III timeline
+  materialLockProgress: number; // 0 (hologram) to 1 (solid physical obsidian)
+  setAct3Progress: (progress: number) => void;
+  setMaterialLockProgress: (progress: number) => void;
+
   // Cursor Parallax (Screen Normalized [-1, 1])
   pointer: { x: number; y: number };
   setPointer: (x: number, y: number) => void;
@@ -189,6 +195,18 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   setMatterProgress: (progress: number) =>
     set({
       matterProgress: Math.min(1.0, Math.max(0.0, progress)),
+    }),
+
+  // Act III: The Monolith Initial State
+  act3Progress: 0,
+  materialLockProgress: 0,
+  setAct3Progress: (progress: number) =>
+    set({
+      act3Progress: Math.min(1.0, Math.max(0.0, progress)),
+    }),
+  setMaterialLockProgress: (progress: number) =>
+    set({
+      materialLockProgress: Math.min(1.0, Math.max(0.0, progress)),
     }),
 
   // Pointer parallax initial state

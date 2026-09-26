@@ -8,19 +8,27 @@ export function CinematicTextReveal() {
   const transitionState = useExperienceStore((state) => state.transitionState);
   const act2Progress = useExperienceStore((state) => state.act2Progress);
   const act2Phase = useExperienceStore((state) => state.act2Phase);
+  const act3Progress = useExperienceStore((state) => state.act3Progress);
+  const materialLockProgress = useExperienceStore((state) => state.materialLockProgress);
   const mouseWorld = useExperienceStore((state) => state.mouseWorld);
   const isMuted = useExperienceStore((state) => state.isMuted);
   const toggleMute = useExperienceStore((state) => state.toggleMute);
 
-  // Compute opacities based on transition & Act II progress [0..1]
-  const act1Opacity = Math.max(0, 1 - Math.max(transitionProgress, act2Progress) * 3.5);
-  const act2ActiveWeight = Math.max(transitionProgress, act2Progress);
-  const act2Opacity = Math.min(1, Math.max(0, (act2ActiveWeight - 0.12) / 0.65));
+  // Compute opacities based on narrative progression
+  const totalPresence = Math.max(transitionProgress, act2Progress, act3Progress);
+  const act1Opacity = Math.max(0, 1 - totalPresence * 3.5);
+
+  const isAct3 = materialLockProgress >= 0.40 || act3Progress > 0.08;
+  const act2Opacity = !isAct3 ? Math.min(1, Math.max(0, (totalPresence - 0.12) / 0.65)) : Math.max(0, 1 - materialLockProgress * 2.5);
+  const act3Opacity = Math.min(1, Math.max(0, (materialLockProgress - 0.20) / 0.70));
+
   const isIgnited = transitionProgress >= 0.65 || act2Progress >= 0.20;
 
   // Formatting phase badge text
   let phaseLabel = 'QUANTUM VACUUM';
-  if (act2Phase === 'SPARK_IGNITION') {
+  if (isAct3) {
+    phaseLabel = 'ACT III: MONOLITH CRYSTALLIZATION';
+  } else if (act2Phase === 'SPARK_IGNITION') {
     phaseLabel = 'PHASE 1: SPARK IGNITION';
   } else if (act2Phase === 'COORDINATE_GENESIS') {
     phaseLabel = 'PHASE 2: COORDINATE GENESIS';
@@ -61,23 +69,29 @@ export function CinematicTextReveal() {
         <div className="flex items-center space-x-3.5">
           <div
             className={`w-1.5 h-1.5 rounded-full transition-all duration-700 ${
-              isIgnited
+              isAct3
+                ? 'bg-amber-300 shadow-[0_0_16px_#fbbf24]'
+                : isIgnited
                 ? 'bg-amber-400 shadow-[0_0_12px_#f59e0b]'
                 : 'bg-cyan-400 shadow-[0_0_8px_#38bdf8] opacity-75'
             }`}
           />
           <h1 className="font-mono text-[11px] font-normal tracking-[0.32em] text-slate-400/80 uppercase">
-            {act2Progress > 0.5 ? 'AETHERIA // OBSERVATORY 0.2' : 'AETHERIA // OBSERVATORY 0.1'}
+            {isAct3
+              ? 'AETHERIA // OBSERVATORY 0.3'
+              : act2Progress > 0.5
+              ? 'AETHERIA // OBSERVATORY 0.2'
+              : 'AETHERIA // OBSERVATORY 0.1'}
           </h1>
         </div>
 
         {/* Dynamic Transition State Badge */}
         <div
           className="mt-2 pl-5 transition-opacity duration-500"
-          style={{ opacity: act2ActiveWeight > 0.05 ? 0.9 : 0.4 }}
+          style={{ opacity: totalPresence > 0.05 ? 0.9 : 0.4 }}
         >
           <span className="font-mono text-[9px] tracking-[0.3em] text-slate-500 uppercase">
-            STATE: <span className={isIgnited ? 'text-amber-400/90' : 'text-cyan-400/80'}>{phaseLabel}</span>
+            STATE: <span className={isAct3 ? 'text-amber-300 font-medium' : isIgnited ? 'text-amber-400/90' : 'text-cyan-400/80'}>{phaseLabel}</span>
           </span>
         </div>
       </header>
@@ -87,7 +101,7 @@ export function CinematicTextReveal() {
         className="fixed bottom-10 left-0 right-0 z-20 flex flex-col items-center justify-center pointer-events-none select-none transition-all duration-700"
         style={{
           opacity: act1Opacity,
-          transform: `translateY(${act2ActiveWeight * 20}px)`,
+          transform: `translateY(${totalPresence * 20}px)`,
         }}
       >
         <div className="flex flex-col items-center space-y-3">
@@ -132,6 +146,36 @@ export function CinematicTextReveal() {
             <div className="text-amber-400/80">
               GEOMETRIC COHERENCE: {coherencePercent}% // LOCK: STABLE
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Center Cinematic Reveal: Act III The Monolith */}
+      <div
+        className="fixed inset-0 z-25 flex flex-col items-center justify-end pb-24 md:pb-32 pointer-events-none select-none text-center px-6 transition-all duration-1000"
+        style={{
+          opacity: act3Opacity,
+          transform: `translateY(${(1 - act3Opacity) * 20}px)`,
+        }}
+      >
+        <div className="max-w-2xl mx-auto flex flex-col items-center space-y-3.5">
+          <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full border border-amber-400/30 bg-slate-950/70 backdrop-blur-md shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b] animate-pulse" />
+            <span className="font-mono text-[10px] tracking-[0.35em] text-amber-300 uppercase font-medium">
+              ACT III // THE MONOLITH
+            </span>
+          </div>
+
+          <h2 className="text-xl md:text-3xl font-extralight tracking-[0.22em] text-slate-100 uppercase italic">
+            &ldquo;Structure is the cage that gives energy its name.&rdquo;
+          </h2>
+
+          <p className="max-w-lg font-sans text-xs md:text-sm font-light leading-relaxed tracking-[0.18em] text-slate-400/90">
+            Twenty golden ratio facets resolve the quantum flux into eternal obsidian glass.
+          </p>
+
+          <div className="pt-2 font-mono text-[9px] tracking-[0.32em] text-amber-400/80 uppercase">
+            PHASE: ORDER // GEOMETRIC SYMMETRY: 1.618 // STATUS: MONOLITH STABILIZED
           </div>
         </div>
       </div>

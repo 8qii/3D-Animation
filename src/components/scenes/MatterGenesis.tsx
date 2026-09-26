@@ -113,16 +113,18 @@ export function MatterGenesis() {
     }
 
     if (wireframeMatRef.current) {
+      const lockFade = Math.max(0.0, 1.0 - store.materialLockProgress);
       wireframeMatRef.current.uniforms.uTime.value = time;
       wireframeMatRef.current.uniforms.uVertexProgress.value = vertexProgress;
-      wireframeMatRef.current.uniforms.uEdgeProgress.value = edgeProgress;
+      wireframeMatRef.current.uniforms.uEdgeProgress.value = edgeProgress * (0.15 + 0.85 * lockFade);
       wireframeMatRef.current.uniforms.uExcitation.value = store.scrollEnergy;
     }
 
     if (surfaceMatRef.current) {
+      const lockFade = Math.max(0.0, 1.0 - store.materialLockProgress);
       surfaceMatRef.current.uniforms.uTime.value = time;
       surfaceMatRef.current.uniforms.uVertexProgress.value = vertexProgress;
-      surfaceMatRef.current.uniforms.uSurfaceProgress.value = surfaceProgress;
+      surfaceMatRef.current.uniforms.uSurfaceProgress.value = surfaceProgress * lockFade;
       surfaceMatRef.current.uniforms.uExcitation.value = store.scrollEnergy;
     }
   });

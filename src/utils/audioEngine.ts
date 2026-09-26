@@ -26,6 +26,7 @@ class SoundEngine {
   private isInitialized = false;
   private chimeTriggered = false;
   private isSilent = false;
+  private resolutionTriggered = false;
 
   private initContext() {
     if (this.ctx || typeof window === 'undefined') return;
@@ -242,6 +243,80 @@ class SoundEngine {
     const now = this.ctx.currentTime;
     const target = isMuted ? 0.0 : 0.65;
     this.masterGain.gain.setTargetAtTime(target, now, 0.25);
+  }
+
+  /**
+   * Act III Material Lock Audio Awakening:
+   * Triggers after the silence event.
+   * Plays a deep D-Minor 9th harmonic chord resolution and procedural bowed glass cello texture.
+   */
+  public triggerGlassCelloResolution() {
+    if (!this.ctx || !this.masterGain || this.resolutionTriggered) return;
+    if (this.ctx.state === 'suspended') return;
+
+    this.resolutionTriggered = true;
+    this.isSilent = false;
+    const now = this.ctx.currentTime;
+
+    // 1. Restore master gain with swelling acoustic presence
+    this.masterGain.gain.cancelScheduledValues(now);
+    this.masterGain.gain.setValueAtTime(0.0001, now);
+    this.masterGain.gain.linearRampToValueAtTime(0.70, now + 0.5);
+
+    // 2. Deep Harmonic Chord: D-Minor 9th Cluster (D2, A2, F3, A3, C4, E4)
+    const chordFrequencies = [73.42, 110.0, 174.61, 220.0, 261.63, 329.63];
+    chordFrequencies.forEach((freq, idx) => {
+      if (!this.ctx || !this.masterGain) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = idx < 2 ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(freq, now);
+      osc.detune.setValueAtTime((idx - 2.5) * 3.5, now);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.12 / (idx + 1), now + 0.4);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 7.5);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(now);
+      osc.stop(now + 8.0);
+    });
+
+    // 3. Procedural Bowed Glass Cello Texture (Resonant friction)
+    const celloFilter = this.ctx.createBiquadFilter();
+    celloFilter.type = 'bandpass';
+    celloFilter.frequency.setValueAtTime(293.66, now); // D4 fundamental
+    celloFilter.Q.setValueAtTime(6.0, now);
+
+    const celloGain = this.ctx.createGain();
+    celloGain.gain.setValueAtTime(0.0001, now);
+    celloGain.gain.linearRampToValueAtTime(0.18, now + 0.7);
+    celloGain.gain.exponentialRampToValueAtTime(0.0001, now + 8.5);
+
+    const celloOsc1 = this.ctx.createOscillator();
+    celloOsc1.type = 'sawtooth';
+    celloOsc1.frequency.setValueAtTime(146.83, now); // D3
+
+    const celloOsc2 = this.ctx.createOscillator();
+    celloOsc2.type = 'triangle';
+    celloOsc2.frequency.setValueAtTime(147.35, now); // Micro detune for friction shimmer
+
+    celloOsc1.connect(celloFilter);
+    celloOsc2.connect(celloFilter);
+    celloFilter.connect(celloGain);
+    celloGain.connect(this.masterGain);
+
+    celloOsc1.start(now);
+    celloOsc2.start(now);
+    celloOsc1.stop(now + 9.0);
+    celloOsc2.stop(now + 9.0);
+  }
+
+  public resetResolution() {
+    this.resolutionTriggered = false;
   }
 
   public destroy() {

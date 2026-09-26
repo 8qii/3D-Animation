@@ -9,6 +9,8 @@ export function useAudioTransition() {
   const transitionProgress = useExperienceStore((state) => state.transitionProgress);
   const act2Progress = useExperienceStore((state) => state.act2Progress);
   const matterProgress = useExperienceStore((state) => state.matterProgress);
+  const act3Progress = useExperienceStore((state) => state.act3Progress);
+  const materialLockProgress = useExperienceStore((state) => state.materialLockProgress);
   const scrollEnergy = useExperienceStore((state) => state.scrollEnergy);
   const pointer = useExperienceStore((state) => state.pointer);
   const attentionLevel = useExperienceStore((state) => state.attentionLevel);
@@ -39,16 +41,26 @@ export function useAudioTransition() {
       // Cinematic Silence Event:
       // When matter reaches pre-materialization lock (matterProgress >= 0.82),
       // the universe ducks into absolute silence before the final materialization.
-      if (matterProgress >= 0.82) {
+      if (matterProgress >= 0.82 && materialLockProgress < 0.70) {
         soundEngine.triggerCinematicSilence();
       } else if (matterProgress < 0.45) {
         soundEngine.resetSilence(isMuted);
+      }
+
+      // Act III Glass Cello & Deep Harmonic Chord Resolution:
+      // Triggers after silence once physical obsidian crystal locks into place.
+      if (materialLockProgress >= 0.70 || act3Progress >= 0.20) {
+        soundEngine.triggerGlassCelloResolution();
+      } else if (materialLockProgress < 0.20 && act3Progress < 0.05) {
+        soundEngine.resetResolution();
       }
     }
   }, [
     transitionProgress,
     act2Progress,
     matterProgress,
+    act3Progress,
+    materialLockProgress,
     scrollEnergy,
     pointer.x,
     attentionLevel,

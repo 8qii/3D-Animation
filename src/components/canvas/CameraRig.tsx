@@ -22,8 +22,6 @@ export function CameraRig() {
     // Transient store access for optimal 60 FPS performance
     const store = useExperienceStore.getState();
     const pointer = store.pointer;
-    const transition = store.transitionProgress;
-    const act2Progress = store.act2Progress;
     const scrollEnergy = store.scrollEnergy;
     const scrollProgress = store.scrollProgress;
     const isPreviewMode = store.isPreviewMode;
@@ -43,15 +41,15 @@ export function CameraRig() {
     const activeCamera = state.camera as THREE.PerspectiveCamera;
 
     // 2. Camera Choreography (3 Distinct Stages):
-    // Stage 1: Observer (Contemplative forward gaze)
-    // Stage 2: Mathematical Witness (Sweeping diagonal orbital inspection)
-    // Stage 3: Architectural Reveal (High-angle crane elevation looking downward into the lattice)
+    // Stage 0: Observer (Contemplative forward gaze)
+    // Stage 1: Witness (Diagonal orbital vitrine sweep)
+    // Stage 2: Architectural Contemplation (Final Master View: [3.0, 1.5, 4.5] looking at [0, 0.2, 0])
 
-    let choreoStage = 0; // 0: Observer, 1: Mathematical Witness, 2: Architectural Reveal
+    let choreoStage = 0; // 0: Observer, 1: Witness, 2: Architectural Contemplation
     let stageProgress = 0; // [0..1] within the active stage
 
     if (isPreviewMode) {
-      const nextTime = (previewTime + delta) % 40.0;
+      const nextTime = (previewTime + delta) % 50.0;
       setPreviewTime(nextTime);
 
       if (nextTime < 12.0) {
@@ -62,29 +60,30 @@ export function CameraRig() {
         stageProgress = (nextTime - 12.0) / 14.0;
       } else {
         choreoStage = 2;
-        stageProgress = (nextTime - 26.0) / 14.0;
+        stageProgress = Math.min(1.0, (nextTime - 26.0) / 14.0);
       }
     } else {
       if (scrollProgress < 0.22) {
         choreoStage = 0;
         stageProgress = scrollProgress / 0.22;
-      } else if (scrollProgress < 0.34) {
+      } else if (scrollProgress < 0.38) {
         choreoStage = 1;
-        stageProgress = (scrollProgress - 0.22) / 0.12;
+        stageProgress = (scrollProgress - 0.22) / 0.16;
       } else {
         choreoStage = 2;
-        stageProgress = Math.min(1.0, (scrollProgress - 0.34) / 0.11);
+        stageProgress = Math.min(1.0, (scrollProgress - 0.38) / 0.14);
       }
     }
 
-    // Dynamic FOV based on choreo stage
+    // Dynamic FOV based on choreo stage:
+    // 45° (Act I) -> 42° (Act II) -> 39° (Witness) -> 38° (Final Architectural Contemplation)
     let baseFov = 45.0;
     if (choreoStage === 0) {
       baseFov = THREE.MathUtils.lerp(45.0, 42.0, stageProgress);
     } else if (choreoStage === 1) {
       baseFov = THREE.MathUtils.lerp(42.0, 39.0, stageProgress);
     } else {
-      baseFov = THREE.MathUtils.lerp(39.0, 44.0, stageProgress);
+      baseFov = THREE.MathUtils.lerp(39.0, 38.0, stageProgress);
     }
 
     const lensBreathing = Math.sin(time * 0.314159) * 0.25 - scrollEnergy * 0.65;
@@ -96,13 +95,13 @@ export function CameraRig() {
     }
 
     // Natural Organic Breathing & Pointer Parallax
-    const breathingY = Math.sin(time * 0.314159) * 0.04;
-    const driftZ = Math.cos(time * 0.08) * 0.05;
-    const parallaxX = pointer.x * 0.30;
-    const parallaxY = pointer.y * 0.22;
+    const breathingY = Math.sin(time * 0.314159) * 0.035;
+    const driftZ = Math.cos(time * 0.08) * 0.04;
+    const parallaxX = pointer.x * 0.25;
+    const parallaxY = pointer.y * 0.18;
 
     if (choreoStage === 0) {
-      // Stage 1: OBSERVER
+      // Stage 0: OBSERVER
       // Forward contemplative gaze from [0, 0, 7.0] down to [0, 0, 5.5]
       const ease = THREE.MathUtils.smoothstep(stageProgress, 0, 1);
       targetCamPos.current.set(
@@ -112,36 +111,40 @@ export function CameraRig() {
       );
       targetLookAt.current.set(parallaxX * 0.15, parallaxY * 0.15, 0.0);
     } else if (choreoStage === 1) {
-      // Stage 2: MATHEMATICAL WITNESS
+      // Stage 1: WITNESS
       // Diagonal vitrine orbital sweep [2.2, 1.4, 4.6] surveying vertices & edges drawing in 3D
       const ease = THREE.MathUtils.smoothstep(stageProgress, 0, 1);
       const angle = ease * Math.PI * 0.65;
       targetCamPos.current.set(
-        Math.sin(angle) * 2.2 + parallaxX * 0.5,
-        1.2 + Math.sin(ease * Math.PI) * 0.4 + breathingY,
+        Math.sin(angle) * 2.2 + parallaxX * 0.4,
+        1.2 + Math.sin(ease * Math.PI) * 0.35 + breathingY,
         Math.cos(angle) * 1.4 + 4.2 + driftZ
       );
       targetLookAt.current.set(0.08, 0.05, 0.0);
     } else {
-      // Stage 3: ARCHITECTURAL REVEAL
-      // Crane ascent to [0.0, 2.2, 4.8] looking downward into the glowing holographic crystal lattice
+      // Stage 2: ARCHITECTURAL CONTEMPLATION
+      // Glides gracefully to final master position: [3.0, 1.5, 4.5] looking at [0, 0.2, 0]
       const ease = THREE.MathUtils.smoothstep(stageProgress, 0, 1);
       targetCamPos.current.set(
-        parallaxX * 0.4,
-        THREE.MathUtils.lerp(1.4, 2.2, ease) + breathingY,
-        THREE.MathUtils.lerp(4.6, 4.8, ease) + driftZ
+        THREE.MathUtils.lerp(2.2, 3.0, ease) + parallaxX * 0.3,
+        THREE.MathUtils.lerp(1.2, 1.5, ease) + breathingY,
+        THREE.MathUtils.lerp(4.2, 4.5, ease) + driftZ
       );
-      targetLookAt.current.set(0.0, THREE.MathUtils.lerp(0.0, -0.22, ease), 0.0);
+      targetLookAt.current.set(
+        THREE.MathUtils.lerp(0.08, 0.0, ease),
+        THREE.MathUtils.lerp(0.05, 0.2, ease),
+        0.0
+      );
     }
 
     // High-inertia physical damping
-    activeCamera.position.x = damp(activeCamera.position.x, targetCamPos.current.x, 2.8, delta);
-    activeCamera.position.y = damp(activeCamera.position.y, targetCamPos.current.y, 2.8, delta);
-    activeCamera.position.z = damp(activeCamera.position.z, targetCamPos.current.z, 2.8, delta);
+    activeCamera.position.x = damp(activeCamera.position.x, targetCamPos.current.x, 2.6, delta);
+    activeCamera.position.y = damp(activeCamera.position.y, targetCamPos.current.y, 2.6, delta);
+    activeCamera.position.z = damp(activeCamera.position.z, targetCamPos.current.z, 2.6, delta);
 
-    currentLookAt.current.x = damp(currentLookAt.current.x, targetLookAt.current.x, 3.2, delta);
-    currentLookAt.current.y = damp(currentLookAt.current.y, targetLookAt.current.y, 3.2, delta);
-    currentLookAt.current.z = damp(currentLookAt.current.z, targetLookAt.current.z, 3.2, delta);
+    currentLookAt.current.x = damp(currentLookAt.current.x, targetLookAt.current.x, 3.0, delta);
+    currentLookAt.current.y = damp(currentLookAt.current.y, targetLookAt.current.y, 3.0, delta);
+    currentLookAt.current.z = damp(currentLookAt.current.z, targetLookAt.current.z, 3.0, delta);
 
     activeCamera.lookAt(currentLookAt.current);
   });
