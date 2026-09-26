@@ -13,6 +13,13 @@ export interface WorldMutation {
   gridIntensity: number; // 0 to 1
 }
 
+export interface MovementMemory {
+  avgSpeed: number;
+  smoothness: number;
+  stillnessRatio: number;
+  dominantIntent: 'CONTEMPLATIVE_WITNESS' | 'KINETIC_CATALYST' | 'SACRED_ARCHITECT' | 'UNFORMED';
+}
+
 export interface ObserverArchive {
   signature: string;
   sessionCount: number;
@@ -25,6 +32,9 @@ export interface ObserverArchive {
   worldMutationLevel: number;
   preferredEnding: HiddenEndingType | null;
   act5Unlocked: boolean;
+  personalFrequency: number;
+  memoryFreshness: number;
+  movementMemory: MovementMemory;
 }
 
 export const ARCHIVE_STORAGE_KEY = 'aetheria_memory_archive';
@@ -81,6 +91,34 @@ export function computeWorldMutation(archive: ObserverArchive): WorldMutation {
   };
 }
 
+export function generatePersonalFrequency(
+  firstArrival: number,
+  dominantArchetype: ObserverArchetype,
+  sessionCount: number
+): number {
+  let baseFreq = 440.0;
+  if (dominantArchetype === 'THE_WITNESS') {
+    baseFreq = 432.0; // Universal Natural Tuning / Contemplation
+  } else if (dominantArchetype === 'THE_CATALYST') {
+    baseFreq = 528.0; // Transformation / DNA Frequency
+  } else if (dominantArchetype === 'THE_ARCHITECT') {
+    baseFreq = 417.0; // Undoing Situations & Facilitating Sacred Change
+  }
+
+  // Micro-offset derived deterministically from firstArrival & sessionCount
+  const offsetSeed = ((firstArrival ^ (sessionCount * 1337)) >>> 0) % 1000;
+  const microOffset = ((offsetSeed / 1000.0) * 8.0 - 4.0) * (1.6180339887 / 2.0);
+  return Math.round((baseFreq + microOffset) * 10) / 10;
+}
+
+export function calculateMemoryFreshness(lastArrival: number, currentNow: number): number {
+  const deltaMs = Math.max(0, currentNow - lastArrival);
+  // Half-life of 24 hours (86,400,000 ms).
+  // Retains a foundational memory floor of 0.25
+  const halfLife = 86400000;
+  return Math.max(0.25, Math.exp(-deltaMs / halfLife));
+}
+
 export function loadArchive(): ObserverArchive {
   if (typeof window === 'undefined') {
     return createDefaultArchive();
@@ -88,18 +126,32 @@ export function loadArchive(): ObserverArchive {
 
   try {
     const raw = localStorage.getItem(ARCHIVE_STORAGE_KEY);
+    const now = Date.now();
     if (raw) {
       const data = JSON.parse(raw) as Partial<ObserverArchive>;
       const sessionCount = (data.sessionCount || 1) + 1;
       const dominantArchetype = data.dominantArchetype || 'THE_INITIATE';
       const scores = data.accumulatedScores || { witness: 0, catalyst: 0, architect: 0 };
-      const firstArrival = data.firstArrival || Date.now();
+      const firstArrival = data.firstArrival || now;
+      const lastArrival = data.lastArrival || now;
+      const freshness = calculateMemoryFreshness(lastArrival, now);
+
+      const personalFreq =
+        data.personalFrequency ||
+        generatePersonalFrequency(firstArrival, dominantArchetype, sessionCount);
+
+      const defaultMovement: MovementMemory = {
+        avgSpeed: 0.5,
+        smoothness: 0.7,
+        stillnessRatio: 0.5,
+        dominantIntent: 'UNFORMED',
+      };
 
       const archive: ObserverArchive = {
         signature: generateObserverSignature(firstArrival, dominantArchetype, sessionCount, scores),
         sessionCount,
         firstArrival,
-        lastArrival: Date.now(),
+        lastArrival: now,
         totalObservationDuration: data.totalObservationDuration || 0,
         dominantArchetype,
         accumulatedScores: scores,
@@ -107,6 +159,9 @@ export function loadArchive(): ObserverArchive {
         worldMutationLevel: Math.min(3, Math.floor(sessionCount / 2)),
         preferredEnding: data.preferredEnding || null,
         act5Unlocked: !!data.act5Unlocked,
+        personalFrequency: personalFreq,
+        memoryFreshness: freshness,
+        movementMemory: data.movementMemory || defaultMovement,
       };
 
       saveArchive(archive);
@@ -118,7 +173,7 @@ export function loadArchive(): ObserverArchive {
     const legacyEvoRaw = localStorage.getItem(LEGACY_EVO_KEY);
 
     let sessionCount = 1;
-    let firstArrival = Date.now();
+    let firstArrival = now;
     let dominantArchetype: ObserverArchetype = 'THE_INITIATE';
     let scores = { witness: 0, catalyst: 0, architect: 0 };
     let preferredEnding: HiddenEndingType | null = null;
@@ -126,7 +181,7 @@ export function loadArchive(): ObserverArchive {
     if (legacyMemRaw) {
       const mem = JSON.parse(legacyMemRaw);
       sessionCount = (mem.visits || 1) + 1;
-      firstArrival = mem.firstVisit || Date.now();
+      firstArrival = mem.firstVisit || now;
     }
     if (legacyEvoRaw) {
       const evo = JSON.parse(legacyEvoRaw);
@@ -139,7 +194,7 @@ export function loadArchive(): ObserverArchive {
       signature: generateObserverSignature(firstArrival, dominantArchetype, sessionCount, scores),
       sessionCount,
       firstArrival,
-      lastArrival: Date.now(),
+      lastArrival: now,
       totalObservationDuration: 0,
       dominantArchetype,
       accumulatedScores: scores,
@@ -147,6 +202,14 @@ export function loadArchive(): ObserverArchive {
       worldMutationLevel: Math.min(3, Math.floor(sessionCount / 2)),
       preferredEnding,
       act5Unlocked: false,
+      personalFrequency: generatePersonalFrequency(firstArrival, dominantArchetype, sessionCount),
+      memoryFreshness: 1.0,
+      movementMemory: {
+        avgSpeed: 0.5,
+        smoothness: 0.7,
+        stillnessRatio: 0.5,
+        dominantIntent: 'UNFORMED',
+      },
     };
 
     saveArchive(newArchive);
@@ -179,5 +242,13 @@ function createDefaultArchive(): ObserverArchive {
     worldMutationLevel: 0,
     preferredEnding: null,
     act5Unlocked: false,
+    personalFrequency: 440.0,
+    memoryFreshness: 1.0,
+    movementMemory: {
+      avgSpeed: 0.5,
+      smoothness: 0.7,
+      stillnessRatio: 0.5,
+      dominantIntent: 'UNFORMED',
+    },
   };
 }

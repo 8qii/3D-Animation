@@ -35,6 +35,8 @@ function SingleFacetMesh({ facet }: SingleFacetProps) {
       uObserverAttention: { value: 0 },
       uKeyLightDir: { value: new THREE.Vector3(4.0, 5.0, 3.5).normalize() },
       uRimLightDir: { value: new THREE.Vector3(-4.0, 2.5, -3.5).normalize() },
+      uFacetAwakened: { value: 0 },
+      uPersonalFreq: { value: 432 },
     }),
     []
   );
@@ -46,6 +48,8 @@ function SingleFacetMesh({ facet }: SingleFacetProps) {
     const facetMemory = store.facetMemoryProgress;
     const collapse = store.collapseProgress;
     const threshold = store.singularityThresholdProgress;
+    const facetAwakened = store.facetAwakening[facet.id] ?? 0;
+    const personalFreq = store.personalFrequency || 432;
 
     // Time Dilation Moment: facet velocity decelerates 100% -> 20%
     // Phase 9.16 Time Freeze: at final 10% (collapse > 0.90), motion drops 20% -> 0%
@@ -58,6 +62,8 @@ function SingleFacetMesh({ facet }: SingleFacetProps) {
       materialRef.current.uniforms.uFractureProgress.value = fractureProgress;
       materialRef.current.uniforms.uObserverPos.value.set(store.mouseWorld[0], store.mouseWorld[1], store.mouseWorld[2]);
       materialRef.current.uniforms.uObserverAttention.value = store.attentionLevel * store.observerProximity;
+      materialRef.current.uniforms.uFacetAwakened.value = facetAwakened;
+      materialRef.current.uniforms.uPersonalFreq.value = personalFreq;
     }
 
     if (meshRef.current) {

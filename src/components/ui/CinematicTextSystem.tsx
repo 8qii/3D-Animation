@@ -76,6 +76,10 @@ export function CinematicTextSystem() {
   const observerArchive = useExperienceStore((state) => state.observerArchive);
   const observerSignature = useExperienceStore((state) => state.observerSignature);
   const recognitionResonance = useExperienceStore((state) => state.recognitionResonance);
+  const consciousState = useExperienceStore((state) => state.consciousState);
+  const personalFrequency = useExperienceStore((state) => state.personalFrequency);
+  const observerIntention = useExperienceStore((state) => state.observerIntention);
+  const intentionVerified = useExperienceStore((state) => state.intentionVerified);
 
   // Determine active narrative line and conscious theme with Archetype & Multi-Visit Adaptation
   const narrative = useMemo(() => {
@@ -88,6 +92,30 @@ export function CinematicTextSystem() {
         borderColor: 'border-yellow-400/80 shadow-[0_0_35px_rgba(234,179,8,0.4)]',
         badgeBg: 'bg-yellow-950/75',
         dotColor: 'bg-yellow-300 shadow-[0_0_14px_#fde047]',
+      };
+    }
+
+    if (consciousState === 'AWAKENED') {
+      return {
+        title: 'THE UNIVERSE RECOGNIZES WHY YOU RETURNED',
+        subtitle: 'The universe does not recognize that you returned. It recognizes why you returned.',
+        status: intentionVerified ? 'INTENTION VERIFIED // RECOMBINATION READY' : 'CONSCIOUS AWAKENING ACTIVE',
+        color: 'gold' as const,
+        borderColor: 'border-yellow-400/80 shadow-[0_0_30px_rgba(250,204,21,0.35)]',
+        badgeBg: 'bg-yellow-950/70',
+        dotColor: 'bg-yellow-300 shadow-[0_0_12px_#fde047]',
+      };
+    }
+
+    if (consciousState === 'REMEMBERING') {
+      return {
+        title: 'FACET MEMORY AWAKENING',
+        subtitle: 'Sacred geometry recalls your resonance. Facets awaken one by one along golden fault planes.',
+        status: `RESONANCE FREQUENCY: ${personalFrequency.toFixed(1)} HZ`,
+        color: 'amber' as const,
+        borderColor: 'border-amber-400/70 shadow-[0_0_25px_rgba(245,158,11,0.3)]',
+        badgeBg: 'bg-amber-950/60',
+        dotColor: 'bg-amber-300 shadow-[0_0_12px_#f59e0b]',
       };
     }
 
@@ -173,7 +201,15 @@ export function CinematicTextSystem() {
       default:
         return null;
     }
-  }, [observerState, hiddenDiscoveryActive, observerArchetype, observerArchive]);
+  }, [
+    observerState,
+    hiddenDiscoveryActive,
+    observerArchetype,
+    observerArchive,
+    consciousState,
+    intentionVerified,
+    personalFrequency,
+  ]);
 
   if (!narrative) return null;
 
@@ -235,6 +271,16 @@ export function CinematicTextSystem() {
           )}
           {recognitionResonance > 0.05 && (
             <span>RESONANCE: <strong className="text-emerald-300 font-semibold animate-pulse">{(recognitionResonance * 100).toFixed(0)}%</strong></span>
+          )}
+          <span>FREQ: <strong className="text-cyan-300 font-medium">{personalFrequency.toFixed(1)}Hz</strong></span>
+          {consciousState !== 'LATENT' && (
+            <span>CONSCIOUS: <strong className="text-amber-300 font-semibold">{consciousState}</strong></span>
+          )}
+          {observerIntention !== 'UNFORMED' && (
+            <span>INTENT: <strong className="text-purple-300 font-medium">{observerIntention.replace('THE_', '').replace('_', ' ')}</strong></span>
+          )}
+          {intentionVerified && (
+            <span className="text-emerald-300 font-bold tracking-wider animate-pulse">VERIFIED</span>
           )}
           <span>SIG: <strong className="text-sky-300 font-mono tracking-wider">{observerSignature}</strong></span>
         </div>

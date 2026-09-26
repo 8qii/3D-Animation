@@ -11,6 +11,26 @@ import { soundEngine } from '@/utils/audioEngine';
 const STORAGE_KEY = 'aetheria_observer_memory';
 const EVOLUTION_STORAGE_KEY = 'aetheria_observer_evolution';
 
+const PHI = 1.6180339887;
+const INV_PHI = 1.0 / PHI;
+const FACET_NORMALS: THREE.Vector3[] = [];
+// 8 cube-corner vertices
+[-1, 1].forEach((x) => {
+  [-1, 1].forEach((y) => {
+    [-1, 1].forEach((z) => {
+      FACET_NORMALS.push(new THREE.Vector3(x, y, z).normalize());
+    });
+  });
+});
+// 12 golden-rectangle vertices
+[-1, 1].forEach((s1) => {
+  [-1, 1].forEach((s2) => {
+    FACET_NORMALS.push(new THREE.Vector3(0, s1 * PHI, s2 * INV_PHI).normalize());
+    FACET_NORMALS.push(new THREE.Vector3(s2 * INV_PHI, 0, s1 * PHI).normalize());
+    FACET_NORMALS.push(new THREE.Vector3(s1 * PHI, s2 * INV_PHI, 0).normalize());
+  });
+});
+
 export function ObserverController() {
   const { raycaster, camera, pointer } = useThree();
 
@@ -48,6 +68,17 @@ export function ObserverController() {
   const recordMilestone = useExperienceStore((state) => state.recordMilestone);
   const setAct5GateArmed = useExperienceStore((state) => state.setAct5GateArmed);
 
+  // Phase 9.21 Aetheria Conscious Recognition Hooks
+  const setConsciousRecognitionProgress = useExperienceStore((state) => state.setConsciousRecognitionProgress);
+  const setConsciousState = useExperienceStore((state) => state.setConsciousState);
+  const setPersonalFrequency = useExperienceStore((state) => state.setPersonalFrequency);
+  const setFacetAwakening = useExperienceStore((state) => state.setFacetAwakening);
+  const setAwakenedFacetCount = useExperienceStore((state) => state.setAwakenedFacetCount);
+  const setMovementPattern = useExperienceStore((state) => state.setMovementPattern);
+  const setIntentionAlignmentScore = useExperienceStore((state) => state.setIntentionAlignmentScore);
+  const setObserverIntention = useExperienceStore((state) => state.setObserverIntention);
+  const setIntentionVerified = useExperienceStore((state) => state.setIntentionVerified);
+
   // Pre-allocated geometries and vectors
   const focalPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
   const crystalSphere = useRef(new THREE.Sphere(new THREE.Vector3(0, 0.1, 0), 1.9));
@@ -62,6 +93,12 @@ export function ObserverController() {
   const stillnessScoreRef = useRef(0);
   const idleTimerRef = useRef(0);
   const discoveryTriggered = useRef(false);
+
+  // Phase 9.21 Conscious Recognition dynamics
+  const speedHistory = useRef<number[]>([]);
+  const lastPointerCoord = useRef<THREE.Vector2>(new THREE.Vector2(0, 0));
+  const consciousProgRef = useRef(0);
+  const facetAwakeArrayRef = useRef<number[]>(new Array(20).fill(0));
 
   // Evolution & scoring accumulators
   const scoreFlushTimer = useRef(0);
@@ -110,6 +147,9 @@ export function ObserverController() {
         setAct5Prepared(true);
         setUniverseCoherenceScore(100);
       }
+      if (archive.personalFrequency) {
+        setPersonalFrequency(archive.personalFrequency);
+      }
     } catch {
       // Graceful fallback if storage disabled
     }
@@ -125,6 +165,7 @@ export function ObserverController() {
     setWorldMutation,
     setAct5Prepared,
     setUniverseCoherenceScore,
+    setPersonalFrequency,
   ]);
 
   // 2. Mobile Gyroscope Layer (Optional Subtle Shift ±5°)
@@ -177,6 +218,14 @@ export function ObserverController() {
       lastWorldPoint.current.copy(activePoint);
 
       pointerSpeed = distanceMoved / Math.max(0.0001, delta);
+
+      // Measure motion in Normalized Device Coordinates for movement signature
+      const pDeltaX = pointer.x - lastPointerCoord.current.x;
+      const pDeltaY = pointer.y - lastPointerCoord.current.y;
+      lastPointerCoord.current.set(pointer.x, pointer.y);
+      const ndcSpeed = Math.sqrt(pDeltaX * pDeltaX + pDeltaY * pDeltaY) / Math.max(0.001, delta);
+      speedHistory.current.push(ndcSpeed);
+      if (speedHistory.current.length > 30) speedHistory.current.shift();
 
       // Stillness metric: 1.0 when perfectly still, decaying as speed exceeds 1.5
       const instantStillness = Math.max(0, Math.min(1.0, 1.0 - pointerSpeed / 2.0));
@@ -434,6 +483,98 @@ export function ObserverController() {
     const calculatedCoherence = Math.min(100, 30 + milestoneScore + sessionScore + stillnessScore + attentionScore + resonanceScore);
     setUniverseCoherenceScore(calculatedCoherence);
 
+    // 13. Phase 9.21 Aetheria Conscious Recognition Engine
+    const speedArr = speedHistory.current;
+    const avgSpeed = speedArr.length > 0 ? speedArr.reduce((a, b) => a + b, 0) / speedArr.length : 0.5;
+    const jitter =
+      speedArr.length > 0
+        ? speedArr.reduce((acc, s) => acc + Math.abs(s - avgSpeed), 0) / (speedArr.length * (avgSpeed + 0.1))
+        : 0;
+    const smoothness = Math.max(0, Math.min(1, 1.0 - jitter * 0.5));
+    const stillnessFrames = speedArr.filter((s) => s < 0.08).length;
+    const stillnessRatio = speedArr.length > 0 ? stillnessFrames / speedArr.length : 0.5;
+
+    // Movement Intent Classification
+    let currentIntent: 'CONTEMPLATIVE_WITNESS' | 'KINETIC_CATALYST' | 'SACRED_ARCHITECT' | 'UNFORMED' = 'UNFORMED';
+    if (stillnessRatio > 0.50 || (avgSpeed < 0.25 && smoothness > 0.65)) {
+      currentIntent = 'CONTEMPLATIVE_WITNESS';
+    } else if (avgSpeed > 1.1 || jitter > 0.45) {
+      currentIntent = 'KINETIC_CATALYST';
+    } else if (smoothness > 0.65 && avgSpeed >= 0.18 && avgSpeed <= 1.25) {
+      currentIntent = 'SACRED_ARCHITECT';
+    }
+
+    // Intention Alignment Score (0 - 100%)
+    let alignment = 40;
+    if (currentArch === 'THE_WITNESS') {
+      alignment = Math.round(stillnessRatio * 60 + smoothness * 40);
+      if (currentIntent === 'CONTEMPLATIVE_WITNESS') alignment = Math.min(100, alignment + 15);
+    } else if (currentArch === 'THE_CATALYST') {
+      alignment = Math.round(Math.min(1.0, avgSpeed / 1.5) * 60 + (1.0 - stillnessRatio) * 40);
+      if (currentIntent === 'KINETIC_CATALYST') alignment = Math.min(100, alignment + 15);
+    } else if (currentArch === 'THE_ARCHITECT') {
+      alignment = Math.round(smoothness * 70 + (1.0 - Math.min(1.0, Math.abs(avgSpeed - 0.6) / 0.6)) * 30);
+      if (currentIntent === 'SACRED_ARCHITECT') alignment = Math.min(100, alignment + 15);
+    } else {
+      // Initiate / general
+      alignment = Math.round(stillnessScoreRef.current * 40 + smoothness * 40 + 20);
+    }
+
+    // Conscious Recognition Delay System & Memory Aging Decay
+    const freshness = archive?.memoryFreshness || 1.0;
+    if (hoverDurationRef.current > 0.2 && attentionRef.current > 0.25) {
+      // Aging delay: fresh memories awaken faster (~10s), aged memories require more attunement (~18s)
+      const awakeningSpeed = delta / (10.0 * (1.8 - 0.8 * freshness));
+      consciousProgRef.current = Math.min(1.0, consciousProgRef.current + awakeningSpeed);
+    } else {
+      // Gentle persistence decay
+      consciousProgRef.current = Math.max(0.0, consciousProgRef.current - delta * 0.035);
+    }
+
+    // Conscious State classification
+    let cState: 'LATENT' | 'INTUITING' | 'REMEMBERING' | 'AWAKENED' = 'LATENT';
+    if (consciousProgRef.current >= 0.85) cState = 'AWAKENED';
+    else if (consciousProgRef.current >= 0.60) cState = 'REMEMBERING';
+    else if (consciousProgRef.current >= 0.25) cState = 'INTUITING';
+
+    // Facet-by-Facet Awakening Sequencer (20 facets along golden ratio & attention)
+    let awakeCount = 0;
+    const attentionNormalized = attentionVec.current.clone().negate().normalize();
+    const newFacetAwake = facetAwakeArrayRef.current.map((currVal, idx) => {
+      const normal = FACET_NORMALS[idx] || new THREE.Vector3(0, 1, 0);
+      const gazeDot = Math.max(0, normal.dot(attentionNormalized));
+      const spiralThreshold = 0.20 + (idx / 20.0) * 0.60;
+      let target = 0.0;
+      if (consciousProgRef.current > spiralThreshold) {
+        target = Math.min(1.0, (consciousProgRef.current - spiralThreshold) / 0.20 + gazeDot * 0.35);
+      } else if (gazeDot > 0.70 && consciousProgRef.current > 0.15) {
+        target = gazeDot * 0.35;
+      }
+      const smoothed = damp(currVal, target, 3.0, delta);
+      if (smoothed > 0.70) awakeCount++;
+      return smoothed;
+    });
+    facetAwakeArrayRef.current = newFacetAwake;
+
+    // Update Store States
+    setConsciousRecognitionProgress(consciousProgRef.current);
+    setConsciousState(cState);
+    setFacetAwakening(newFacetAwake);
+    setAwakenedFacetCount(awakeCount);
+    setMovementPattern({ speedAvg: avgSpeed, smoothness, jitter, stillnessRatio });
+    setObserverIntention(currentIntent);
+    setIntentionAlignmentScore(alignment);
+
+    // Intention Verification Condition
+    const isIntentionVerified = consciousProgRef.current >= 0.85 && awakeCount >= 16 && alignment >= 75;
+    if (isIntentionVerified && !storeState.intentionVerified) {
+      setIntentionVerified(true);
+    }
+
+    // Audio Engine Conscious Recognition Update
+    const pFreq = storeState.personalFrequency || archive?.personalFrequency || 432.0;
+    soundEngine.updateConsciousRecognition(consciousProgRef.current, pFreq, currentIntent, isIntentionVerified);
+
     if (singularity > 0.80) {
       if (calculatedCoherence >= 75 && singularity >= 0.88 && !storeState.act5Prepared) {
         setAct5Prepared(true);
@@ -443,13 +584,13 @@ export function ObserverController() {
         }
       }
 
-      // Act V Recognition Gate Armed
-      if (calculatedCoherence >= 90 && singularity >= 0.92 && !storeState.act5GateArmed) {
+      // Act V Recognition Gate Armed requires Coherence >= 90%, Singularity >= 0.92, AND Intention Verified!
+      if (calculatedCoherence >= 90 && singularity >= 0.92 && isIntentionVerified && !storeState.act5GateArmed) {
         setAct5GateArmed(true);
       }
     }
 
-    // 12. Periodic Archive Sync & Time Accumulation
+    // 14. Periodic Archive Sync & Time Accumulation
     sessionDurationRef.current += delta;
     archiveSyncTimer.current += delta;
     if (archiveSyncTimer.current > 4.0) {
@@ -460,6 +601,13 @@ export function ObserverController() {
         currentArchive.dominantArchetype = useExperienceStore.getState().observerArchetype;
         currentArchive.accumulatedScores = useExperienceStore.getState().archetypeScores;
         currentArchive.preferredEnding = useExperienceStore.getState().hiddenEnding;
+        currentArchive.movementMemory = {
+          avgSpeed: Math.round(avgSpeed * 100) / 100,
+          smoothness: Math.round(smoothness * 100) / 100,
+          stillnessRatio: Math.round(stillnessRatio * 100) / 100,
+          dominantIntent: currentIntent,
+        };
+        currentArchive.personalFrequency = pFreq;
         currentArchive.signature = generateObserverSignature(
           currentArchive.firstArrival,
           currentArchive.dominantArchetype,

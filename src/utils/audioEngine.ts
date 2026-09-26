@@ -43,6 +43,13 @@ class SoundEngine {
   private memoryResonanceGain: GainNode | null = null;
   private lastChimeTime = 0;
 
+  // Phase 9.21 Conscious Recognition Layer
+  private consciousOsc: OscillatorNode | null = null;
+  private consciousSubOsc: OscillatorNode | null = null;
+  private consciousFilter: BiquadFilterNode | null = null;
+  private consciousGain: GainNode | null = null;
+  private intentionChimeTriggered = false;
+
   private isInitialized = false;
   private chimeTriggered = false;
   private isSilent = false;
@@ -180,6 +187,31 @@ class SoundEngine {
     this.memoryResonanceGain.connect(this.masterGain);
 
     this.memoryResonanceOsc.start();
+
+    // Phase 9.21 Personal Observer Conscious Resonance Synthesizer
+    this.consciousOsc = this.ctx.createOscillator();
+    this.consciousOsc.type = 'sine';
+    this.consciousOsc.frequency.setValueAtTime(432.0, now);
+
+    this.consciousSubOsc = this.ctx.createOscillator();
+    this.consciousSubOsc.type = 'sine';
+    this.consciousSubOsc.frequency.setValueAtTime(216.0, now);
+
+    this.consciousFilter = this.ctx.createBiquadFilter();
+    this.consciousFilter.type = 'bandpass';
+    this.consciousFilter.frequency.setValueAtTime(432.0, now);
+    this.consciousFilter.Q.setValueAtTime(18.0, now);
+
+    this.consciousGain = this.ctx.createGain();
+    this.consciousGain.gain.setValueAtTime(0.0001, now);
+
+    this.consciousOsc.connect(this.consciousFilter);
+    this.consciousSubOsc.connect(this.consciousFilter);
+    this.consciousFilter.connect(this.consciousGain);
+    this.consciousGain.connect(this.masterGain);
+
+    this.consciousOsc.start();
+    this.consciousSubOsc.start();
 
     this.isInitialized = true;
   }
@@ -796,6 +828,69 @@ class SoundEngine {
 
     chimeOsc.start(now);
     chimeOsc.stop(now + 1.25);
+  }
+
+  /**
+   * Phase 9.21 Conscious Recognition Audio Layer
+   * Gradually introduces personal observer resonance frequency (e.g. 432Hz/528Hz/417Hz)
+   * and plays intention verification harmonic chord when intention is unlocked.
+   */
+  public updateConsciousRecognition(
+    recognitionProgress: number,
+    personalFreq: number,
+    _intention: string,
+    verified: boolean
+  ) {
+    if (!this.ctx || !this.consciousOsc || !this.consciousSubOsc || !this.consciousFilter || !this.consciousGain) return;
+    if (this.ctx.state === 'suspended' || this.isSilent) return;
+
+    const now = this.ctx.currentTime;
+    const targetFreq = personalFreq > 100 ? personalFreq : 432.0;
+
+    this.consciousOsc.frequency.setTargetAtTime(targetFreq, now, 0.15);
+    this.consciousSubOsc.frequency.setTargetAtTime(targetFreq * 0.5, now, 0.15);
+    this.consciousFilter.frequency.setTargetAtTime(targetFreq, now, 0.15);
+
+    // Conscious gain: emerges at progress > 0.25 (Intuiting), builds through Remembering (0.60), peaks at Awakened (0.85+)
+    let targetGain = 0.0001;
+    if (recognitionProgress > 0.25) {
+      const p = (recognitionProgress - 0.25) / 0.75;
+      targetGain = p * 0.20;
+      if (verified) targetGain = Math.min(0.32, targetGain * 1.35);
+    }
+    this.consciousGain.gain.setTargetAtTime(targetGain, now, 0.15);
+
+    // Intention Verification Harmonic Ascension Chords
+    if (verified && !this.intentionChimeTriggered) {
+      this.intentionChimeTriggered = true;
+      this.playIntentionVerifiedChords(targetFreq);
+    }
+  }
+
+  private playIntentionVerifiedChords(fundamental: number) {
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    // Sacred golden chord: 1.0, 1.25 (Major 3rd), 1.5 (Perfect 5th), 1.618 (Golden Phi)
+    const ratios = [1.0, 1.25, 1.5, 1.6180339887];
+    ratios.forEach((ratio, idx) => {
+      if (!this.ctx || !this.masterGain) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(fundamental * ratio, now + idx * 0.08);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.12 / (idx + 1), now + idx * 0.08 + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.08 + 2.2);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(now + idx * 0.08);
+      osc.stop(now + idx * 0.08 + 2.4);
+    });
   }
 
   public destroy() {

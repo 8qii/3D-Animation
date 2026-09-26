@@ -7,6 +7,8 @@ export const shatterFragmentShader = /* glsl */ `
   uniform float uObserverAttention;
   uniform vec3 uKeyLightDir;
   uniform vec3 uRimLightDir;
+  uniform float uFacetAwakened;
+  uniform float uPersonalFreq;
 
   varying vec3 vNormal;
   varying vec3 vPosition;
@@ -91,7 +93,16 @@ export const shatterFragmentShader = /* glsl */ `
     float obsFacetAura = exp(-distToObs * distToObs * 3.0) * uObserverAttention;
     vec3 obsGlow = mix(vec3(0.3, 0.85, 1.0), vec3(1.0, 0.9, 0.5), uObserverAttention) * obsFacetAura * 1.8;
 
+    // 7. Phase 9.21 Facet Memory Awakening & Personal Frequency Vibration
+    float freqPulse = sin(uTime * (uPersonalFreq * 0.05) + dot(vPosition, vec3(9.0, 14.0, 11.0))) * 0.5 + 0.5;
+    float harmonicLattice = pow(freqPulse, 3.0) * uFacetAwakened;
+    vec3 awakeningAura = mix(vec3(0.35, 0.75, 1.0), vec3(1.0, 0.88, 0.45), harmonicLattice) * uFacetAwakened * 2.4;
+    float innerGaze = 1.0 - smoothstep(0.01, 0.09, edgeDist);
+    vec3 memoryVein = vec3(1.0, 0.92, 0.65) * innerGaze * uFacetAwakened * (1.5 + 0.5 * sin(uTime * 3.0));
+
     finalColor += obsGlow;
+    finalColor += awakeningAura;
+    finalColor += memoryVein;
 
     gl_FragColor = vec4(finalColor, 0.94);
   }

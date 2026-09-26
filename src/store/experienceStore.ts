@@ -216,6 +216,26 @@ interface ExperienceState {
   act5GateArmed: boolean;
   setAct5GateArmed: (val: boolean) => void;
 
+  // Phase 9.21 Aetheria Conscious Recognition
+  consciousRecognitionProgress: number; // 0 to 1
+  setConsciousRecognitionProgress: (val: number) => void;
+  consciousState: 'LATENT' | 'INTUITING' | 'REMEMBERING' | 'AWAKENED';
+  setConsciousState: (state: 'LATENT' | 'INTUITING' | 'REMEMBERING' | 'AWAKENED') => void;
+  personalFrequency: number;
+  setPersonalFrequency: (freq: number) => void;
+  facetAwakening: number[]; // 20 values, 0 to 1
+  setFacetAwakening: (facets: number[]) => void;
+  awakenedFacetCount: number;
+  setAwakenedFacetCount: (count: number) => void;
+  movementPattern: { speedAvg: number; smoothness: number; jitter: number; stillnessRatio: number };
+  setMovementPattern: (pattern: { speedAvg: number; smoothness: number; jitter: number; stillnessRatio: number }) => void;
+  intentionAlignmentScore: number; // 0 to 100
+  setIntentionAlignmentScore: (score: number) => void;
+  observerIntention: 'CONTEMPLATIVE_WITNESS' | 'KINETIC_CATALYST' | 'SACRED_ARCHITECT' | 'UNFORMED';
+  setObserverIntention: (intention: 'CONTEMPLATIVE_WITNESS' | 'KINETIC_CATALYST' | 'SACRED_ARCHITECT' | 'UNFORMED') => void;
+  intentionVerified: boolean;
+  setIntentionVerified: (verified: boolean) => void;
+
 
   // Kinetic Scroll Energy (Thermodynamics)
   scrollEnergy: number; // 0 (cold vacuum) to 1 (excited plasma)
@@ -498,6 +518,36 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   setRecognitionResonance: (recognitionResonance: number) => set({ recognitionResonance }),
   act5GateArmed: false,
   setAct5GateArmed: (act5GateArmed: boolean) => set({ act5GateArmed }),
+
+  // Phase 9.21 Aetheria Conscious Recognition
+  consciousRecognitionProgress: 0,
+  setConsciousRecognitionProgress: (consciousRecognitionProgress: number) =>
+    set({ consciousRecognitionProgress }),
+  consciousState: 'LATENT',
+  setConsciousState: (consciousState: 'LATENT' | 'INTUITING' | 'REMEMBERING' | 'AWAKENED') =>
+    set({ consciousState }),
+  personalFrequency: 432.0,
+  setPersonalFrequency: (personalFrequency: number) => set({ personalFrequency }),
+  facetAwakening: new Array(20).fill(0),
+  setFacetAwakening: (facetAwakening: number[]) => set({ facetAwakening }),
+  awakenedFacetCount: 0,
+  setAwakenedFacetCount: (awakenedFacetCount: number) => set({ awakenedFacetCount }),
+  movementPattern: { speedAvg: 0, smoothness: 1, jitter: 0, stillnessRatio: 1 },
+  setMovementPattern: (movementPattern: {
+    speedAvg: number;
+    smoothness: number;
+    jitter: number;
+    stillnessRatio: number;
+  }) => set({ movementPattern }),
+  intentionAlignmentScore: 0,
+  setIntentionAlignmentScore: (intentionAlignmentScore: number) =>
+    set({ intentionAlignmentScore }),
+  observerIntention: 'UNFORMED',
+  setObserverIntention: (
+    observerIntention: 'CONTEMPLATIVE_WITNESS' | 'KINETIC_CATALYST' | 'SACRED_ARCHITECT' | 'UNFORMED'
+  ) => set({ observerIntention }),
+  intentionVerified: false,
+  setIntentionVerified: (intentionVerified: boolean) => set({ intentionVerified }),
 
 
 

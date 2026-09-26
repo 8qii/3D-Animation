@@ -29,6 +29,11 @@ export function CinematicTextReveal() {
   const universeCoherenceScore = useExperienceStore((state) => state.universeCoherenceScore);
   const observerSignature = useExperienceStore((state) => state.observerSignature);
   const act5GateArmed = useExperienceStore((state) => state.act5GateArmed);
+  const consciousState = useExperienceStore((state) => state.consciousState);
+  const personalFrequency = useExperienceStore((state) => state.personalFrequency);
+  const awakenedFacetCount = useExperienceStore((state) => state.awakenedFacetCount);
+  const observerIntention = useExperienceStore((state) => state.observerIntention);
+  const intentionVerified = useExperienceStore((state) => state.intentionVerified);
 
   // Compute opacities based on narrative progression
   const isAct4 = fractureProgress > 0.001 || collapseProgress > 0.001 || singularityThresholdProgress > 0.001;
@@ -308,7 +313,11 @@ export function CinematicTextReveal() {
                 {`DESTINY TRAJECTORY: ${hiddenEnding} // ARCHETYPE: ${observerArchetype.replace('THE_', '')}`}
               </div>
             )}
-            {act5GateArmed ? (
+            {act5GateArmed && intentionVerified ? (
+              <div className="text-cyan-200 font-bold tracking-[0.40em] animate-pulse drop-shadow-[0_0_12px_rgba(56,189,248,0.8)]">
+                {`ACT V RECOGNITION GATE: UNLOCKED // INTENTION: ${observerIntention.replace('_', ' ')} // CONSCIOUS RECOMBINATION`}
+              </div>
+            ) : act5GateArmed ? (
               <div className="text-cyan-200 font-bold tracking-[0.40em] animate-pulse drop-shadow-[0_0_12px_rgba(56,189,248,0.8)]">
                 {`ACT V RECOGNITION GATE: UNLOCKED // HARMONIC CONVERGENCE: ${universeCoherenceScore}%`}
               </div>
@@ -317,8 +326,9 @@ export function CinematicTextReveal() {
                 {`ACT V READY: RECOMBINATION PROTOCOL ARMED // UNIVERSE COHERENCE: ${universeCoherenceScore}%`}
               </div>
             ) : null}
-            <div className="text-slate-400 font-mono text-[8px] tracking-[0.28em]">
-              {`AETHERIA MEMORY ARCHIVE // SIGNATURE: ${observerSignature}`}
+            <div className="text-slate-400 font-mono text-[8px] tracking-[0.28em] flex flex-wrap gap-x-4">
+              <span>{`AETHERIA MEMORY ARCHIVE // SIGNATURE: ${observerSignature}`}</span>
+              <span>{`CONSCIOUSNESS: ${consciousState} // FREQ: ${personalFrequency.toFixed(1)}Hz // FACETS: ${awakenedFacetCount}/20`}</span>
             </div>
           </div>
         </div>
