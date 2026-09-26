@@ -75,15 +75,19 @@ export function CameraRig() {
       }
     }
 
-    // Dynamic FOV based on choreo stage:
-    // 45° (Act I) -> 42° (Act II) -> 39° (Witness) -> 38° (Final Architectural Contemplation)
+    const tension = store.tensionProgress;
+
+    // Dynamic FOV based on choreo stage & tension optical compression:
+    // 45° (Act I) -> 42° (Act II) -> 39° (Witness) -> 38° (Contemplation) -> 34° (Tension Compression)
     let baseFov = 45.0;
     if (choreoStage === 0) {
       baseFov = THREE.MathUtils.lerp(45.0, 42.0, stageProgress);
     } else if (choreoStage === 1) {
       baseFov = THREE.MathUtils.lerp(42.0, 39.0, stageProgress);
     } else {
-      baseFov = THREE.MathUtils.lerp(39.0, 38.0, stageProgress);
+      const stageFov = THREE.MathUtils.lerp(39.0, 38.0, stageProgress);
+      // Optical compression under tension: 38° down to 34°
+      baseFov = THREE.MathUtils.lerp(stageFov, 34.0, tension);
     }
 
     const lensBreathing = Math.sin(time * 0.314159) * 0.25 - scrollEnergy * 0.65;
@@ -95,10 +99,16 @@ export function CameraRig() {
     }
 
     // Natural Organic Breathing & Pointer Parallax
-    const breathingY = Math.sin(time * 0.314159) * 0.035;
+    // Slower, suspended breathing as internal tension builds
+    const breathFreq = THREE.MathUtils.lerp(0.314159, 0.12, tension);
+    const breathingY = Math.sin(time * breathFreq) * THREE.MathUtils.lerp(0.035, 0.014, tension);
     const driftZ = Math.cos(time * 0.08) * 0.04;
     const parallaxX = pointer.x * 0.25;
     const parallaxY = pointer.y * 0.18;
+
+    // Subliminal micro-tremor under extreme mechanical strain
+    const microTremorX = Math.sin(time * 52.0) * 0.0025 * tension;
+    const microTremorY = Math.cos(time * 58.0) * 0.0025 * tension;
 
     if (choreoStage === 0) {
       // Stage 0: OBSERVER
@@ -122,17 +132,26 @@ export function CameraRig() {
       );
       targetLookAt.current.set(0.08, 0.05, 0.0);
     } else {
-      // Stage 2: ARCHITECTURAL CONTEMPLATION
-      // Glides gracefully to final master position: [3.0, 1.5, 4.5] looking at [0, 0.2, 0]
+      // Stage 2: ARCHITECTURAL CONTEMPLATION & CLOSER TENSION PUSH-IN
+      // Glides gracefully to master position: [3.0, 1.5, 4.5],
+      // then pushes in closer to [2.3, 1.15, 3.45] as internal tension accumulates
       const ease = THREE.MathUtils.smoothstep(stageProgress, 0, 1);
+      const basePosX = THREE.MathUtils.lerp(2.2, 3.0, ease);
+      const basePosY = THREE.MathUtils.lerp(1.2, 1.5, ease);
+      const basePosZ = THREE.MathUtils.lerp(4.2, 4.5, ease);
+
+      const closePosX = THREE.MathUtils.lerp(basePosX, 2.3, tension);
+      const closePosY = THREE.MathUtils.lerp(basePosY, 1.15, tension);
+      const closePosZ = THREE.MathUtils.lerp(basePosZ, 3.45, tension);
+
       targetCamPos.current.set(
-        THREE.MathUtils.lerp(2.2, 3.0, ease) + parallaxX * 0.3,
-        THREE.MathUtils.lerp(1.2, 1.5, ease) + breathingY,
-        THREE.MathUtils.lerp(4.2, 4.5, ease) + driftZ
+        closePosX + parallaxX * 0.25 + microTremorX,
+        closePosY + breathingY + microTremorY,
+        closePosZ + driftZ
       );
       targetLookAt.current.set(
         THREE.MathUtils.lerp(0.08, 0.0, ease),
-        THREE.MathUtils.lerp(0.05, 0.2, ease),
+        THREE.MathUtils.lerp(0.05, 0.18, ease),
         0.0
       );
     }

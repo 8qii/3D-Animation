@@ -3,6 +3,7 @@ export const crystalFragmentShader = /* glsl */ `
 
   uniform float uTime;
   uniform float uMaterialLock;   // 0 (hologram) to 1 (solid physical obsidian)
+  uniform float uTension;        // 0 (quiescent) to 1 (critical internal stress)
   uniform float uTransmission;   // Base transmission factor
   uniform float uRoughness;      // Microfacet surface roughness
   uniform float uDispersion;     // Chromatic dispersion dlambda/dn
@@ -21,6 +22,7 @@ export const crystalFragmentShader = /* glsl */ `
   varying vec3 vWorldPosition;
   varying vec2 vUv;
   varying float vFresnel;
+  varying float vStress;
 
   // GGX / Trowbridge-Reitz Microfacet Specular Distribution
   float distributionGGX(vec3 N, vec3 H, float roughness) {
@@ -95,16 +97,59 @@ export const crystalFragmentShader = /* glsl */ `
     float specRim = distributionGGX(normal, halfRim, microRoughness * 0.8);
     vec3 rimLighting = vec3(0.35, 0.80, 1.00) * specRim * 1.4 * pow(vFresnel, 1.8);
 
-    // 8. Internal Quantum Spark Self-Emission (Pulsing Heart trapped within)
-    float distToCore = length(vPosition);
-    float internalCoreGlow = exp(-distToCore * distToCore * 6.0) * (sin(uTime * 3.0) * 0.2 + 0.9);
-    vec3 coreEmission = uGlowColor * internalCoreGlow * 2.8 * effectiveTransmission;
+    // 8. Phase 8.5 Internal Tension: Golden-Ratio Fracture Planes & Stress Birefringence
+    const float PHI = 1.6180339887;
+    vec3 n1 = normalize(vec3(1.0, PHI, 0.0));
+    vec3 n2 = normalize(vec3(1.0, -PHI, 0.0));
+    vec3 n3 = normalize(vec3(0.0, 1.0, PHI));
+    vec3 n4 = normalize(vec3(0.0, 1.0, -PHI));
+    vec3 n5 = normalize(vec3(PHI, 0.0, 1.0));
+    vec3 n6 = normalize(vec3(-PHI, 0.0, 1.0));
 
-    // 9. Composite Color & Alpha
+    float d1 = abs(dot(vPosition, n1));
+    float d2 = abs(dot(vPosition, n2));
+    float d3 = abs(dot(vPosition, n3));
+    float d4 = abs(dot(vPosition, n4));
+    float d5 = abs(dot(vPosition, n5));
+    float d6 = abs(dot(vPosition, n6));
+
+    float dFracture = min(min(min(d1, d2), min(d3, d4)), min(d5, d6));
+
+    // Photoelastic Stress Fringes (Birefringence along shear planes)
+    float planeStress = exp(-dFracture * dFracture * 160.0) * uTension;
+    float photoPhase = planeStress * 20.0 - uTime * 4.0;
+    vec3 photoelasticCol = mix(
+      vec3(1.0, 0.58, 0.18), // Hot incandescent amber
+      vec3(0.32, 0.82, 1.00), // Electric ionized cyan
+      sin(photoPhase) * 0.5 + 0.5
+    );
+    vec3 stressGlow = photoelasticCol * planeStress * (2.2 + vStress * 2.8);
+
+    // Fine Sub-surface Crack Shader Hooks (Hairline crystalline fractures)
+    float crackHash = hash21(floor(vPosition.xy * 60.0 + vPosition.yz * 30.0));
+    float crackIntensity = smoothstep(0.012, 0.001, dFracture) * step(0.64, crackHash) * uTension;
+    vec3 crackEmission = vec3(1.0, 0.85, 0.52) * crackIntensity * 4.5;
+
+    // Acoustic / Photonic Concentric Pressure Waves
+    float pressureWave = sin(length(vPosition) * 24.0 - uTime * 14.0) * 0.5 + 0.5;
+    float pressurePulse = pow(pressureWave, 4.0) * uTension * 0.65;
+    vec3 pressureEmission = vec3(0.95, 0.60, 0.20) * pressurePulse;
+
+    // 9. Internal Quantum Spark Self-Emission (Expanding Core under mounting pressure)
+    float distToCore = length(vPosition);
+    float coreSpread = mix(6.0, 2.6, uTension); // Core expands as energy containment builds
+    float coreHeartbeat = sin(uTime * (3.0 + uTension * 9.0)) * 0.25 + 0.95;
+    float internalCoreGlow = exp(-distToCore * distToCore * coreSpread) * coreHeartbeat;
+    vec3 coreEmission = uGlowColor * internalCoreGlow * (2.8 + uTension * 3.8) * effectiveTransmission;
+
+    // 10. Composite Color & Alpha
     vec3 finalColor = obsidianBase * surfaceDensity;
     finalColor += keyLighting * uMaterialLock;
     finalColor += rimLighting * (0.6 + uMaterialLock * 0.4);
     finalColor += coreEmission;
+    finalColor += stressGlow;
+    finalColor += crackEmission;
+    finalColor += pressureEmission;
     finalColor += vec3(0.25, 0.85, 1.0) * internalCaustics * 1.5;
 
     // Fresnel specular rim glow

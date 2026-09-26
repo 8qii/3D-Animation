@@ -5,6 +5,7 @@ import { crystalFragmentShader } from '../shaders/crystal.frag';
 export interface CrystalMaterialUniforms {
   uTime: { value: number };
   uMaterialLock: { value: number };
+  uTension: { value: number };
   uDistortion: { value: number };
   uColorA: { value: THREE.Color };
   uColorB: { value: THREE.Color };
@@ -32,10 +33,12 @@ export class CrystalMaterial extends THREE.ShaderMaterial {
     dispersion: number;
     refractiveIndex: number;
     materialLock: number;
+    tension: number;
   }>) {
     const uniforms: CrystalMaterialUniforms = {
       uTime: { value: 0 },
       uMaterialLock: { value: parameters?.materialLock ?? 0.0 },
+      uTension: { value: parameters?.tension ?? 0.0 },
       uDistortion: { value: parameters?.distortion ?? 0.04 },
       uColorA: { value: new THREE.Color(parameters?.colorA ?? '#030712') },
       uColorB: { value: new THREE.Color(parameters?.colorB ?? '#1e293b') },
@@ -66,6 +69,10 @@ export class CrystalMaterial extends THREE.ShaderMaterial {
 
   setMaterialLock(val: number) {
     (this.uniforms as unknown as CrystalMaterialUniforms).uMaterialLock.value = val;
+  }
+
+  setTension(val: number) {
+    (this.uniforms as unknown as CrystalMaterialUniforms).uTension.value = val;
   }
 
   setTransmission(val: number) {

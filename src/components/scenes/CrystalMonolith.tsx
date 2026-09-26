@@ -5,9 +5,10 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { CrystalMaterial } from '@/three/materials/CrystalMaterial';
 import { useExperienceStore } from '@/store/experienceStore';
-import { damp } from '@/utils/helpers';
+import { TrappedEnergyField } from './TrappedEnergyField';
 
 export function CrystalMonolith() {
+  const groupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<CrystalMaterial>(null);
 
@@ -20,40 +21,49 @@ export function CrystalMonolith() {
 
   const material = useMemo(() => new CrystalMaterial(), []);
 
-  useFrame((state, delta) => {
+  useFrame((state) => {
     const time = state.clock.getElapsedTime();
     const store = useExperienceStore.getState();
     const materialLock = store.materialLockProgress;
+    const tension = store.tensionProgress;
 
     if (materialRef.current) {
       materialRef.current.update(time);
       materialRef.current.setMaterialLock(materialLock);
+      materialRef.current.setTension(tension);
     }
 
-    if (meshRef.current) {
+    if (groupRef.current) {
       // Visible once material lock begins
-      meshRef.current.visible = materialLock > 0.01;
+      groupRef.current.visible = materialLock > 0.01;
 
       // Slow majestic tumbling rotation preserving coordinate DNA
-      meshRef.current.rotation.x = time * 0.12;
-      meshRef.current.rotation.y = time * 0.16;
-      meshRef.current.rotation.z = time * 0.08;
+      groupRef.current.rotation.x = time * 0.12;
+      groupRef.current.rotation.y = time * 0.16;
+      groupRef.current.rotation.z = time * 0.08;
 
       // Subtle expansion scale lock: 0.94 -> 1.0 as physical matter solidifies
-      const targetScale = THREE.MathUtils.lerp(0.94, 1.0, materialLock);
-      meshRef.current.scale.set(targetScale, targetScale, targetScale);
+      // with microscopic high-frequency breathing vibration under mounting tension
+      const microVibe = Math.sin(time * 30.0) * 0.0035 * tension;
+      const targetScale = THREE.MathUtils.lerp(0.94, 1.0, materialLock) * (1.0 + microVibe);
+      groupRef.current.scale.set(targetScale, targetScale, targetScale);
     }
   });
 
   return (
-    <mesh
-      ref={meshRef}
-      name="sacred-crystal-monolith"
-      geometry={geometry}
-      position={[0, 0, 0]}
-      renderOrder={6}
-    >
-      <primitive object={material} ref={materialRef} attach="material" />
-    </mesh>
+    <group ref={groupRef} name="crystal-monolith-system" position={[0, 0, 0]}>
+      {/* 1. Trapped Internal Energy Particles */}
+      <TrappedEnergyField />
+
+      {/* 2. Sacred Obsidian Monolith Mesh */}
+      <mesh
+        ref={meshRef}
+        name="sacred-crystal-monolith"
+        geometry={geometry}
+        renderOrder={6}
+      >
+        <primitive object={material} ref={materialRef} attach="material" />
+      </mesh>
+    </group>
   );
 }

@@ -1,12 +1,14 @@
 export const crystalVertexShader = /* glsl */ `
   uniform float uTime;
   uniform float uDistortion;
+  uniform float uTension; // Phase 8.5 internal stress tension (0.0 to 1.0)
 
   varying vec3 vNormal;
   varying vec3 vPosition;
   varying vec3 vWorldPosition;
   varying vec2 vUv;
   varying float vFresnel;
+  varying float vStress;
 
   // Simple noise function
   vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -79,9 +81,21 @@ export const crystalVertexShader = /* glsl */ `
     vNormal = normalize(normalMatrix * normal);
     vPosition = position;
 
-    // Subtly displace along surface normal using 3D noise
+    // 1. Simplex Noise Base Organic Breathing
     float noise = snoise(position * 1.5 + vec3(uTime * 0.2));
-    vec3 displacedPosition = position + normal * (noise * uDistortion);
+
+    // 2. Phase 8.5 Subtle Vertex Displacement & Microscopic Facet Vibration:
+    // High-frequency facet jitter (internal mechanical shear)
+    float facetJitter = sin(uTime * 48.0 + dot(position, vec3(14.2, 18.9, 11.7))) * 0.0035 * uTension;
+    // Harmonic radial breathing pulse under internal pressure
+    float internalPulse = sin(uTime * 22.0 - length(position) * 6.0) * 0.0045 * uTension;
+    // High-frequency micro-tremor along vertex normals
+    float tensionDisplacement = facetJitter + internalPulse;
+
+    vec3 displacedPosition = position + normal * (noise * uDistortion + tensionDisplacement);
+
+    // Compute localized vertex stress metric for fragment shader photoelastic fringes
+    vStress = clamp(uTension * (0.35 + 0.65 * abs(noise) + abs(facetJitter) * 60.0), 0.0, 1.0);
 
     vec4 worldPos = modelMatrix * vec4(displacedPosition, 1.0);
     vWorldPosition = worldPos.xyz;

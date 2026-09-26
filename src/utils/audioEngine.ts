@@ -23,6 +23,12 @@ class SoundEngine {
   private crystalResonator2: BiquadFilterNode | null = null;
   private crystalGain: GainNode | null = null;
 
+  // Phase 8.5 Monolith Internal Tension & Glass Instability
+  private tensionOsc: OscillatorNode | null = null;
+  private tensionSubOsc: OscillatorNode | null = null;
+  private tensionFilter: BiquadFilterNode | null = null;
+  private tensionGain: GainNode | null = null;
+
   private isInitialized = false;
   private chimeTriggered = false;
   private isSilent = false;
@@ -97,6 +103,31 @@ class SoundEngine {
     this.crystalResonator2.connect(this.crystalGain);
     this.crystalGain.connect(this.masterGain);
 
+    // 3. Monolith Tension & Friction Generator (Singing glass stress flutter)
+    this.tensionOsc = this.ctx.createOscillator();
+    this.tensionOsc.type = 'sawtooth';
+    this.tensionOsc.frequency.setValueAtTime(293.66, now); // D4
+
+    this.tensionSubOsc = this.ctx.createOscillator();
+    this.tensionSubOsc.type = 'sine';
+    this.tensionSubOsc.frequency.setValueAtTime(29.0, now); // Low tension sub-beat
+
+    this.tensionFilter = this.ctx.createBiquadFilter();
+    this.tensionFilter.type = 'bandpass';
+    this.tensionFilter.frequency.setValueAtTime(2150.0, now); // Glass resonance shear
+    this.tensionFilter.Q.setValueAtTime(14.0, now);
+
+    this.tensionGain = this.ctx.createGain();
+    this.tensionGain.gain.setValueAtTime(0.0001, now);
+
+    this.tensionOsc.connect(this.tensionFilter);
+    this.tensionFilter.connect(this.tensionGain);
+    this.tensionSubOsc.connect(this.tensionGain);
+    this.tensionGain.connect(this.masterGain);
+
+    this.tensionOsc.start();
+    this.tensionSubOsc.start();
+
     this.isInitialized = true;
   }
 
@@ -150,6 +181,52 @@ class SoundEngine {
     if (this.crystalGain) {
       const resonanceLevel = (attention * 0.18 + act2Progress * 0.15 + scrollEnergy * 0.12);
       this.crystalGain.gain.setTargetAtTime(resonanceLevel, now, 0.15);
+    }
+  }
+
+  /**
+   * Phase 8.5 Monolith Internal Tension Audio Modulation:
+   * Low frequency sub-tension beating, singing glass friction, and pitch flutter.
+   */
+  public updateTension(tension: number) {
+    if (!this.ctx || !this.droneOsc || !this.droneFilter || !this.tensionGain || !this.tensionFilter || !this.tensionOsc) return;
+    if (this.ctx.state === 'suspended') return;
+
+    const now = this.ctx.currentTime;
+    const clampedTension = Math.max(0.0, Math.min(1.0, tension));
+
+    // 1. Low frequency tension beating (38Hz -> 47Hz, sub beat 28Hz -> 34Hz)
+    const baseFreq = 38.0 + clampedTension * 9.0;
+    this.droneOsc.frequency.setTargetAtTime(baseFreq, now, 0.08);
+    if (this.tensionSubOsc) {
+      this.tensionSubOsc.frequency.setTargetAtTime(28.0 + clampedTension * 6.0, now, 0.08);
+    }
+
+    // Heavy lowpass resonance Q-factor increase under internal pressure
+    const targetQ = 3.2 + clampedTension * 5.5;
+    this.droneFilter.Q.setTargetAtTime(targetQ, now, 0.1);
+
+    // 2. Glass Resonance Instability: micro-vibrato on crystal modal resonators
+    if (this.crystalResonator1 && this.crystalResonator2) {
+      const flutterFreq1 = 587.33 + Math.sin(now * 12.0) * (clampedTension * 18.0);
+      const flutterFreq2 = 880.00 + Math.cos(now * 15.0) * (clampedTension * 26.0);
+      this.crystalResonator1.frequency.setTargetAtTime(flutterFreq1, now, 0.05);
+      this.crystalResonator2.frequency.setTargetAtTime(flutterFreq2, now, 0.05);
+    }
+
+    // 3. High-friction singing glass stress shimmer
+    const shearFreq = 1800.0 + clampedTension * 1400.0 + Math.sin(now * 8.0) * (clampedTension * 250.0);
+    this.tensionFilter.frequency.setTargetAtTime(shearFreq, now, 0.05);
+
+    // Tension gain ramps smoothly as internal stress builds
+    const targetGain = clampedTension > 0.05 ? clampedTension * 0.16 : 0.0001;
+    this.tensionGain.gain.setTargetAtTime(targetGain, now, 0.1);
+
+    // 4. Prepare silence before fracture:
+    // If tension reaches near maximum (> 0.94), begin acoustic choke
+    if (clampedTension >= 0.94) {
+      const preFractureChoke = (1.0 - (clampedTension - 0.94) / 0.06);
+      this.masterGain?.gain.setTargetAtTime(Math.max(0.08, 0.65 * preFractureChoke), now, 0.15);
     }
   }
 

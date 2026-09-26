@@ -10,6 +10,7 @@ export function CinematicTextReveal() {
   const act2Phase = useExperienceStore((state) => state.act2Phase);
   const act3Progress = useExperienceStore((state) => state.act3Progress);
   const materialLockProgress = useExperienceStore((state) => state.materialLockProgress);
+  const tensionProgress = useExperienceStore((state) => state.tensionProgress);
   const mouseWorld = useExperienceStore((state) => state.mouseWorld);
   const isMuted = useExperienceStore((state) => state.isMuted);
   const toggleMute = useExperienceStore((state) => state.toggleMute);
@@ -26,7 +27,9 @@ export function CinematicTextReveal() {
 
   // Formatting phase badge text
   let phaseLabel = 'QUANTUM VACUUM';
-  if (isAct3) {
+  if (tensionProgress > 0.15) {
+    phaseLabel = `INTERNAL TENSION: ${(tensionProgress * 100).toFixed(0)}%`;
+  } else if (isAct3) {
     phaseLabel = 'ACT III: MONOLITH CRYSTALLIZATION';
   } else if (act2Phase === 'SPARK_IGNITION') {
     phaseLabel = 'PHASE 1: SPARK IGNITION';
@@ -160,9 +163,13 @@ export function CinematicTextReveal() {
       >
         <div className="max-w-2xl mx-auto flex flex-col items-center space-y-3.5">
           <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full border border-amber-400/30 bg-slate-950/70 backdrop-blur-md shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b] animate-pulse" />
+            <span
+              className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${
+                tensionProgress > 0.35 ? 'bg-amber-300 shadow-[0_0_12px_#fde047]' : 'bg-amber-400 shadow-[0_0_8px_#f59e0b]'
+              } animate-pulse`}
+            />
             <span className="font-mono text-[10px] tracking-[0.35em] text-amber-300 uppercase font-medium">
-              ACT III // THE MONOLITH
+              {tensionProgress > 0.45 ? 'ACT III // MONOLITH TENSION' : 'ACT III // THE MONOLITH'}
             </span>
           </div>
 
@@ -171,11 +178,15 @@ export function CinematicTextReveal() {
           </h2>
 
           <p className="max-w-lg font-sans text-xs md:text-sm font-light leading-relaxed tracking-[0.18em] text-slate-400/90">
-            Twenty golden ratio facets resolve the quantum flux into eternal obsidian glass.
+            {tensionProgress > 0.45
+              ? 'Internal energy approaches critical threshold. Fracture planes awaken along golden-ratio symmetry.'
+              : 'Twenty golden ratio facets resolve the quantum flux into eternal obsidian glass.'}
           </p>
 
           <div className="pt-2 font-mono text-[9px] tracking-[0.32em] text-amber-400/80 uppercase">
-            PHASE: ORDER // GEOMETRIC SYMMETRY: 1.618 // STATUS: MONOLITH STABILIZED
+            {tensionProgress > 0.15
+              ? `PHASE: INTERNAL TENSION // STRESS COEFFICIENT: ${(tensionProgress * 100).toFixed(0)}% // FRACTURE PLANES: GOLDEN RATIO DETECTED`
+              : 'PHASE: ORDER // GEOMETRIC SYMMETRY: 1.618 // STATUS: MONOLITH STABILIZED'}
           </div>
         </div>
       </div>

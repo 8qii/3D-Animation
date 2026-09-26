@@ -85,8 +85,10 @@ interface ExperienceState {
   // Act III: The Monolith Engine
   act3Progress: number; // 0 to 1 across Act III timeline
   materialLockProgress: number; // 0 (hologram) to 1 (solid physical obsidian)
+  tensionProgress: number; // 0 (quiescent monolith) to 1 (critical internal stress)
   setAct3Progress: (progress: number) => void;
   setMaterialLockProgress: (progress: number) => void;
+  setTensionProgress: (progress: number) => void;
 
   // Cursor Parallax (Screen Normalized [-1, 1])
   pointer: { x: number; y: number };
@@ -200,6 +202,7 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   // Act III: The Monolith Initial State
   act3Progress: 0,
   materialLockProgress: 0,
+  tensionProgress: 0,
   setAct3Progress: (progress: number) =>
     set({
       act3Progress: Math.min(1.0, Math.max(0.0, progress)),
@@ -207,6 +210,10 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   setMaterialLockProgress: (progress: number) =>
     set({
       materialLockProgress: Math.min(1.0, Math.max(0.0, progress)),
+    }),
+  setTensionProgress: (progress: number) =>
+    set({
+      tensionProgress: Math.min(1.0, Math.max(0.0, progress)),
     }),
 
   // Pointer parallax initial state

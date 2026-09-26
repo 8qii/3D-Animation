@@ -11,6 +11,7 @@ export function useAudioTransition() {
   const matterProgress = useExperienceStore((state) => state.matterProgress);
   const act3Progress = useExperienceStore((state) => state.act3Progress);
   const materialLockProgress = useExperienceStore((state) => state.materialLockProgress);
+  const tensionProgress = useExperienceStore((state) => state.tensionProgress);
   const scrollEnergy = useExperienceStore((state) => state.scrollEnergy);
   const pointer = useExperienceStore((state) => state.pointer);
   const attentionLevel = useExperienceStore((state) => state.attentionLevel);
@@ -30,6 +31,9 @@ export function useAudioTransition() {
         attentionLevel,
         act2Progress
       );
+
+      // Phase 8.5 Monolith Internal Tension audio modulation
+      soundEngine.updateTension(tensionProgress);
 
       // Trigger D-Minor singularity bell chime when spark ignition threshold crossed
       if (transitionProgress >= 0.65 || act2Progress >= 0.20) {
@@ -61,6 +65,7 @@ export function useAudioTransition() {
     matterProgress,
     act3Progress,
     materialLockProgress,
+    tensionProgress,
     scrollEnergy,
     pointer.x,
     attentionLevel,

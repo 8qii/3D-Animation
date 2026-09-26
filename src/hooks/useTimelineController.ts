@@ -25,6 +25,7 @@ export function useTimelineController() {
   const setMatterProgress = useExperienceStore((state) => state.setMatterProgress);
   const setAct3Progress = useExperienceStore((state) => state.setAct3Progress);
   const setMaterialLockProgress = useExperienceStore((state) => state.setMaterialLockProgress);
+  const setTensionProgress = useExperienceStore((state) => state.setTensionProgress);
 
   useEffect(() => {
     // 1. Cross-Scene Transition Progress (Act I -> Act II boundary)
@@ -52,6 +53,7 @@ export function useTimelineController() {
     let matterProg = 0.0;
     let act3Prog = 0.0;
     let materialLock = 0.0;
+    let tensionProg = 0.0;
 
     if (isPreviewMode) {
       // 0 - 50s Cinematic sequence:
@@ -59,7 +61,8 @@ export function useTimelineController() {
       // 10-20s: Coordinate Genesis
       // 20-30s: Geometry Stabilization & Matter Genesis
       // 30-34s: Pre-Materialization Silence & Caustics
-      // 34-50s: Act III The Monolith Revealed
+      // 34-40s: Act III The Monolith Revealed & Solidified
+      // 40-50s: Phase 8.5 Monolith Internal Tension Escalation
       act2Prog = clamp(previewTime / 40.0, 0.0, 1.0);
       if (previewTime < 10.0) {
         act2Ph = 'SPARK_IGNITION';
@@ -76,6 +79,11 @@ export function useTimelineController() {
       if (previewTime >= 32.0) {
         materialLock = clamp((previewTime - 32.0) / 4.0, 0.0, 1.0);
         act3Prog = clamp((previewTime - 32.0) / 18.0, 0.0, 1.0);
+      }
+
+      if (previewTime >= 40.0) {
+        const rawTension = clamp((previewTime - 40.0) / 10.0, 0.0, 1.0);
+        tensionProg = rawTension * rawTension; // Exponential ramp for dramatic tension
       }
     } else {
       // Scroll-driven progression
@@ -106,7 +114,7 @@ export function useTimelineController() {
         act2Ph = 'IDLE';
       }
 
-      // Act III: The Monolith materialization
+      // Act III: The Monolith materialization & tension
       if (scrollProgress >= ACT3_SCROLL_START) {
         materialLock = clamp((scrollProgress - ACT3_SCROLL_START) / 0.06, 0.0, 1.0);
         const rawAct3 = clamp(
@@ -115,6 +123,12 @@ export function useTimelineController() {
           1.0
         );
         act3Prog = rawAct3 * rawAct3 * (3 - 2 * rawAct3);
+
+        // Phase 8.5 Internal Tension Accumulation ($S \in [0.50, 0.65]$)
+        if (scrollProgress >= 0.50) {
+          const rawTension = clamp((scrollProgress - 0.50) / 0.15, 0.0, 1.0);
+          tensionProg = rawTension * rawTension;
+        }
       }
     }
 
@@ -123,6 +137,7 @@ export function useTimelineController() {
     setMatterProgress(matterProg);
     setAct3Progress(act3Prog);
     setMaterialLockProgress(materialLock);
+    setTensionProgress(tensionProg);
   }, [
     scrollProgress,
     isPreviewMode,
@@ -134,5 +149,6 @@ export function useTimelineController() {
     setMatterProgress,
     setAct3Progress,
     setMaterialLockProgress,
+    setTensionProgress,
   ]);
 }
