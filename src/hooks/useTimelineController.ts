@@ -1,40 +1,98 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useExperienceStore, TransitionState } from '@/store/experienceStore';
+import { useExperienceStore, TransitionState, Act2Phase } from '@/store/experienceStore';
 import { clamp } from '@/utils/helpers';
 
 const TRANSITION_START = 0.10;
 const IGNITION_POINT = 0.18;
 const TRANSITION_END = 0.28;
 
+const ACT2_SCROLL_START = 0.20;
+const ACT2_SCROLL_END = 0.40;
+
 export function useTimelineController() {
   const scrollProgress = useExperienceStore((state) => state.scrollProgress);
+  const isPreviewMode = useExperienceStore((state) => state.isPreviewMode);
+  const previewTime = useExperienceStore((state) => state.previewTime);
   const setTransitionProgress = useExperienceStore((state) => state.setTransitionProgress);
   const setTransitionState = useExperienceStore((state) => state.setTransitionState);
+  const setAct2Progress = useExperienceStore((state) => state.setAct2Progress);
+  const setAct2Phase = useExperienceStore((state) => state.setAct2Phase);
 
   useEffect(() => {
-    // 1. Calculate raw linear progress within transition zone
-    const rawProgress = clamp(
+    // 1. Cross-Scene Transition Progress (Act I -> Act II boundary)
+    const rawTransition = clamp(
       (scrollProgress - TRANSITION_START) / (TRANSITION_END - TRANSITION_START),
       0.0,
       1.0
     );
+    const smoothTransition = rawTransition * rawTransition * (3 - 2 * rawTransition);
+    setTransitionProgress(smoothTransition);
 
-    // 2. Smooth cubic Hermite interpolation curve
-    const smoothProgress = rawProgress * rawProgress * (3 - 2 * rawProgress);
-    setTransitionProgress(smoothProgress);
-
-    // 3. State machine lifecycle evaluation
-    let nextState: TransitionState = 'VACUUM_RESTING';
+    let nextTransitionState: TransitionState = 'VACUUM_RESTING';
     if (scrollProgress >= TRANSITION_END) {
-      nextState = 'SINGULARITY_STABILIZED';
+      nextTransitionState = 'SINGULARITY_STABILIZED';
     } else if (scrollProgress >= IGNITION_POINT) {
-      nextState = 'QUANTUM_IGNITION';
+      nextTransitionState = 'QUANTUM_IGNITION';
     } else if (scrollProgress >= TRANSITION_START) {
-      nextState = 'SINGULARITY_APPROACH';
+      nextTransitionState = 'SINGULARITY_APPROACH';
+    }
+    setTransitionState(nextTransitionState);
+
+    // 2. Act II Cinematic Timeline Calculation
+    let act2Prog = 0.0;
+    let act2Ph: Act2Phase = 'IDLE';
+
+    if (isPreviewMode) {
+      // 0 - 40s Cinematic sequence:
+      // 0-10s: Spark Ignition
+      // 10-20s: Coordinate Genesis
+      // 20-40s: Geometry Stabilization
+      act2Prog = clamp(previewTime / 40.0, 0.0, 1.0);
+      if (previewTime < 10.0) {
+        act2Ph = 'SPARK_IGNITION';
+      } else if (previewTime < 20.0) {
+        act2Ph = 'COORDINATE_GENESIS';
+      } else {
+        act2Ph = 'GEOMETRY_STABILIZATION';
+      }
+    } else {
+      // Scroll-driven progression: S in [0.20, 0.40]
+      if (scrollProgress >= ACT2_SCROLL_START) {
+        const rawAct2 = clamp(
+          (scrollProgress - ACT2_SCROLL_START) / (ACT2_SCROLL_END - ACT2_SCROLL_START),
+          0.0,
+          1.0
+        );
+        act2Prog = rawAct2 * rawAct2 * (3 - 2 * rawAct2);
+
+        if (act2Prog < 0.25) {
+          act2Ph = 'SPARK_IGNITION';
+        } else if (act2Prog < 0.55) {
+          act2Ph = 'COORDINATE_GENESIS';
+        } else {
+          act2Ph = 'GEOMETRY_STABILIZATION';
+        }
+      } else if (scrollProgress >= TRANSITION_START) {
+        // Subtle prelude into ignition
+        act2Prog = (scrollProgress - TRANSITION_START) / (ACT2_SCROLL_START - TRANSITION_START) * 0.15;
+        act2Ph = 'SPARK_IGNITION';
+      } else {
+        act2Prog = 0.0;
+        act2Ph = 'IDLE';
+      }
     }
 
-    setTransitionState(nextState);
-  }, [scrollProgress, setTransitionProgress, setTransitionState]);
+    setAct2Progress(act2Prog);
+    setAct2Phase(act2Ph);
+  }, [
+    scrollProgress,
+    isPreviewMode,
+    previewTime,
+    setTransitionProgress,
+    setTransitionState,
+    setAct2Progress,
+    setAct2Phase,
+  ]);
 }

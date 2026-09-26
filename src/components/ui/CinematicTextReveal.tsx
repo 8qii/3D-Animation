@@ -6,13 +6,35 @@ import { useExperienceStore } from '@/store/experienceStore';
 export function CinematicTextReveal() {
   const transitionProgress = useExperienceStore((state) => state.transitionProgress);
   const transitionState = useExperienceStore((state) => state.transitionState);
+  const act2Progress = useExperienceStore((state) => state.act2Progress);
+  const act2Phase = useExperienceStore((state) => state.act2Phase);
+  const mouseWorld = useExperienceStore((state) => state.mouseWorld);
   const isMuted = useExperienceStore((state) => state.isMuted);
   const toggleMute = useExperienceStore((state) => state.toggleMute);
 
-  // Compute opacities based on transition progress [0..1]
-  const act1Opacity = Math.max(0, 1 - transitionProgress * 3.5);
-  const act2Opacity = Math.min(1, Math.max(0, (transitionProgress - 0.15) / 0.7));
-  const isIgnited = transitionProgress >= 0.65;
+  // Compute opacities based on transition & Act II progress [0..1]
+  const act1Opacity = Math.max(0, 1 - Math.max(transitionProgress, act2Progress) * 3.5);
+  const act2ActiveWeight = Math.max(transitionProgress, act2Progress);
+  const act2Opacity = Math.min(1, Math.max(0, (act2ActiveWeight - 0.12) / 0.65));
+  const isIgnited = transitionProgress >= 0.65 || act2Progress >= 0.20;
+
+  // Formatting phase badge text
+  let phaseLabel = 'QUANTUM VACUUM';
+  if (act2Phase === 'SPARK_IGNITION') {
+    phaseLabel = 'PHASE 1: SPARK IGNITION';
+  } else if (act2Phase === 'COORDINATE_GENESIS') {
+    phaseLabel = 'PHASE 2: COORDINATE GENESIS';
+  } else if (act2Phase === 'GEOMETRY_STABILIZATION') {
+    phaseLabel = 'PHASE 3: GEOMETRY STABILIZATION';
+  } else if (transitionProgress > 0.1) {
+    phaseLabel = transitionState;
+  }
+
+  // Format 3D world coordinates for telemetry
+  const coordX = (mouseWorld[0] * 0.1).toFixed(3);
+  const coordY = (mouseWorld[1] * 0.1).toFixed(3);
+  const coordZ = (mouseWorld[2] * 0.1).toFixed(3);
+  const coherencePercent = Math.min(100, Math.round(act2Progress * 100));
 
   return (
     <>
@@ -45,17 +67,17 @@ export function CinematicTextReveal() {
             }`}
           />
           <h1 className="font-mono text-[11px] font-normal tracking-[0.32em] text-slate-400/80 uppercase">
-            AETHERIA // OBSERVATORY 0.1
+            {act2Progress > 0.5 ? 'AETHERIA // OBSERVATORY 0.2' : 'AETHERIA // OBSERVATORY 0.1'}
           </h1>
         </div>
 
         {/* Dynamic Transition State Badge */}
         <div
           className="mt-2 pl-5 transition-opacity duration-500"
-          style={{ opacity: transitionProgress > 0.05 ? 0.9 : 0.4 }}
+          style={{ opacity: act2ActiveWeight > 0.05 ? 0.9 : 0.4 }}
         >
           <span className="font-mono text-[9px] tracking-[0.3em] text-slate-500 uppercase">
-            STATE: <span className={isIgnited ? 'text-amber-400/90' : 'text-cyan-400/80'}>{transitionState}</span>
+            STATE: <span className={isIgnited ? 'text-amber-400/90' : 'text-cyan-400/80'}>{phaseLabel}</span>
           </span>
         </div>
       </header>
@@ -65,7 +87,7 @@ export function CinematicTextReveal() {
         className="fixed bottom-10 left-0 right-0 z-20 flex flex-col items-center justify-center pointer-events-none select-none transition-all duration-700"
         style={{
           opacity: act1Opacity,
-          transform: `translateY(${transitionProgress * 20}px)`,
+          transform: `translateY(${act2ActiveWeight * 20}px)`,
         }}
       >
         <div className="flex flex-col items-center space-y-3">
@@ -81,11 +103,11 @@ export function CinematicTextReveal() {
         className="fixed inset-0 z-20 flex flex-col items-center justify-center pointer-events-none select-none text-center px-6 transition-all duration-1000"
         style={{
           opacity: act2Opacity,
-          transform: `translateY(${(1 - act2Opacity) * 30}px) scale(${0.96 + act2Opacity * 0.04})`,
+          transform: `translateY(${(1 - act2Opacity) * 24}px) scale(${0.96 + act2Opacity * 0.04})`,
         }}
       >
         <div className="max-w-xl mx-auto flex flex-col items-center space-y-4">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full border border-amber-500/20 bg-amber-950/20 backdrop-blur-sm">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full border border-amber-500/20 bg-amber-950/20 backdrop-blur-sm shadow-[0_0_15px_rgba(245,158,11,0.15)]">
             <span className="w-1 h-1 rounded-full bg-amber-400 shadow-[0_0_6px_#f59e0b]" />
             <span className="font-mono text-[9px] tracking-[0.35em] text-amber-300/90 uppercase">
               ACT II // THE SINGULARITY
@@ -97,12 +119,19 @@ export function CinematicTextReveal() {
           </h2>
 
           <p className="max-w-md font-sans text-xs md:text-sm font-light leading-relaxed tracking-[0.15em] text-slate-400/80">
-            In the silence of the unmeasured, light resolves into geometric coherence.
+            {act2Phase === 'GEOMETRY_STABILIZATION'
+              ? 'Particles coalesce into Keplerian orbital symmetry. Structure awakens.'
+              : act2Phase === 'COORDINATE_GENESIS'
+              ? 'Cartesian vectors define the horizon. Dimension emerges from zero.'
+              : 'In the silence of the unmeasured, light resolves into geometric coherence.'}
           </p>
 
-          {/* Telemetry coordinate readout */}
-          <div className="pt-2 font-mono text-[9px] tracking-[0.35em] text-slate-500/80 uppercase">
-            COORDINATE LOCK: [ 0.000, 0.000, 0.000 ] // CHARGE: {Math.round(transitionProgress * 100)}%
+          {/* Telemetry coordinate readout & coherence */}
+          <div className="pt-2 flex flex-col items-center space-y-1 font-mono text-[9px] tracking-[0.35em] text-slate-500/80 uppercase">
+            <div>COORDINATES: [ {coordX}, {coordY}, {coordZ} ]</div>
+            <div className="text-amber-400/80">
+              GEOMETRIC COHERENCE: {coherencePercent}% // LOCK: STABLE
+            </div>
           </div>
         </div>
       </div>

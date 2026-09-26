@@ -146,6 +146,7 @@ export function VoidScene() {
     uExcitation: { value: 0 },
     uBreathPhase: { value: 0 },
     uTransition: { value: 0 },
+    uOrderProgress: { value: 0 },
   }), []);
 
   // Foreground Lens Dust Uniforms
@@ -216,6 +217,22 @@ export function VoidScene() {
       midDustMatRef.current.uniforms.uExcitation.value = excitation;
       midDustMatRef.current.uniforms.uBreathPhase.value = breath;
       midDustMatRef.current.uniforms.uTransition.value = transition;
+
+      // Energy-to-Structure ordering factor
+      const act2Progress = store.act2Progress;
+      const isPreview = store.isPreviewMode;
+      const previewTime = store.previewTime;
+      let order = 0.0;
+      if (isPreview) {
+        if (previewTime >= 20.0) {
+          order = Math.min(1.0, (previewTime - 20.0) / 15.0);
+        }
+      } else {
+        if (act2Progress >= 0.45) {
+          order = Math.min(1.0, (act2Progress - 0.45) / 0.45);
+        }
+      }
+      midDustMatRef.current.uniforms.uOrderProgress.value = order;
     }
 
     // 7. Foreground Lens Dust

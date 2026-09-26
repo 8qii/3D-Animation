@@ -9,6 +9,7 @@ import { CameraRig } from './CameraRig';
 import { PostProcessing } from './PostProcessing';
 import { ObserverController } from './ObserverController';
 import { VoidScene } from '../scenes/VoidScene';
+import { SingularityScene } from '../scenes/SingularityScene';
 import { useExperienceStore } from '@/store/experienceStore';
 import { getNormalizedPointer } from '@/utils/helpers';
 
@@ -124,6 +125,7 @@ export function Experience({ className = '', enablePostProcessing = true }: Expe
           <Lights />
           <CameraRig />
           <VoidScene />
+          <SingularityScene />
           {enablePostProcessing && <PostProcessing />}
         </Suspense>
       </Canvas>

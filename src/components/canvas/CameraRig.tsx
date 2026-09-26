@@ -53,57 +53,43 @@ export function CameraRig() {
 
     // 3. Automatic 30-Second Cinematic Sequence vs. Transition & Observer Handoff
     if (isPreviewMode) {
-      const nextTime = (previewTime + delta) % 30.0;
+      const nextTime = (previewTime + delta) % 40.0;
       setPreviewTime(nextTime);
 
       const t = nextTime;
 
-      if (t < 7.0) {
-        // Phase 1 (0s - 7s): The Approaching Gaze
-        const progress = t / 7.0;
+      if (t < 10.0) {
+        // Phase 1 (0s - 10s): Spark Ignition - Slow Approach into the Singularity Core
+        const progress = t / 10.0;
         const ease = THREE.MathUtils.smoothstep(progress, 0, 1);
         targetCamPos.current.set(
-          THREE.MathUtils.lerp(0.0, 0.3, ease),
-          THREE.MathUtils.lerp(0.3, -0.15, ease),
-          THREE.MathUtils.lerp(7.2, 4.6, ease)
+          THREE.MathUtils.lerp(0.0, 0.15, ease),
+          THREE.MathUtils.lerp(0.2, -0.05, ease),
+          THREE.MathUtils.lerp(7.0, 5.6, ease)
         );
         targetLookAt.current.set(0, 0, 0);
-      } else if (t < 16.0) {
-        // Phase 2 (7s - 16s): Orbital Vitrine Arc
-        const progress = (t - 7.0) / 9.0;
-        const angle = progress * Math.PI;
+      } else if (t < 20.0) {
+        // Phase 2 (10s - 20s): Coordinate Genesis - Dynamic Orbital Observation of Cartesian Axes
+        const progress = (t - 10.0) / 10.0;
+        const angle = progress * Math.PI * 0.75;
         targetCamPos.current.set(
-          Math.sin(angle) * 2.8,
-          -0.15 + Math.sin(progress * Math.PI) * 0.9,
-          Math.cos(angle) * 1.5 + 3.2
+          Math.sin(angle) * 1.8,
+          0.4 + Math.sin(progress * Math.PI) * 0.5,
+          Math.cos(angle) * 1.2 + 4.8
         );
         targetLookAt.current.set(
-          Math.sin(angle) * 0.2,
-          0.1,
-          0
-        );
-      } else if (t < 23.0) {
-        // Phase 3 (16s - 23s): Ascending Crane & Downward Tilt
-        const progress = (t - 16.0) / 7.0;
-        const ease = THREE.MathUtils.smoothstep(progress, 0, 1);
-        targetCamPos.current.set(
-          THREE.MathUtils.lerp(-1.2, 0.4, ease),
-          THREE.MathUtils.lerp(0.75, 3.2, ease),
-          THREE.MathUtils.lerp(4.7, 3.4, ease)
-        );
-        targetLookAt.current.set(
-          THREE.MathUtils.lerp(0.2, 0.0, ease),
-          THREE.MathUtils.lerp(0.1, 0.0, ease),
+          Math.sin(angle) * 0.15,
+          0.05,
           0
         );
       } else {
-        // Phase 4 (23s - 30s): Transcendent Longitudinal Pull-Back
-        const progress = (t - 23.0) / 7.0;
+        // Phase 3 (20s - 40s): Geometry Stabilization - Symmetrical Architectural Equilibrium
+        const progress = (t - 20.0) / 20.0;
         const ease = THREE.MathUtils.smoothstep(progress, 0, 1);
         targetCamPos.current.set(
-          THREE.MathUtils.lerp(0.4, 0.0, ease),
-          THREE.MathUtils.lerp(3.2, 0.0, ease),
-          THREE.MathUtils.lerp(3.4, 7.0, ease)
+          THREE.MathUtils.lerp(activeCamera.position.x, 0.0, ease * 0.05),
+          THREE.MathUtils.lerp(activeCamera.position.y, 0.1, ease * 0.05),
+          THREE.MathUtils.lerp(5.2, 5.5, ease)
         );
         targetLookAt.current.set(0, 0, 0);
       }

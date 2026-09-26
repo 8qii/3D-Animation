@@ -102,7 +102,7 @@ export function DebugPanel() {
               CINEMATIC PREVIEW
             </span>
             <span className="font-mono text-[10px] text-slate-400 tabular-nums">
-              {previewTime.toFixed(1).padStart(4, '0')}s / 30.0s
+              {previewTime.toFixed(1).padStart(4, '0')}s / 40.0s
             </span>
             <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-800/60 text-cyan-400">
               PRESS P TO EXIT
