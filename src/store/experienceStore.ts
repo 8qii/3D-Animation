@@ -77,8 +77,10 @@ interface ExperienceState {
   // Act II: The Singularity Engine
   act2Progress: number; // 0 to 1 across Act II timeline
   act2Phase: Act2Phase;
+  matterProgress: number; // 0 to 1 across Matter Genesis
   setAct2Progress: (progress: number) => void;
   setAct2Phase: (phase: Act2Phase) => void;
+  setMatterProgress: (progress: number) => void;
 
   // Cursor Parallax (Screen Normalized [-1, 1])
   pointer: { x: number; y: number };
@@ -178,11 +180,16 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   // Act II: The Singularity Initial State
   act2Progress: 0,
   act2Phase: 'IDLE',
+  matterProgress: 0,
   setAct2Progress: (progress: number) =>
     set({
       act2Progress: Math.min(1.0, Math.max(0.0, progress)),
     }),
   setAct2Phase: (phase: Act2Phase) => set({ act2Phase: phase }),
+  setMatterProgress: (progress: number) =>
+    set({
+      matterProgress: Math.min(1.0, Math.max(0.0, progress)),
+    }),
 
   // Pointer parallax initial state
   pointer: { x: 0, y: 0 },

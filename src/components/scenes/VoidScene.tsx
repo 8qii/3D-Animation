@@ -146,7 +146,7 @@ export function VoidScene() {
     uExcitation: { value: 0 },
     uBreathPhase: { value: 0 },
     uTransition: { value: 0 },
-    uOrderProgress: { value: 0 },
+    uMorphStage: { value: 0 },
   }), []);
 
   // Foreground Lens Dust Uniforms
@@ -218,21 +218,35 @@ export function VoidScene() {
       midDustMatRef.current.uniforms.uBreathPhase.value = breath;
       midDustMatRef.current.uniforms.uTransition.value = transition;
 
-      // Energy-to-Structure ordering factor
+      // 4-Stage Geometry Morph Pipeline factor [0.0 .. 3.0]
+      // 0: Chaos -> 1: Keplerian Orbital -> 2: Golden Ratio Vertices -> 3: Surface Triangulation
       const act2Progress = store.act2Progress;
       const isPreview = store.isPreviewMode;
       const previewTime = store.previewTime;
-      let order = 0.0;
+      let morph = 0.0;
+
       if (isPreview) {
-        if (previewTime >= 20.0) {
-          order = Math.min(1.0, (previewTime - 20.0) / 15.0);
+        if (previewTime < 10.0) {
+          morph = (previewTime / 10.0) * 0.7; // Chaos transitioning to early orbital
+        } else if (previewTime < 20.0) {
+          morph = 0.7 + ((previewTime - 10.0) / 10.0) * 0.7; // Reaching orbital equilibrium (~1.4)
+        } else if (previewTime < 30.0) {
+          morph = 1.4 + ((previewTime - 20.0) / 10.0) * 0.8; // Collapsing to golden ratio vertices (~2.2)
+        } else {
+          morph = 2.2 + ((previewTime - 30.0) / 10.0) * 0.8; // Distributing across facet surfaces (3.0)
         }
       } else {
-        if (act2Progress >= 0.45) {
-          order = Math.min(1.0, (act2Progress - 0.45) / 0.45);
+        if (act2Progress < 0.25) {
+          morph = (act2Progress / 0.25) * 0.8;
+        } else if (act2Progress < 0.50) {
+          morph = 0.8 + ((act2Progress - 0.25) / 0.25) * 0.6;
+        } else if (act2Progress < 0.75) {
+          morph = 1.4 + ((act2Progress - 0.50) / 0.25) * 0.8;
+        } else {
+          morph = 2.2 + ((act2Progress - 0.75) / 0.25) * 0.8;
         }
       }
-      midDustMatRef.current.uniforms.uOrderProgress.value = order;
+      midDustMatRef.current.uniforms.uMorphStage.value = Math.min(3.0, Math.max(0.0, morph));
     }
 
     // 7. Foreground Lens Dust

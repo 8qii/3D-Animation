@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { SingularitySpark } from './SingularitySpark';
 import { CoordinateGenesis } from './CoordinateGenesis';
+import { MatterGenesis } from './MatterGenesis';
 import { useExperienceStore } from '@/store/experienceStore';
 
 export function SingularityScene() {
@@ -29,6 +30,9 @@ export function SingularityScene() {
 
       {/* 2. Quantum Spark Singularity Core & Gravitational Lens */}
       <SingularitySpark />
+
+      {/* 3. Matter Genesis Framework: Vertices, Wireframe, Facet Surfaces */}
+      <MatterGenesis />
     </group>
   );
 }

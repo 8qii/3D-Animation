@@ -19,6 +19,7 @@ export function useTimelineController() {
   const setTransitionState = useExperienceStore((state) => state.setTransitionState);
   const setAct2Progress = useExperienceStore((state) => state.setAct2Progress);
   const setAct2Phase = useExperienceStore((state) => state.setAct2Phase);
+  const setMatterProgress = useExperienceStore((state) => state.setMatterProgress);
 
   useEffect(() => {
     // 1. Cross-Scene Transition Progress (Act I -> Act II boundary)
@@ -43,12 +44,13 @@ export function useTimelineController() {
     // 2. Act II Cinematic Timeline Calculation
     let act2Prog = 0.0;
     let act2Ph: Act2Phase = 'IDLE';
+    let matterProg = 0.0;
 
     if (isPreviewMode) {
       // 0 - 40s Cinematic sequence:
       // 0-10s: Spark Ignition
       // 10-20s: Coordinate Genesis
-      // 20-40s: Geometry Stabilization
+      // 20-40s: Geometry Stabilization & Matter Genesis
       act2Prog = clamp(previewTime / 40.0, 0.0, 1.0);
       if (previewTime < 10.0) {
         act2Ph = 'SPARK_IGNITION';
@@ -56,6 +58,10 @@ export function useTimelineController() {
         act2Ph = 'COORDINATE_GENESIS';
       } else {
         act2Ph = 'GEOMETRY_STABILIZATION';
+      }
+
+      if (previewTime >= 20.0) {
+        matterProg = clamp((previewTime - 20.0) / 18.0, 0.0, 1.0);
       }
     } else {
       // Scroll-driven progression: S in [0.20, 0.40]
@@ -74,6 +80,10 @@ export function useTimelineController() {
         } else {
           act2Ph = 'GEOMETRY_STABILIZATION';
         }
+
+        if (act2Prog >= 0.45) {
+          matterProg = clamp((act2Prog - 0.45) / 0.50, 0.0, 1.0);
+        }
       } else if (scrollProgress >= TRANSITION_START) {
         // Subtle prelude into ignition
         act2Prog = (scrollProgress - TRANSITION_START) / (ACT2_SCROLL_START - TRANSITION_START) * 0.15;
@@ -86,6 +96,7 @@ export function useTimelineController() {
 
     setAct2Progress(act2Prog);
     setAct2Phase(act2Ph);
+    setMatterProgress(matterProg);
   }, [
     scrollProgress,
     isPreviewMode,
@@ -94,5 +105,6 @@ export function useTimelineController() {
     setTransitionState,
     setAct2Progress,
     setAct2Phase,
+    setMatterProgress,
   ]);
 }
