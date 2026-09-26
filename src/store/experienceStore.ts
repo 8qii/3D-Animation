@@ -56,9 +56,24 @@ interface ExperienceState {
   scrollProgress: number; // 0 to 1 overall
   setScrollProgress: (progress: number) => void;
 
-  // Cursor Parallax
+  // Cursor Parallax (Screen Normalized [-1, 1])
   pointer: { x: number; y: number };
   setPointer: (x: number, y: number) => void;
+
+  // Observer Interaction System (3D World Space & Attention)
+  mouseWorld: [number, number, number];
+  setMouseWorld: (x: number, y: number, z: number) => void;
+  attentionLevel: number; // 0 (passive) to 1 (focused observation)
+  setAttentionLevel: (level: number) => void;
+
+  // Kinetic Scroll Energy (Thermodynamics)
+  scrollEnergy: number; // 0 (cold vacuum) to 1 (excited plasma)
+  addScrollEnergy: (amount: number) => void;
+  decayScrollEnergy: (delta: number) => void;
+
+  // Universal Harmonized Breathing Phase
+  breathPhase: number; // 0 to 1 synchronized oscillation
+  setBreathPhase: (phase: number) => void;
 
   // Audio & Experience controls
   isMuted: boolean;
@@ -130,6 +145,28 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   pointer: { x: 0, y: 0 },
   setPointer: (x: number, y: number) => set({ pointer: { x, y } }),
 
+  // Observer Interaction System
+  mouseWorld: [0, 0, 0],
+  setMouseWorld: (x: number, y: number, z: number) => set({ mouseWorld: [x, y, z] }),
+  attentionLevel: 0,
+  setAttentionLevel: (level: number) =>
+    set({ attentionLevel: Math.min(1.0, Math.max(0.0, level)) }),
+
+  // Kinetic Scroll Energy (Surges on scroll, decays over ~1.8s half-life)
+  scrollEnergy: 0,
+  addScrollEnergy: (amount: number) =>
+    set((state) => ({
+      scrollEnergy: Math.min(1.0, state.scrollEnergy + amount),
+    })),
+  decayScrollEnergy: (delta: number) =>
+    set((state) => ({
+      scrollEnergy: Math.max(0.0, state.scrollEnergy * Math.exp(-delta / 1.8)),
+    })),
+
+  // Universal Harmonized Breathing Phase
+  breathPhase: 0,
+  setBreathPhase: (phase: number) => set({ breathPhase: phase }),
+
   // Audio controls
   isMuted: true,
   toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
@@ -137,7 +174,8 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   // Cinematic Preview Mode
   isPreviewMode: false,
   previewTime: 0,
-  togglePreviewMode: () => set((state) => ({ isPreviewMode: !state.isPreviewMode, previewTime: 0 })),
+  togglePreviewMode: () =>
+    set((state) => ({ isPreviewMode: !state.isPreviewMode, previewTime: 0 })),
   setPreviewMode: (val: boolean) => set({ isPreviewMode: val, previewTime: 0 }),
   setPreviewTime: (time: number) => set({ previewTime: time }),
 

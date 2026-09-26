@@ -24,6 +24,7 @@ export function CameraRig() {
 
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
+    const scrollEnergy = useExperienceStore.getState().scrollEnergy;
 
     // 1. FPS Calculation (smoothed over 0.25 seconds)
     frameCounter.current += 1;
@@ -57,7 +58,6 @@ export function CameraRig() {
         // Phase 2 (7s - 16s): Orbital Vitrine Arc
         const progress = (t - 7.0) / 9.0;
         const angle = progress * Math.PI; // Sweep 180 degrees
-        const radius = 4.4;
         targetCamPos.current.set(
           Math.sin(angle) * 2.8,
           -0.15 + Math.sin(progress * Math.PI) * 0.9,
@@ -117,10 +117,13 @@ export function CameraRig() {
       const parallaxX = pointer.x * 0.32;
       const parallaxY = pointer.y * 0.24;
 
+      // Kinetic scroll energy pulls the observer slightly deeper into the focal void
+      const kineticDepth = -scrollEnergy * 0.35;
+
       targetCamPos.current.set(
         0.0 + driftX + parallaxX,
         0.0 + breathingY + parallaxY,
-        7.0 + driftZ
+        7.0 + driftZ + kineticDepth
       );
 
       targetLookAt.current.set(

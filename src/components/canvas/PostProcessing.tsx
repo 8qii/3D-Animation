@@ -19,14 +19,19 @@ interface PostProcessingProps {
 export function PostProcessing({ enableDoF = true }: PostProcessingProps) {
   const bloomIntensity = useExperienceStore((state) => state.bloomIntensity);
   const dofEnabled = useExperienceStore((state) => state.dofEnabled);
+  const scrollEnergy = useExperienceStore((state) => state.scrollEnergy);
+  const breathPhase = useExperienceStore((state) => state.breathPhase);
 
   const shouldRenderDoF = enableDoF && dofEnabled;
+
+  // Modulate bloom dynamically with synchronized breath and kinetic scroll excitation
+  const effectiveBloom = bloomIntensity * (1.0 + breathPhase * 0.15 + scrollEnergy * 0.85);
 
   return (
     <EffectComposer multisampling={4} enableNormalPass={false}>
       {/* Cinematic Bloom - glows bright central fluctuation & particles */}
       <Bloom
-        intensity={bloomIntensity}
+        intensity={effectiveBloom}
         luminanceThreshold={0.25}
         luminanceSmoothing={0.85}
         blendFunction={BlendFunction.SCREEN}

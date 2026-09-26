@@ -25,6 +25,9 @@ export function DebugPanel() {
     (state) => state.setParticleSpeedMultiplier
   );
 
+  const attentionLevel = useExperienceStore((state) => state.attentionLevel);
+  const scrollEnergy = useExperienceStore((state) => state.scrollEnergy);
+
   const [isCollapsed, setIsCollapsed] = useState(false);
   const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -140,7 +143,7 @@ export function DebugPanel() {
 
             {/* Panel Body */}
             {!isCollapsed && (
-              <div className="p-3.5 space-y-4">
+              <div className="p-3.5 space-y-3.5">
                 {/* 30s Sequence Trigger */}
                 <div>
                   <button
@@ -155,8 +158,37 @@ export function DebugPanel() {
                   </button>
                 </div>
 
+                {/* Observer Interaction Telemetry */}
+                <div className="space-y-1.5 pt-1 border-t border-slate-800/60">
+                  <div className="flex justify-between text-[10px] text-slate-400">
+                    <span>OBSERVER ATTENTION</span>
+                    <span className="text-cyan-400 tabular-nums">
+                      {(attentionLevel * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-cyan-400 transition-all duration-100"
+                      style={{ width: `${attentionLevel * 100}%` }}
+                    />
+                  </div>
+
+                  <div className="flex justify-between text-[10px] text-slate-400 pt-1">
+                    <span>SCROLL KINETIC ENERGY</span>
+                    <span className="text-amber-400 tabular-nums">
+                      {(scrollEnergy * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-amber-400 transition-all duration-100"
+                      style={{ width: `${scrollEnergy * 100}%` }}
+                    />
+                  </div>
+                </div>
+
                 {/* Postprocessing: Bloom Slider */}
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 pt-1 border-t border-slate-800/60">
                   <div className="flex justify-between text-[10px] text-slate-400">
                     <span>BLOOM INTENSITY</span>
                     <span className="text-cyan-400 tabular-nums">{bloomIntensity.toFixed(2)}</span>

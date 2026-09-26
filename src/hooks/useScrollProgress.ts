@@ -14,6 +14,7 @@ export function useScrollProgress(options: UseScrollProgressOptions = {}) {
   const [progress, setProgress] = useState(0);
   const lenisRef = useRef<Lenis | null>(null);
   const setScrollProgress = useExperienceStore((state) => state.setScrollProgress);
+  const addScrollEnergy = useExperienceStore((state) => state.addScrollEnergy);
 
   useEffect(() => {
     // Only initialize on client
@@ -27,19 +28,30 @@ export function useScrollProgress(options: UseScrollProgressOptions = {}) {
 
     lenisRef.current = lenis;
 
-    const handleScroll = (e: { progress: number; scroll: number }) => {
+    const handleScroll = (e: { progress: number; scroll: number; velocity?: number }) => {
       const p = e.progress ?? 0;
       setProgress(p);
       if (syncWithStore) {
         setScrollProgress(p);
+        // Inject kinetic scroll energy into the quantum field
+        const speed = Math.abs(e.velocity ?? 0.5);
+        addScrollEnergy(Math.min(0.35, speed * 0.035 + 0.08));
       }
     };
 
     lenis.on('scroll', handleScroll);
 
     let rafId: number;
+    let lastTime = performance.now();
+
     const raf = (time: number) => {
       lenis.raf(time);
+      const delta = Math.min(0.1, (time - lastTime) / 1000);
+      lastTime = time;
+
+      // Relax kinetic energy continuously back to resting vacuum
+      useExperienceStore.getState().decayScrollEnergy(delta);
+
       rafId = requestAnimationFrame(raf);
     };
 
@@ -50,11 +62,14 @@ export function useScrollProgress(options: UseScrollProgressOptions = {}) {
       lenis.destroy();
       lenisRef.current = null;
     };
-  }, [smoothWheel, syncWithStore, setScrollProgress]);
+  }, [smoothWheel, syncWithStore, setScrollProgress, addScrollEnergy]);
 
-  const scrollTo = useCallback((target: number | string | HTMLElement, scrollOptions?: { duration?: number }) => {
-    lenisRef.current?.scrollTo(target, scrollOptions);
-  }, []);
+  const scrollTo = useCallback(
+    (target: number | string | HTMLElement, scrollOptions?: { duration?: number }) => {
+      lenisRef.current?.scrollTo(target, scrollOptions);
+    },
+    []
+  );
 
   const getLenis = useCallback(() => {
     return lenisRef.current;

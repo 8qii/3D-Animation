@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { Lights } from './Lights';
 import { CameraRig } from './CameraRig';
 import { PostProcessing } from './PostProcessing';
+import { ObserverController } from './ObserverController';
 import { VoidScene } from '../scenes/VoidScene';
 import { useExperienceStore } from '@/store/experienceStore';
 import { getNormalizedPointer } from '@/utils/helpers';
@@ -66,6 +67,7 @@ export function Experience({ className = '', enablePostProcessing = true }: Expe
 
         <Suspense fallback={null}>
           <PerspectiveCamera makeDefault fov={45} position={[0, 0, 7]} />
+          <ObserverController />
           <Lights />
           <CameraRig />
           <VoidScene />
