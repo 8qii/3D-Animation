@@ -3,46 +3,27 @@
 import React from 'react';
 import { useExperienceStore } from '@/store/experienceStore';
 import { CinematicTextSystem } from './CinematicTextSystem';
+import { DebugOverlay } from './DebugOverlay';
 
 export function CinematicTextReveal() {
   const transitionProgress = useExperienceStore((state) => state.transitionProgress);
-  const transitionState = useExperienceStore((state) => state.transitionState);
   const act2Progress = useExperienceStore((state) => state.act2Progress);
   const act2Phase = useExperienceStore((state) => state.act2Phase);
   const act3Progress = useExperienceStore((state) => state.act3Progress);
   const materialLockProgress = useExperienceStore((state) => state.materialLockProgress);
   const tensionProgress = useExperienceStore((state) => state.tensionProgress);
   const monolithPhase = useExperienceStore((state) => state.monolithPhase);
-  const stillnessFactor = useExperienceStore((state) => state.stillnessFactor);
   const fractureProgress = useExperienceStore((state) => state.fractureProgress);
   const facetMemoryProgress = useExperienceStore((state) => state.facetMemoryProgress);
   const collapseProgress = useExperienceStore((state) => state.collapseProgress);
   const singularityThresholdProgress = useExperienceStore((state) => state.singularityThresholdProgress);
-  const mouseWorld = useExperienceStore((state) => state.mouseWorld);
   const isMuted = useExperienceStore((state) => state.isMuted);
   const toggleMute = useExperienceStore((state) => state.toggleMute);
-  const observerState = useExperienceStore((state) => state.observerState);
-  const hiddenDiscoveryActive = useExperienceStore((state) => state.hiddenDiscoveryActive);
-  const observerArchetype = useExperienceStore((state) => state.observerArchetype);
-  const hiddenEnding = useExperienceStore((state) => state.hiddenEnding);
-  const act5Prepared = useExperienceStore((state) => state.act5Prepared);
-  const universeCoherenceScore = useExperienceStore((state) => state.universeCoherenceScore);
-  const observerSignature = useExperienceStore((state) => state.observerSignature);
-  const act5GateArmed = useExperienceStore((state) => state.act5GateArmed);
-  const consciousState = useExperienceStore((state) => state.consciousState);
-  const personalFrequency = useExperienceStore((state) => state.personalFrequency);
-  const awakenedFacetCount = useExperienceStore((state) => state.awakenedFacetCount);
-  const observerIntention = useExperienceStore((state) => state.observerIntention);
-  const intentionVerified = useExperienceStore((state) => state.intentionVerified);
-  const observerDna = useExperienceStore((state) => state.observerDna);
-  const memoryReciprocityProgress = useExperienceStore((state) => state.memoryReciprocityProgress);
-  const gateActivationProgress = useExperienceStore((state) => state.gateActivationProgress);
-  const act5HandshakeCompleted = useExperienceStore((state) => state.act5HandshakeCompleted);
   const ceremonyActive = useExperienceStore((state) => state.ceremonyActive);
   const ceremonyStep = useExperienceStore((state) => state.ceremonyStep);
   const recombinationPrepared = useExperienceStore((state) => state.recombinationPrepared);
 
-  // Compute opacities based on narrative progression
+  // Compute act presence for opacity gating
   const isAct4 = fractureProgress > 0.001 || collapseProgress > 0.001 || singularityThresholdProgress > 0.001;
   const totalPresence = Math.max(transitionProgress, act2Progress, act3Progress, fractureProgress, collapseProgress, singularityThresholdProgress);
   const act1Opacity = Math.max(0, 1 - totalPresence * 3.5);
@@ -54,312 +35,204 @@ export function CinematicTextReveal() {
 
   const isIgnited = transitionProgress >= 0.65 || act2Progress >= 0.20;
 
-  // Formatting phase badge text
-  let phaseLabel = 'QUANTUM VACUUM';
-  if (recombinationPrepared) {
-    phaseLabel = 'ACT V: REALITY RECONSTRUCTED';
-  } else if (ceremonyActive) {
-    phaseLabel = `CEREMONY: ${ceremonyStep.replace('_', ' ')}`;
-  } else if (isAct4) {
-    if (singularityThresholdProgress > 0.05) {
-      phaseLabel = 'SINGULARITY THRESHOLD';
-    } else if (collapseProgress > 0.05) {
-      phaseLabel = 'MEMORY COLLAPSE';
-    } else if (facetMemoryProgress > 0.05) {
-      phaseLabel = 'STATE: GEOMETRY RELEASED';
-    } else {
-      phaseLabel = fractureProgress > 0.45 ? 'ACT IV: GEOMETRIC SEPARATION' : 'ACT IV: FRACTURE INITIATION';
-    }
-  } else if (monolithPhase === 'FINAL_STILLNESS') {
-    phaseLabel = 'ACT III: FINAL STILLNESS';
-  } else if (monolithPhase === 'MEMORY_RESONANCE') {
-    phaseLabel = `HARMONIC TENSION: ${(tensionProgress * 100).toFixed(0)}%`;
-  } else if (tensionProgress > 0.15) {
-    phaseLabel = `INTERNAL TENSION: ${(tensionProgress * 100).toFixed(0)}%`;
-  } else if (isAct3) {
-    phaseLabel = 'ACT III: MONOLITH CRYSTALLIZATION';
-  } else if (act2Phase === 'SPARK_IGNITION') {
-    phaseLabel = 'PHASE 1: SPARK IGNITION';
-  } else if (act2Phase === 'COORDINATE_GENESIS') {
-    phaseLabel = 'PHASE 2: COORDINATE GENESIS';
-  } else if (act2Phase === 'GEOMETRY_STABILIZATION') {
-    phaseLabel = 'PHASE 3: GEOMETRY STABILIZATION';
-  } else if (transitionProgress > 0.1) {
-    phaseLabel = transitionState;
-  }
-
-  // Format 3D world coordinates for telemetry
-  const coordX = (mouseWorld[0] * 0.1).toFixed(3);
-  const coordY = (mouseWorld[1] * 0.1).toFixed(3);
-  const coordZ = (mouseWorld[2] * 0.1).toFixed(3);
-  const coherencePercent = Math.min(100, Math.round(act2Progress * 100));
-
   return (
     <>
-      {/* Top Right: Sound Experience Toggle (Web Audio API) */}
+      {/* ── LAYER 1: PERMANENT IDENTITY MARK (top-left) ── */}
+      {/* Minimal observatory marker — always present, opacity 0.45, no box */}
+      <header className="fixed top-8 left-8 md:top-12 md:left-12 z-20 pointer-events-none select-none">
+        <div className="flex items-center space-x-3">
+          <div
+            className={`w-1.5 h-1.5 rounded-full transition-all duration-1000 ${
+              isAct4
+                ? 'bg-cyan-300 shadow-[0_0_10px_#38bdf8] animate-ping [animation-duration:3s]'
+                : isAct3
+                ? 'bg-amber-300 shadow-[0_0_8px_#fbbf24]'
+                : isIgnited
+                ? 'bg-amber-400/80 shadow-[0_0_6px_#f59e0b]'
+                : 'bg-cyan-400/60 shadow-[0_0_5px_#38bdf8]'
+            }`}
+          />
+          <span className="font-mono text-[10px] font-light tracking-[0.36em] text-slate-400/45 uppercase">
+            AETHERIA // OBSERVATORY
+          </span>
+        </div>
+      </header>
+
+      {/* ── SOUND TOGGLE (top-right) — minimal dot form ── */}
       <div className="fixed top-8 right-8 md:top-12 md:right-12 z-30 pointer-events-auto">
         <button
           onClick={toggleMute}
-          className="group flex items-center space-x-2.5 px-3 py-1.5 rounded-full border border-slate-700/60 bg-slate-900/40 backdrop-blur-md transition-all duration-300 hover:border-cyan-400/50 hover:bg-slate-800/60 active:scale-95"
+          className="flex items-center space-x-2 transition-opacity duration-500 hover:opacity-80 active:scale-95"
           aria-label={isMuted ? 'Unmute Audio Engine' : 'Mute Audio Engine'}
         >
           <span
-            className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${
-              isMuted ? 'bg-slate-500' : 'bg-cyan-400 shadow-[0_0_8px_#38bdf8] animate-pulse'
+            className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${
+              isMuted ? 'bg-slate-600/50' : 'bg-cyan-400/60 shadow-[0_0_6px_#38bdf8] animate-pulse [animation-duration:4s]'
             }`}
           />
-          <span className="font-mono text-[10px] tracking-[0.25em] text-slate-300 uppercase select-none">
-            {isMuted ? 'SOUND: OFF' : 'SOUND: ON'}
+          <span className="font-mono text-[9px] tracking-[0.28em] text-slate-500/50 uppercase select-none">
+            {isMuted ? 'off' : 'on'}
           </span>
         </button>
       </div>
 
-      {/* Top Left: Observatory Header & Quantum State Telemetry */}
-      <header className="fixed top-8 left-8 md:top-12 md:left-12 z-20 pointer-events-none select-none">
-        <div className="flex items-center space-x-3.5">
-          <div
-            className={`w-1.5 h-1.5 rounded-full transition-all duration-700 ${
-              isAct4
-                ? 'bg-cyan-300 shadow-[0_0_18px_#38bdf8] animate-ping [animation-duration:2.5s]'
-                : isAct3
-                ? 'bg-amber-300 shadow-[0_0_16px_#fbbf24]'
-                : isIgnited
-                ? 'bg-amber-400 shadow-[0_0_12px_#f59e0b]'
-                : 'bg-cyan-400 shadow-[0_0_8px_#38bdf8] opacity-75'
-            }`}
-          />
-          <h1 className="font-mono text-[11px] font-normal tracking-[0.32em] text-slate-400/80 uppercase">
-            {isAct4
-              ? 'AETHERIA // OBSERVATORY 0.4'
-              : isAct3
-              ? 'AETHERIA // OBSERVATORY 0.3'
-              : act2Progress > 0.5
-              ? 'AETHERIA // OBSERVATORY 0.2'
-              : 'AETHERIA // OBSERVATORY 0.1'}
-          </h1>
-        </div>
-
-        {/* Dynamic Transition State Badge */}
-        <div
-          className="mt-2 pl-5 transition-opacity duration-500"
-          style={{ opacity: totalPresence > 0.05 ? 0.9 : 0.4 }}
-        >
-          <span className="font-mono text-[9px] tracking-[0.3em] text-slate-500 uppercase">
-            STATE: <span className={isAct4 ? 'text-cyan-300 font-semibold' : isAct3 ? 'text-amber-300 font-medium' : isIgnited ? 'text-amber-400/90' : 'text-cyan-400/80'}>{phaseLabel}</span>
-          </span>
-          {(observerState !== 'DORMANT' || hiddenDiscoveryActive) && (
-            <div className="mt-0.5">
-              <span className="font-mono text-[8.5px] tracking-[0.25em] text-slate-500 uppercase">
-                CONSCIOUSNESS:{' '}
-                <span className={hiddenDiscoveryActive ? 'text-yellow-300 font-semibold shadow-[0_0_12px_#fde047]' : 'text-cyan-300 font-medium'}>
-                  {hiddenDiscoveryActive
-                    ? 'HIDDEN MEMORY REVEAL'
-                    : observerState === 'GENESIS_RESPONSE_ACTIVE'
-                    ? 'AWARENESS LINK ESTABLISHED'
-                    : observerState === 'OBSERVER_SYNCHRONIZED'
-                    ? 'THE STRUCTURE HAS RECOGNIZED YOU'
-                    : 'THE OBSERVER HAS ARRIVED'}
-                </span>
-              </span>
-            </div>
-          )}
-        </div>
-      </header>
-
-
-
-      {/* Bottom Center: Act I Prompt (Dissolves as observer scrolls) */}
+      {/* ── LAYER 2: ACT I PROMPT — dissolves on first scroll ── */}
       <footer
-        className="fixed bottom-10 left-0 right-0 z-20 flex flex-col items-center justify-center pointer-events-none select-none transition-all duration-700"
+        className="fixed bottom-10 left-0 right-0 z-20 flex flex-col items-center justify-center pointer-events-none select-none transition-all duration-1000"
         style={{
-          opacity: act1Opacity,
-          transform: `translateY(${totalPresence * 20}px)`,
+          opacity: act1Opacity * 0.7,
+          transform: `translateY(${totalPresence * 24}px)`,
         }}
       >
-        <div className="flex flex-col items-center space-y-3">
-          <p className="font-mono text-[10px] md:text-[11px] font-light tracking-[0.38em] text-slate-400/70 uppercase transition-opacity duration-1000 animate-pulse [animation-duration:4s]">
-            TOUCH THE VOID // INITIATE SCROLL
-          </p>
-          <div className="w-[1px] h-6 bg-gradient-to-b from-cyan-400/40 to-transparent" />
-        </div>
+        <p className="font-mono text-[9px] md:text-[10px] font-light tracking-[0.42em] text-slate-400/50 uppercase animate-pulse [animation-duration:5s]">
+          TOUCH THE VOID // INITIATE SCROLL
+        </p>
+        <div className="mt-2 w-[1px] h-5 bg-gradient-to-b from-cyan-400/25 to-transparent" />
       </footer>
 
-      {/* Center Cinematic Reveal: Act II Singularity Emergence */}
+      {/* ── LAYER 2: ACT II — CINEMATIC REVEAL — no telemetry ── */}
       <div
-        className="fixed inset-0 z-20 flex flex-col items-center justify-center pointer-events-none select-none text-center px-6 transition-all duration-1000"
+        className="fixed inset-0 z-20 flex flex-col items-center justify-center pointer-events-none select-none text-center px-8 transition-all duration-1200"
         style={{
           opacity: act2Opacity,
-          transform: `translateY(${(1 - act2Opacity) * 24}px) scale(${0.96 + act2Opacity * 0.04})`,
+          transform: `translateY(${(1 - act2Opacity) * 30}px) scale(${0.97 + act2Opacity * 0.03})`,
+          filter: `blur(${Math.max(0, (1 - act2Opacity) * 12)}px)`,
         }}
       >
-        <div className="max-w-xl mx-auto flex flex-col items-center space-y-4">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full border border-amber-500/20 bg-amber-950/20 backdrop-blur-sm shadow-[0_0_15px_rgba(245,158,11,0.15)]">
-            <span className="w-1 h-1 rounded-full bg-amber-400 shadow-[0_0_6px_#f59e0b]" />
-            <span className="font-mono text-[9px] tracking-[0.35em] text-amber-300/90 uppercase">
+        <div className="max-w-lg mx-auto flex flex-col items-center space-y-5">
+          <div className="inline-flex items-center space-x-2.5">
+            <div className="w-8 h-[1px] bg-gradient-to-r from-transparent to-amber-400/40" />
+            <span className="font-mono text-[8.5px] tracking-[0.45em] text-amber-300/60 uppercase">
               ACT II // THE SINGULARITY
             </span>
+            <div className="w-8 h-[1px] bg-gradient-to-l from-transparent to-amber-400/40" />
           </div>
 
-          <h2 className="text-2xl md:text-4xl font-extralight tracking-[0.25em] text-slate-100 uppercase">
-            The Point of <span className="font-light text-amber-200 drop-shadow-[0_0_24px_rgba(245,158,11,0.4)]">Intent</span>
+          <h2 className="text-2xl md:text-[2.2rem] font-extralight tracking-[0.28em] text-slate-100/90 uppercase leading-tight">
+            {act2Phase === 'GEOMETRY_STABILIZATION'
+              ? <>Structure <span className="font-light text-amber-200/80">Awakens</span></>
+              : act2Phase === 'COORDINATE_GENESIS'
+              ? <>Dimension <span className="font-light text-amber-200/80">Emerges</span></>
+              : <>The Point of <span className="font-light text-amber-200/80">Intent</span></>}
           </h2>
 
-          <p className="max-w-md font-sans text-xs md:text-sm font-light leading-relaxed tracking-[0.15em] text-slate-400/80">
+          <p className="max-w-sm font-sans text-xs font-light leading-loose tracking-[0.16em] text-slate-400/55 italic">
             {act2Phase === 'GEOMETRY_STABILIZATION'
-              ? 'Particles coalesce into Keplerian orbital symmetry. Structure awakens.'
+              ? '"Particles coalesce into Keplerian orbital symmetry."'
               : act2Phase === 'COORDINATE_GENESIS'
-              ? 'Cartesian vectors define the horizon. Dimension emerges from zero.'
-              : 'In the silence of the unmeasured, light resolves into geometric coherence.'}
+              ? '"Cartesian vectors define the horizon of the possible."'
+              : '"In the silence of the unmeasured, a single point decides."'}
           </p>
-
-          {/* Telemetry coordinate readout & coherence */}
-          <div className="pt-2 flex flex-col items-center space-y-1 font-mono text-[9px] tracking-[0.35em] text-slate-500/80 uppercase">
-            <div>COORDINATES: [ {coordX}, {coordY}, {coordZ} ]</div>
-            <div className="text-amber-400/80">
-              GEOMETRIC COHERENCE: {coherencePercent}% // LOCK: STABLE
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Center Cinematic Reveal: Act III The Monolith */}
+      {/* ── LAYER 2: ACT III — CINEMATIC REVEAL — no telemetry ── */}
       <div
-        className="fixed inset-0 z-25 flex flex-col items-center justify-end pb-24 md:pb-32 pointer-events-none select-none text-center px-6 transition-all duration-1000"
+        className="fixed inset-0 z-25 flex flex-col items-center justify-end pb-28 md:pb-36 pointer-events-none select-none text-center px-8 transition-all duration-1200"
         style={{
           opacity: act3Opacity,
-          transform: `translateY(${(1 - act3Opacity) * 20}px)`,
+          transform: `translateY(${(1 - act3Opacity) * 24}px)`,
+          filter: `blur(${Math.max(0, (1 - act3Opacity) * 10)}px)`,
         }}
       >
-        <div className="max-w-2xl mx-auto flex flex-col items-center space-y-3.5">
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full border border-amber-400/30 bg-slate-950/70 backdrop-blur-md shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+        <div className="max-w-xl mx-auto flex flex-col items-center space-y-4">
+          <div className="inline-flex items-center space-x-2.5">
+            <div className="w-6 h-[1px] bg-gradient-to-r from-transparent to-amber-400/35" />
             <span
-              className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${
+              className={`font-mono text-[8.5px] tracking-[0.42em] uppercase transition-colors duration-700 ${
                 monolithPhase === 'FINAL_STILLNESS'
-                  ? 'bg-cyan-200 shadow-[0_0_12px_#a5f3fc]'
+                  ? 'text-sky-300/60'
                   : monolithPhase === 'MEMORY_RESONANCE'
-                  ? 'bg-amber-300 shadow-[0_0_12px_#fde047]'
-                  : 'bg-amber-400 shadow-[0_0_8px_#f59e0b]'
-              } ${monolithPhase !== 'FINAL_STILLNESS' ? 'animate-pulse' : ''}`}
-            />
-            <span className="font-mono text-[10px] tracking-[0.35em] text-amber-300 uppercase font-medium">
+                  ? 'text-amber-200/65'
+                  : tensionProgress > 0.45
+                  ? 'text-amber-300/60'
+                  : 'text-amber-300/55'
+              }`}
+            >
               {monolithPhase === 'MEMORY_RESONANCE' || monolithPhase === 'FINAL_STILLNESS'
                 ? 'ACT III // HARMONIC TENSION'
                 : tensionProgress > 0.45
                 ? 'ACT III // MONOLITH TENSION'
                 : 'ACT III // THE MONOLITH'}
             </span>
+            <div className="w-6 h-[1px] bg-gradient-to-l from-transparent to-amber-400/35" />
           </div>
 
-          <h2 className="text-xl md:text-3xl font-extralight tracking-[0.22em] text-slate-100 uppercase italic">
+          <h2 className="text-xl md:text-3xl font-extralight tracking-[0.24em] text-slate-100/90 uppercase italic leading-snug">
             {monolithPhase === 'MEMORY_RESONANCE' || monolithPhase === 'FINAL_STILLNESS'
-              ? <>&ldquo;Every structure contains the memory of its own transformation.&rdquo;</>
-              : <>&ldquo;Structure is the cage that gives energy its name.&rdquo;</>}
+              ? <>&ldquo;Every structure contains the memory<br />of its own transformation.&rdquo;</>
+              : <>&ldquo;Structure is the cage that gives<br />energy its name.&rdquo;</>}
           </h2>
 
-          <p className="max-w-lg font-sans text-xs md:text-sm font-light leading-relaxed tracking-[0.18em] text-slate-400/90">
+          <p className="max-w-sm font-sans text-[11px] font-light leading-loose tracking-[0.14em] text-slate-400/50">
             {monolithPhase === 'FINAL_STILLNESS'
               ? 'All motion yields to absolute stillness. The structure holds its final breath.'
               : monolithPhase === 'MEMORY_RESONANCE'
-              ? 'Void, singularity, and crystalline memory layers harmonize beneath the obsidian surface.'
+              ? 'Void, singularity, and crystalline memory harmonize beneath the obsidian surface.'
               : tensionProgress > 0.45
               ? 'Internal energy approaches critical threshold. Fracture planes awaken along golden-ratio symmetry.'
-              : 'Twenty golden ratio facets resolve the quantum flux into eternal obsidian glass.'}
+              : 'Twenty golden-ratio facets resolve the quantum flux into eternal obsidian glass.'}
           </p>
-
-          <div className="pt-2 font-mono text-[9px] tracking-[0.32em] text-amber-400/80 uppercase">
-            {monolithPhase === 'MEMORY_RESONANCE' || monolithPhase === 'FINAL_STILLNESS'
-              ? `PHASE: STRUCTURAL EQUILIBRIUM // STRESS: ${(tensionProgress * 100).toFixed(0)}% // MEMORY FIELD: SYNCHRONIZED // FRACTURE: PREDICTIVE STATE ONLY`
-              : tensionProgress > 0.15
-              ? `PHASE: INTERNAL TENSION // STRESS COEFFICIENT: ${(tensionProgress * 100).toFixed(0)}% // FRACTURE PLANES: GOLDEN RATIO DETECTED`
-              : 'PHASE: ORDER // GEOMETRIC SYMMETRY: 1.618 // STATUS: MONOLITH STABILIZED'}
-          </div>
         </div>
       </div>
 
-      {/* Center Cinematic Reveal: Act IV The Dispersion // Fracture Initiation */}
+      {/* ── LAYER 2: ACT IV — CINEMATIC REVEAL — minimal + ceremony ── */}
       <div
-        className="fixed inset-0 z-25 flex flex-col items-center justify-end pb-24 md:pb-32 pointer-events-none select-none text-center px-6 transition-all duration-1000"
+        className="fixed inset-0 z-25 flex flex-col items-center justify-end pb-28 md:pb-36 pointer-events-none select-none text-center px-8 transition-all duration-1200"
         style={{
           opacity: act4Opacity,
-          transform: `translateY(${(1 - act4Opacity) * 20}px)`,
+          transform: `translateY(${(1 - act4Opacity) * 24}px)`,
+          filter: `blur(${Math.max(0, (1 - act4Opacity) * 10)}px)`,
         }}
       >
-        <div className="max-w-2xl mx-auto flex flex-col items-center space-y-3.5">
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full border border-cyan-400/40 bg-slate-950/80 backdrop-blur-md shadow-[0_0_24px_rgba(56,189,248,0.25)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_#38bdf8] animate-pulse" />
-            <span className="font-mono text-[10px] tracking-[0.35em] text-cyan-300 uppercase font-medium">
-              ACT IV // THE DISPERSION
+        <div className="max-w-xl mx-auto flex flex-col items-center space-y-4">
+          <div className="inline-flex items-center space-x-2.5">
+            <div className="w-6 h-[1px] bg-gradient-to-r from-transparent to-cyan-400/30" />
+            <span className="font-mono text-[8.5px] tracking-[0.42em] text-cyan-300/60 uppercase">
+              {recombinationPrepared
+                ? 'ACT V // THE LIVING CONTINUUM'
+                : ceremonyActive
+                ? `CEREMONY // ${ceremonyStep.replace('_', ' ')}`
+                : singularityThresholdProgress > 0.05
+                ? 'ACT IV // SINGULARITY THRESHOLD'
+                : collapseProgress > 0.05
+                ? 'ACT IV // MEMORY COLLAPSE'
+                : facetMemoryProgress > 0.05
+                ? 'ACT IV // GEOMETRY RELEASED'
+                : 'ACT IV // THE DISPERSION'}
             </span>
+            <div className="w-6 h-[1px] bg-gradient-to-l from-transparent to-cyan-400/30" />
           </div>
 
-          <h2 className="text-xl md:text-3xl font-extralight tracking-[0.22em] text-slate-100 uppercase italic">
-            &ldquo;To become infinite, form must surrender its perimeter.&rdquo;
+          <h2 className="text-xl md:text-3xl font-extralight tracking-[0.24em] text-slate-100/90 uppercase italic leading-snug">
+            {recombinationPrepared
+              ? <>&ldquo;The universe was not recreated.<br />It was remembered differently.&rdquo;</>
+              : ceremonyActive
+              ? <>&ldquo;The observer does not enter a new universe.<br />The universe is reconstructed around the observer.&rdquo;</>
+              : <>&ldquo;To become infinite, form must<br />surrender its perimeter.&rdquo;</>}
           </h2>
 
-          <p className="max-w-lg font-sans text-xs md:text-sm font-light leading-relaxed tracking-[0.18em] text-slate-300/90">
-            Golden-ratio fault planes breach. The twenty sacred facets detach, releasing contained energy into the void.
+          <p className="max-w-sm font-sans text-[11px] font-light leading-loose tracking-[0.14em] text-slate-400/50">
+            {recombinationPrepared
+              ? 'A new cosmos crystallizes from the observer\'s memory. ACT V is complete.'
+              : ceremonyActive
+              ? 'Quantum codons are immortalized. The lattice breathes in unison with the observer.'
+              : singularityThresholdProgress > 0.05
+              ? 'Structure transcends its own geometry. The singularity awaits transformation.'
+              : collapseProgress > 0.05
+              ? 'All facets release into the void. Genesis prepares for dispersion.'
+              : facetMemoryProgress > 0.05
+              ? 'Twenty facets are suspended in memory, entangled across golden-ratio symmetry.'
+              : 'Golden-ratio fault planes breach. The sacred facets detach, releasing energy into the void.'}
           </p>
-
-          <div className="pt-2 font-mono text-[9px] tracking-[0.32em] text-cyan-400/90 uppercase space-y-1">
-            <div>
-              {singularityThresholdProgress > 0.05
-                ? 'STRUCTURE: TRANSCENDED'
-                : collapseProgress > 0.05
-                ? 'GENESIS: READY FOR DISPERSION'
-                : facetMemoryProgress > 0.05
-                ? 'STRUCTURE: SUSPENDED IN MEMORY // 20 FACETS ENTANGLED'
-                : `STRUCTURE: SEPARATING // FACET COUNT: ${Math.max(0, Math.round(20 * (1.0 - Math.min(1.0, fractureProgress * 1.1))))} → 0`}
-            </div>
-            <div className="text-amber-400/90">
-              {singularityThresholdProgress > 0.05
-                ? 'ENERGY: MAXIMUM POTENTIAL // SILENCE: ABSOLUTE'
-                : collapseProgress > 0.05
-                ? 'ENERGY: CRITICAL MASS // TIME FREEZE: 0%'
-                : facetMemoryProgress > 0.05
-                ? 'ENERGY: AWAITING DISPERSION // TIME DILATION: ACTIVE (0.2x)'
-                : 'ENERGY CONTAINMENT: FAILED // WAVE: EXPANDING'}
-            </div>
-            {hiddenEnding && (
-              <div className="text-purple-300 font-semibold tracking-[0.35em]">
-                {`DESTINY TRAJECTORY: ${hiddenEnding} // ARCHETYPE: ${observerArchetype.replace('THE_', '')}`}
-              </div>
-            )}
-            {recombinationPrepared ? (
-              <div className="text-yellow-100 font-bold tracking-[0.42em] animate-pulse drop-shadow-[0_0_20px_rgba(253,224,71,1)]">
-                {`ACT V: THE LIVING CONTINUUM // REALITY RECONSTRUCTED`}
-              </div>
-            ) : ceremonyActive ? (
-              <div className="text-yellow-200 font-bold tracking-[0.42em] animate-pulse drop-shadow-[0_0_16px_rgba(250,204,21,0.9)]">
-                {`CEREMONY: ${ceremonyStep} // THE RECOMBINATION IN PROGRESS`}
-              </div>
-            ) : act5HandshakeCompleted ? (
-              <div className="text-yellow-200 font-bold tracking-[0.42em] animate-pulse drop-shadow-[0_0_16px_rgba(250,204,21,0.9)]">
-                {`ACT V: THE RECOMBINATION INITIATED // APERTURE OPEN`}
-              </div>
-            ) : act5GateArmed && intentionVerified ? (
-              <div className="text-cyan-200 font-bold tracking-[0.40em] animate-pulse drop-shadow-[0_0_12px_rgba(56,189,248,0.8)]">
-                {`RECOMBINATION GATE ARMED // GAZE FOCUS: ${(gateActivationProgress * 100).toFixed(0)}% // RECIPROCITY: ${(memoryReciprocityProgress * 100).toFixed(0)}%`}
-              </div>
-            ) : act5GateArmed ? (
-              <div className="text-cyan-200 font-bold tracking-[0.40em] animate-pulse drop-shadow-[0_0_12px_rgba(56,189,248,0.8)]">
-                {`ACT V RECOGNITION GATE: UNLOCKED // HARMONIC CONVERGENCE: ${universeCoherenceScore}%`}
-              </div>
-            ) : act5Prepared ? (
-              <div className="text-emerald-300 font-bold tracking-[0.38em] animate-pulse">
-                {`ACT V READY: RECOMBINATION PROTOCOL ARMED // UNIVERSE COHERENCE: ${universeCoherenceScore}%`}
-              </div>
-            ) : null}
-            <div className="text-slate-400 font-mono text-[8px] tracking-[0.28em] flex flex-wrap gap-x-4">
-              <span>{`OBSERVER DNA: ${observerDna?.code || observerSignature}`}</span>
-              <span>{`CONSCIOUSNESS: ${consciousState} // RECIPROCITY: ${(memoryReciprocityProgress * 100).toFixed(0)}% // FREQ: ${personalFrequency.toFixed(1)}Hz`}</span>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Phase 9.18: Observer Awakening Cinematic Typography & Recognition HUD */}
+      {/* ── LAYER 2: Observer HUD (CinematicTextSystem) — observer-gated ── */}
       <CinematicTextSystem />
+
+      {/* ── LAYER 3: DEBUG TELEMETRY — hidden by default, toggled by D key ── */}
+      <DebugOverlay />
     </>
   );
 }
-

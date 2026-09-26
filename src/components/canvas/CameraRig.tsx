@@ -137,12 +137,14 @@ export function CameraRig() {
 
     if (choreoStage === 0) {
       // Stage 0: OBSERVER
-      // Forward contemplative gaze from [0, 0, 7.0] down to [0, 0, 5.5]
+      // Cinematic distance: [0, 0, 8.5] -> [0, 0, 7.0] (more breathing room around monolith)
       const ease = THREE.MathUtils.smoothstep(stageProgress, 0, 1);
+      // Slow cinematic breathing on Z — only when observer is not absolutely still
+      const cinematicBreath = Math.sin(time * 0.5027) * 0.03 * Math.max(0, 1.0 - store.observerStillnessScore * 1.1);
       targetCamPos.current.set(
         0.0 + parallaxX,
         breathingY + parallaxY,
-        THREE.MathUtils.lerp(7.0, 5.5, ease) + driftZ
+        THREE.MathUtils.lerp(8.5, 7.0, ease) + driftZ + cinematicBreath
       );
       targetLookAt.current.set(parallaxX * 0.15, parallaxY * 0.15, 0.0);
     } else if (choreoStage === 1) {

@@ -18,6 +18,7 @@ export function CoordinateGenesis() {
       uGenesisProgress: { value: 0 },
       uStabilization: { value: 0 },
       uExcitation: { value: 0 },
+      uRevealFactor: { value: 0.05 },
     }),
     []
   );
@@ -51,11 +52,19 @@ export function CoordinateGenesis() {
       }
     }
 
+    // Observer-driven reveal: 95% invisible at rest, reveals on proximity > 0.5, full on stillness > 0.8
+    const proximity = store.observerProximity;
+    const stillness = store.observerStillnessScore;
+    const proximityReveal = Math.max(0, Math.min(1, (proximity - 0.2) / 0.4));
+    const stillnessReveal = Math.max(0, Math.min(1, (stillness - 0.7) / 0.2));
+    const revealFactor = 0.05 + proximityReveal * 0.40 + stillnessReveal * 0.55;
+
     if (materialRef.current) {
       materialRef.current.uniforms.uTime.value = time;
       materialRef.current.uniforms.uGenesisProgress.value = genesis;
       materialRef.current.uniforms.uStabilization.value = stabilization;
       materialRef.current.uniforms.uExcitation.value = store.scrollEnergy;
+      materialRef.current.uniforms.uRevealFactor.value = revealFactor;
     }
   });
 

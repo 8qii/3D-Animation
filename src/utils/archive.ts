@@ -45,6 +45,8 @@ export interface ObserverArchive {
   dna: ObserverDna;
   act5HandshakeCompleted: boolean;
   act5CeremonyCompleted: boolean;
+  act5WorldBorn: boolean;
+  recombinantCrystalFormed: boolean;
 }
 
 export const ARCHIVE_STORAGE_KEY = 'aetheria_memory_archive';
@@ -215,6 +217,8 @@ export function loadArchive(): ObserverArchive {
         dna,
         act5HandshakeCompleted: !!data.act5HandshakeCompleted,
         act5CeremonyCompleted: !!data.act5CeremonyCompleted,
+        act5WorldBorn: !!data.act5WorldBorn,
+        recombinantCrystalFormed: !!data.recombinantCrystalFormed,
       };
 
       saveArchive(archive);
@@ -269,6 +273,8 @@ export function loadArchive(): ObserverArchive {
       dna,
       act5HandshakeCompleted: false,
       act5CeremonyCompleted: false,
+      act5WorldBorn: false,
+      recombinantCrystalFormed: false,
     };
 
     saveArchive(newArchive);
@@ -314,5 +320,7 @@ function createDefaultArchive(): ObserverArchive {
     dna,
     act5HandshakeCompleted: false,
     act5CeremonyCompleted: false,
+    act5WorldBorn: false,
+    recombinantCrystalFormed: false,
   };
 }

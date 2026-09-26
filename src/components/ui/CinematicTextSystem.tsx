@@ -324,9 +324,8 @@ export function CinematicTextSystem() {
     act5HandshakeCompleted,
   ]);
 
-  const proximityPercent = Math.round(observerProximity * 100);
-  const stillnessPercent = Math.round(observerStillnessScore * 100);
-  const hoverSeconds = observerHoverDuration.toFixed(1);
+  // Observer-gated: only show detail strip after proximity > 50% AND 3s hover
+  const showDetailStrip = observerProximity > 0.5 && observerHoverDuration > 3.0;
 
   // Return greeting text adapted to persona and archive cycle
   const sessionCount = observerArchive?.sessionCount || 1;
@@ -385,37 +384,21 @@ export function CinematicTextSystem() {
               </span>
             </div>
 
-            <div className="hidden sm:flex items-center space-x-3 md:space-x-4 text-[8.5px] md:text-[9.5px] font-mono tracking-[0.22em] text-slate-300/80 relative z-10 border-l border-slate-700/60 pl-3 md:pl-4">
-              <span>PROXIMITY: <strong className="text-cyan-300 font-medium">{proximityPercent}%</strong></span>
-              <span>STILLNESS: <strong className="text-amber-300 font-medium">{stillnessPercent}%</strong></span>
-              <span>SYNC: <strong className="text-emerald-300 font-medium">{hoverSeconds}s</strong></span>
-              {ceremonyActive && (
-                <span>CEREMONY: <strong className="text-yellow-300 font-semibold">{ceremonyStep}</strong></span>
-              )}
-              {observerArchetype !== 'THE_INITIATE' && (
-                <span>ARCHETYPE: <strong className="text-purple-300 font-semibold">{observerArchetype.replace('THE_', '')}</strong></span>
-              )}
-              {hiddenEnding && (
-                <span>ENDING: <strong className="text-yellow-300 font-semibold">{hiddenEnding}</strong></span>
-              )}
-              {recognitionResonance > 0.05 && (
-                <span>RESONANCE: <strong className="text-emerald-300 font-semibold animate-pulse">{(recognitionResonance * 100).toFixed(0)}%</strong></span>
-              )}
-              <span>FREQ: <strong className="text-cyan-300 font-medium">{personalFrequency.toFixed(1)}Hz</strong></span>
-              {consciousState !== 'LATENT' && (
-                <span>CONSCIOUS: <strong className="text-amber-300 font-semibold">{consciousState}</strong></span>
-              )}
-              {observerIntention !== 'UNFORMED' && (
-                <span>INTENT: <strong className="text-purple-300 font-medium">{observerIntention.replace('THE_', '').replace('_', ' ')}</strong></span>
-              )}
-              {intentionVerified && (
-                <span className="text-emerald-300 font-bold tracking-wider animate-pulse">VERIFIED</span>
-              )}
-              {memoryReciprocityProgress > 0.05 && (
-                <span>RECIPROCITY: <strong className="text-emerald-300">{(memoryReciprocityProgress * 100).toFixed(0)}%</strong></span>
-              )}
-              <span>DNA: <strong className="text-sky-300 font-mono tracking-wider">{observerDna?.code.slice(0, 15) || observerSignature}</strong></span>
-            </div>
+            {/* Observer-gated detail strip — earned after proximity + hover, no raw numbers */}
+            {showDetailStrip && (
+              <div className="hidden sm:flex items-center space-x-3 md:space-x-4 text-[8.5px] md:text-[9.5px] font-mono tracking-[0.22em] text-slate-300/80 relative z-10 border-l border-slate-700/60 pl-3 md:pl-4">
+                {observerArchetype !== 'THE_INITIATE' && (
+                  <span><strong className="text-purple-300 font-semibold">{observerArchetype.replace('THE_', '')}</strong></span>
+                )}
+                <span>FREQ: <strong className="text-cyan-300 font-medium">{personalFrequency.toFixed(1)}Hz</strong></span>
+                {ceremonyActive && (
+                  <span>CEREMONY: <strong className="text-yellow-300 font-semibold">{ceremonyStep}</strong></span>
+                )}
+                {hiddenEnding && (
+                  <span>ENDING: <strong className="text-yellow-300 font-semibold">{hiddenEnding}</strong></span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 3D Holographic Conscious Typography Emergence */}

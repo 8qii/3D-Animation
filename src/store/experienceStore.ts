@@ -274,6 +274,20 @@ interface ExperienceState {
   recombinationPrepared: boolean;
   setRecombinationPrepared: (val: boolean) => void;
 
+  // Phase 9.24 ACT V Recombination Rebirth
+  act5Stage: 'REALITY_SEED_COMPRESSION' | 'DNA_RECONSTRUCTION' | 'CRYSTAL_GENESIS' | 'LIVING_CONTINUUM';
+  setAct5Stage: (stage: 'REALITY_SEED_COMPRESSION' | 'DNA_RECONSTRUCTION' | 'CRYSTAL_GENESIS' | 'LIVING_CONTINUUM') => void;
+  realitySeedCompression: number; // 0 to 1
+  setRealitySeedCompression: (val: number) => void;
+  dnaReconstructionProgress: number; // 0 to 1
+  setDnaReconstructionProgress: (val: number) => void;
+  newCrystalGenesisProgress: number; // 0 to 1
+  setNewCrystalGenesisProgress: (val: number) => void;
+  environmentRebirthProgress: number; // 0 to 1
+  setEnvironmentRebirthProgress: (val: number) => void;
+  act5ContinuousLiving: boolean;
+  setAct5ContinuousLiving: (val: boolean) => void;
+
 
   // Kinetic Scroll Energy (Thermodynamics)
   scrollEnergy: number; // 0 (cold vacuum) to 1 (excited plasma)
@@ -629,6 +643,21 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   setHandoffFlashProgress: (handoffFlashProgress: number) => set({ handoffFlashProgress }),
   recombinationPrepared: false,
   setRecombinationPrepared: (recombinationPrepared: boolean) => set({ recombinationPrepared }),
+
+  // Phase 9.24 ACT V Recombination Rebirth
+  act5Stage: 'REALITY_SEED_COMPRESSION',
+  setAct5Stage: (act5Stage: 'REALITY_SEED_COMPRESSION' | 'DNA_RECONSTRUCTION' | 'CRYSTAL_GENESIS' | 'LIVING_CONTINUUM') =>
+    set({ act5Stage }),
+  realitySeedCompression: 0,
+  setRealitySeedCompression: (realitySeedCompression: number) => set({ realitySeedCompression }),
+  dnaReconstructionProgress: 0,
+  setDnaReconstructionProgress: (dnaReconstructionProgress: number) => set({ dnaReconstructionProgress }),
+  newCrystalGenesisProgress: 0,
+  setNewCrystalGenesisProgress: (newCrystalGenesisProgress: number) => set({ newCrystalGenesisProgress }),
+  environmentRebirthProgress: 0,
+  setEnvironmentRebirthProgress: (environmentRebirthProgress: number) => set({ environmentRebirthProgress }),
+  act5ContinuousLiving: false,
+  setAct5ContinuousLiving: (act5ContinuousLiving: boolean) => set({ act5ContinuousLiving }),
 
 
 

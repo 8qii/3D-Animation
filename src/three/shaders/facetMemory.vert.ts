@@ -3,6 +3,7 @@ export const facetMemoryVertexShader = /* glsl */ `
   uniform float uFacetMemoryProgress;
   uniform float uCollapseProgress;
   uniform float uThresholdProgress;
+  uniform float uRevealFactor;
 
   attribute float aLineCoord; // 0.0 at start facet, 1.0 at end facet
   attribute float aSeed;
@@ -39,7 +40,7 @@ export const facetMemoryVertexShader = /* glsl */ `
     
     // As threads collapse to 0 length in threshold, threads dissolve into core
     float threadVisibility = (1.0 - uThresholdProgress);
-    vAlpha = (0.25 + wavePulse * 0.75) * uFacetMemoryProgress * threadVisibility;
+    vAlpha = (0.25 + wavePulse * 0.75) * uFacetMemoryProgress * threadVisibility * uRevealFactor;
 
     gl_Position = projectionMatrix * viewMatrix * worldPos;
   }

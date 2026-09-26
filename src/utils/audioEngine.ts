@@ -97,7 +97,7 @@ class SoundEngine {
     this.droneFilter.Q.setValueAtTime(3.2, now);
 
     this.droneGain = this.ctx.createGain();
-    this.droneGain.gain.setValueAtTime(0.35, now);
+    this.droneGain.gain.setValueAtTime(0.18, now);
 
     this.droneOsc.connect(this.droneFilter);
     this.subOsc.connect(this.droneFilter);
@@ -231,7 +231,7 @@ class SoundEngine {
       this.ctx.resume();
     }
 
-    const targetGain = muted ? 0.0 : 0.65;
+    const targetGain = muted ? 0.0 : 0.48;
     this.masterGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.15);
   }
 

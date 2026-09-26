@@ -175,6 +175,7 @@ export function FacetMemoryField() {
       uFacetMemoryProgress: { value: 0 },
       uCollapseProgress: { value: 0 },
       uThresholdProgress: { value: 0 },
+      uRevealFactor: { value: 0.08 },
     }),
     []
   );
@@ -185,6 +186,7 @@ export function FacetMemoryField() {
       uFractureProgress: { value: 0 },
       uCollapseProgress: { value: 0 },
       uThresholdProgress: { value: 0 },
+      uRevealFactor: { value: 0.08 },
     }),
     []
   );
@@ -205,11 +207,19 @@ export function FacetMemoryField() {
 
     if (!isActive) return;
 
+    // Observer-driven reveal: near-invisible at rest, reveals on proximity + stillness
+    const proximity = store.observerProximity;
+    const stillness = store.observerStillnessScore;
+    const proximityReveal = Math.max(0, Math.min(1, (proximity - 0.2) / 0.4));
+    const stillnessReveal = Math.max(0, Math.min(1, (stillness - 0.7) / 0.2));
+    const revealFactor = 0.08 + proximityReveal * 0.32 + stillnessReveal * 0.60;
+
     if (lineMatRef.current) {
       lineMatRef.current.uniforms.uTime.value = time;
       lineMatRef.current.uniforms.uFacetMemoryProgress.value = facetMemory;
       lineMatRef.current.uniforms.uCollapseProgress.value = collapse;
       lineMatRef.current.uniforms.uThresholdProgress.value = threshold;
+      lineMatRef.current.uniforms.uRevealFactor.value = revealFactor;
     }
 
     if (streamMatRef.current) {
@@ -225,6 +235,7 @@ export function FacetMemoryField() {
       if (streamMatRef.current.uniforms.uThresholdProgress) {
         streamMatRef.current.uniforms.uThresholdProgress.value = threshold;
       }
+      streamMatRef.current.uniforms.uRevealFactor.value = revealFactor;
     }
 
     // Dynamic calculation of the 20 separated facet centroids

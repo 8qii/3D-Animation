@@ -5,6 +5,7 @@ export const coordinateGenesisFragmentShader = /* glsl */ `
   uniform float uGenesisProgress; // Emergence progress [0..1]
   uniform float uStabilization;   // Geometry stabilization [0..1]
   uniform float uExcitation;
+  uniform float uRevealFactor;    // Observer-driven reveal [0.05..1.0]
 
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -114,6 +115,7 @@ export const coordinateGenesisFragmentShader = /* glsl */ `
     float frontierFade = smoothstep(maxReach, maxReach - 0.4, dist);
     combinedAlpha *= frontierFade;
     combinedAlpha *= (0.7 + uStabilization * 0.3);
+    combinedAlpha *= uRevealFactor;
     combinedAlpha = clamp(combinedAlpha, 0.0, 1.0);
 
     if (combinedAlpha <= 0.005) {

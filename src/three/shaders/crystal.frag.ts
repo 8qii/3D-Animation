@@ -61,9 +61,10 @@ export const crystalFragmentShader = /* glsl */ `
 
     // 2. Optical Refinement: Transmission Breathing & Micro-Variations
     float transBreathing = sin(uTime * 0.22) * 0.025;
-    float baseTransmission = mix(0.85, 0.28, uMaterialLock);
-    float effectiveTransmission = clamp(baseTransmission + transBreathing, 0.18, 0.88);
-    float surfaceDensity = mix(0.15, 1.0, uMaterialLock);
+    // Deep obsidian — near-black at rest, reveals light only when observed
+    float baseTransmission = mix(0.55, 0.18, uMaterialLock);
+    float effectiveTransmission = clamp(baseTransmission + transBreathing, 0.08, 0.65);
+    float surfaceDensity = mix(0.12, 1.0, uMaterialLock);
 
     // Micro Refractive Index & Dispersion Instability
     float dynamicIOR = uRefractiveIndex + sin(uTime * 0.18 + vPosition.x * 2.5) * 0.008;
@@ -84,7 +85,7 @@ export const crystalFragmentShader = /* glsl */ `
       dot(refB, vec3(0.0, 0.0, 1.0)) * 0.5 + 0.5
     );
 
-    // 4. Moving Internal Caustic Lattice with Sub-Surface Light Flicker & Observer Caustic Excitation
+    // 4. Moving Internal Caustic Lattice — observer-gated (invisible at rest)
     float distToObs = length(vPosition - uObserverPos);
     float observerCausticBoost = exp(-distToObs * distToObs * 4.0) * uObserverProximity * (1.5 + uObserverAttention * 2.5);
     float internalFlicker = 0.96 + hash21(floor(vPosition.xy * 28.0 + uTime * 1.8)) * 0.07;
@@ -93,15 +94,29 @@ export const crystalFragmentShader = /* glsl */ `
     vec3 causticCoord = vPosition * 5.0 + vec3(0.0, 0.0, uTime * 0.6) + attentionShift;
     float c1 = abs(sin(causticCoord.x * 3.0 + sin(causticCoord.y * 2.5)));
     float c2 = abs(cos(causticCoord.y * 3.0 + cos(causticCoord.z * 2.5)));
-    float internalCaustics = pow(1.0 - (c1 * c2), 3.5) * effectiveTransmission * internalFlicker * (1.0 + observerCausticBoost);
+    // Gate caustic on observer proximity — dark at rest, reveals on approach
+    float causticProximityGate = smoothstep(0.15, 0.6, uObserverProximity);
+    float internalCaustics = pow(1.0 - (c1 * c2), 3.5) * effectiveTransmission * internalFlicker * (1.0 + observerCausticBoost) * causticProximityGate;
+
+    // 4b. Trapped Universe Stellar Volume — visible only when observer approaches
+    // Tiny star-field points inside crystal, revealed on proximity > 0.4
+    float stellarGate = smoothstep(0.35, 0.75, uObserverProximity);
+    float starHash1 = hash21(floor(vPosition.xy * 180.0 + vPosition.z * 120.0));
+    float starHash2 = hash21(floor(vPosition.xy * 95.0 - vPosition.z * 80.0));
+    float starPoint = step(0.985, starHash1) * step(0.0, 0.85 - length(vPosition) * 0.7);
+    float nebulaHaze = hash21(floor(vPosition.xy * 35.0 + vPosition.z * 28.0 + uTime * 0.08)) * 0.15;
+    float starDrift = sin(uTime * 0.12 + starHash2 * 6.28) * 0.5 + 0.5;
+    vec3 starColor = mix(vec3(0.6, 0.8, 1.0), vec3(1.0, 0.95, 0.8), starHash2);
+    vec3 stellarVolume = (starColor * starPoint * 3.5 + vec3(0.05, 0.08, 0.14) * nebulaHaze) * stellarGate * (0.7 + starDrift * 0.3) * effectiveTransmission;
 
     // 5. Beer-Lambert Internal Volumetric Absorption
     float opticalDepth = length(vPosition) * 1.8;
     vec3 absorption = exp(-uAbsorptionColor * opticalDepth);
 
-    // 6. Base Obsidian Material Color Gradient
+    // 6. Base Obsidian Material — deep near-black identity
     float facetShade = max(dot(normal, vec3(0.0, 1.0, 0.5)), 0.0);
-    vec3 obsidianBase = mix(uColorA, uColorB, facetShade * 0.4);
+    // Obsidian base: vec3(0.003, 0.006, 0.015) — almost pure light-absorbing black
+    vec3 obsidianBase = mix(vec3(0.003, 0.006, 0.015), vec3(0.012, 0.022, 0.048), facetShade * 0.4);
     obsidianBase = mix(obsidianBase, dispersionCol, dynamicDispersion * (1.0 - uMaterialLock * 0.5));
     obsidianBase *= absorption;
 
@@ -112,11 +127,12 @@ export const crystalFragmentShader = /* glsl */ `
     float specKey = distributionGGX(normal, halfKey, microRoughness);
     vec3 keyLighting = vec3(1.0, 0.96, 0.90) * specKey * 0.85 * max(dot(normal, keyDir), 0.0);
 
-    // Grazing Rim Light Backscatter (sharp edge reflections on bevels)
+    // Grazing Rim Light Backscatter — damped at rest, activated by observer
+    float rimObserverFactor = 0.35 + uObserverProximity * 0.65;
     vec3 rimDir = normalize(uRimLightDir);
     vec3 halfRim = normalize(rimDir + viewDir);
     float specRim = distributionGGX(normal, halfRim, microRoughness * 0.8);
-    vec3 rimLighting = vec3(0.35, 0.80, 1.00) * specRim * 1.4 * pow(vFresnel, 1.8);
+    vec3 rimLighting = vec3(0.20, 0.55, 0.90) * specRim * 0.65 * rimObserverFactor * pow(vFresnel, 1.8);
 
     // 8. Phase 8.5 & 8.75 Fracture Prediction: Golden-Ratio Fault Planes
     const float PHI = 1.6180339887;
@@ -184,10 +200,14 @@ export const crystalFragmentShader = /* glsl */ `
     finalColor += previewEmission;
     finalColor += fissureEmission;
     finalColor += pressureEmission;
-    finalColor += vec3(0.25, 0.85, 1.0) * internalCaustics * (1.2 + uFractureProgress * 0.8);
+    // Desaturated caustic tint (softer, less intense)
+    finalColor += vec3(0.18, 0.60, 0.85) * internalCaustics * (1.0 + uFractureProgress * 0.8);
+    // Trapped stellar universe — reveals only on observer approach
+    finalColor += stellarVolume;
 
-    // Fresnel specular rim glow
-    finalColor += uGlowColor * pow(vFresnel, 4.0) * uIntensity * 0.45;
+    // Fresnel specular rim glow — subtler at rest
+    float fresnelProximityFactor = mix(0.18, 0.55, uObserverProximity);
+    finalColor += uGlowColor * pow(vFresnel, 4.5) * uIntensity * fresnelProximityFactor;
 
     // Phase 9.18: Observer Awakening Response
     // Heightened Fresnel emission and iridescent responsiveness near observer gaze

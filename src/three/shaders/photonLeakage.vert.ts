@@ -1,6 +1,7 @@
 export const photonLeakageVertexShader = /* glsl */ `
   uniform float uTime;
   uniform float uFractureProgress;
+  uniform float uRevealFactor;
 
   attribute vec3 aVelocity;
   attribute float aSeed;
@@ -37,6 +38,6 @@ export const photonLeakageVertexShader = /* glsl */ `
     // Fade in at birth from fissure, sustained glow, fade out at boundary
     float fadeIn = smoothstep(0.0, 0.15, cycle);
     float fadeOut = smoothstep(1.0, 0.75, cycle);
-    vAlpha = fadeIn * fadeOut * uFractureProgress;
+    vAlpha = fadeIn * fadeOut * uFractureProgress * uRevealFactor;
   }
 `;
