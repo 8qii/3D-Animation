@@ -21,6 +21,9 @@ export function useAudioTransition() {
   const scrollEnergy = useExperienceStore((state) => state.scrollEnergy);
   const pointer = useExperienceStore((state) => state.pointer);
   const attentionLevel = useExperienceStore((state) => state.attentionLevel);
+  const observerProximity = useExperienceStore((state) => state.observerProximity);
+  const observerState = useExperienceStore((state) => state.observerState);
+  const hiddenDiscoveryActive = useExperienceStore((state) => state.hiddenDiscoveryActive);
 
   // Sync mute state
   useEffect(() => {
@@ -38,11 +41,16 @@ export function useAudioTransition() {
         act2Progress
       );
 
+      // Phase 9.18.5 Observer Consciousness Resonance
+      const isSynchronized = observerState === 'OBSERVER_SYNCHRONIZED' || observerState === 'GENESIS_RESPONSE_ACTIVE';
+      soundEngine.updateObserverPresence(pointer.x, observerProximity, isSynchronized, hiddenDiscoveryActive);
+
       // Phase 8.5 Monolith Internal Tension audio modulation
       soundEngine.updateTension(tensionProgress);
 
       // Phase 8.75 Pre-Dispersion Unstable Harmonics & Final Stillness Silence
       const isPreDispersion = (monolithPhase === 'MEMORY_RESONANCE' || monolithPhase === 'FINAL_STILLNESS') && fractureProgress <= 0.001;
+
       soundEngine.preDispersionState(isPreDispersion, stillnessFactor);
 
       // Phase 9.0, 9.1, 9.15, 9.16 & 9.17 Act IV Fracture, Collapse & Singularity Threshold
@@ -93,8 +101,12 @@ export function useAudioTransition() {
     scrollEnergy,
     pointer.x,
     attentionLevel,
+    observerProximity,
+    observerState,
+    hiddenDiscoveryActive,
     isMuted,
   ]);
+
 
   useEffect(() => {
     return () => {

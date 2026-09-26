@@ -222,10 +222,14 @@ export function CameraRig() {
       );
     }
 
-    // Interactive Observer Camera Drag (±15° yaw, ±8° pitch)
+    // Interactive Observer Camera Drag (±15° yaw, ±8° pitch) + Mobile Gyroscope Layer (±5°)
     const cameraOffset = store.cameraOffset;
-    currentOffset.current.yaw = damp(currentOffset.current.yaw, cameraOffset.yaw, 3.8, delta);
-    currentOffset.current.pitch = damp(currentOffset.current.pitch, cameraOffset.pitch, 3.8, delta);
+    const gyroOffset = store.gyroOffset;
+    const totalTargetYaw = cameraOffset.yaw + gyroOffset.x;
+    const totalTargetPitch = cameraOffset.pitch + gyroOffset.y;
+    currentOffset.current.yaw = damp(currentOffset.current.yaw, totalTargetYaw, 3.8, delta);
+    currentOffset.current.pitch = damp(currentOffset.current.pitch, totalTargetPitch, 3.8, delta);
+
 
     // Apply offset rotation around lookAt target
     offsetRelVec.current.copy(targetCamPos.current).sub(targetLookAt.current);

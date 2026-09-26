@@ -11,6 +11,7 @@ import { PhotonLeakage } from './PhotonLeakage';
 import { CrystalShatter } from './CrystalShatter';
 import { FacetMemoryField } from './FacetMemoryField';
 import { ExposedQuantumCore } from './ExposedQuantumCore';
+import { ObserverWakeField } from './ObserverWakeField';
 
 export function CrystalMonolith() {
   const groupRef = useRef<THREE.Group>(null);
@@ -67,8 +68,16 @@ export function CrystalMonolith() {
           [ripplePosLocal.x, ripplePosLocal.y, ripplePosLocal.z],
           store.touchRipple.active ? store.touchRipple.intensity : 0
         );
+
+        // Phase 9.18.5: Attention Vector & Hidden Discovery
+        const attVec = new THREE.Vector3(store.attentionVector[0], store.attentionVector[1], store.attentionVector[2]);
+        const attLocal = attVec.applyQuaternion(groupRef.current.quaternion.clone().invert()).normalize();
+        materialRef.current.setAttention(attLocal, store.attentionStrength);
+
+        materialRef.current.setHiddenDiscovery(store.hiddenDiscoveryProgress);
       }
     }
+
 
 
     if (meshRef.current) {
@@ -129,6 +138,10 @@ export function CrystalMonolith() {
       >
         <primitive object={material} ref={materialRef} attach="material" />
       </mesh>
+
+      {/* 8. Phase 9.18.5: Hand Presence Gravitational Wake & Photon Trail Field */}
+      <ObserverWakeField />
     </group>
+
   );
 }

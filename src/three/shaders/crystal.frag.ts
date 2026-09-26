@@ -21,6 +21,9 @@ export const crystalFragmentShader = /* glsl */ `
   uniform float uObserverAttention;
   uniform float uObserverProximity;
   uniform vec4 uTouchRipple; // xyz pos, w intensity
+  uniform vec3 uAttentionDirection;
+  uniform float uAttentionStrength;
+  uniform float uHiddenDiscovery;
 
   varying vec3 vNormal;
   varying vec3 vPosition;
@@ -81,7 +84,9 @@ export const crystalFragmentShader = /* glsl */ `
     float distToObs = length(vPosition - uObserverPos);
     float observerCausticBoost = exp(-distToObs * distToObs * 4.0) * uObserverProximity * (1.5 + uObserverAttention * 2.5);
     float internalFlicker = 0.96 + hash21(floor(vPosition.xy * 28.0 + uTime * 1.8)) * 0.07;
-    vec3 causticCoord = vPosition * 5.0 + vec3(0.0, 0.0, uTime * 0.6);
+    // Caustic flow drifts toward observer attention vector
+    vec3 attentionShift = uAttentionDirection * (uAttentionStrength * 2.2);
+    vec3 causticCoord = vPosition * 5.0 + vec3(0.0, 0.0, uTime * 0.6) + attentionShift;
     float c1 = abs(sin(causticCoord.x * 3.0 + sin(causticCoord.y * 2.5)));
     float c2 = abs(cos(causticCoord.y * 3.0 + cos(causticCoord.z * 2.5)));
     float internalCaustics = pow(1.0 - (c1 * c2), 3.5) * effectiveTransmission * internalFlicker * (1.0 + observerCausticBoost);
@@ -185,12 +190,23 @@ export const crystalFragmentShader = /* glsl */ `
     float observerFresnel = pow(vFresnel, 1.8) * uObserverProximity * (0.8 + uObserverAttention * 1.4);
     vec3 observerAura = mix(vec3(0.28, 0.85, 1.0), vec3(1.0, 0.88, 0.55), uObserverAttention) * observerFresnel * 1.6;
 
+    // Localized Fresnel activation aligned with Attention Vector
+    float attentionAlign = max(0.0, dot(normalize(vPosition), -uAttentionDirection));
+    float localizedFresnel = pow(vFresnel, 2.0) * pow(attentionAlign, 2.0) * uAttentionStrength * 2.4;
+    vec3 localizedFresnelCol = vec3(0.40, 0.88, 1.00) * localizedFresnel;
+
     // Touch Gravitational Ripple Radiance
     float distToTouchFrag = length(vPosition - uTouchRipple.xyz);
     float rippleRing = exp(-abs(distToTouchFrag - 0.35) * 7.0) * uTouchRipple.w;
     vec3 rippleEmission = vec3(0.35, 0.92, 1.0) * rippleRing * 2.8;
 
-    finalColor += observerAura + rippleEmission;
+    // Phase 9.18.5: Hidden Discovery Full Lattice Illumination & Memory Pulse
+    float latticeGlow = smoothstep(0.024, 0.001, dFracture) * uHiddenDiscovery * 4.8;
+    float discoveryWave = sin(length(vPosition) * 16.0 - uTime * 6.0) * 0.5 + 0.5;
+    vec3 discoveryEmission = mix(vec3(0.98, 0.82, 0.35), vec3(0.40, 0.92, 1.00), discoveryWave) * (uHiddenDiscovery * (2.8 + latticeGlow));
+
+    finalColor += observerAura + localizedFresnelCol + rippleEmission + discoveryEmission;
+
 
     // Alpha transitions from translucent hologram (0.45) to solid obsidian glass (0.96)
     float finalAlpha = mix(0.45, 0.96, uMaterialLock);

@@ -22,6 +22,7 @@ export function CinematicTextReveal() {
   const isMuted = useExperienceStore((state) => state.isMuted);
   const toggleMute = useExperienceStore((state) => state.toggleMute);
   const observerState = useExperienceStore((state) => state.observerState);
+  const hiddenDiscoveryActive = useExperienceStore((state) => state.hiddenDiscoveryActive);
 
   // Compute opacities based on narrative progression
   const isAct4 = fractureProgress > 0.001 || collapseProgress > 0.001 || singularityThresholdProgress > 0.001;
@@ -124,15 +125,25 @@ export function CinematicTextReveal() {
           <span className="font-mono text-[9px] tracking-[0.3em] text-slate-500 uppercase">
             STATE: <span className={isAct4 ? 'text-cyan-300 font-semibold' : isAct3 ? 'text-amber-300 font-medium' : isIgnited ? 'text-amber-400/90' : 'text-cyan-400/80'}>{phaseLabel}</span>
           </span>
-          {observerState !== 'DORMANT' && (
+          {(observerState !== 'DORMANT' || hiddenDiscoveryActive) && (
             <div className="mt-0.5">
               <span className="font-mono text-[8.5px] tracking-[0.25em] text-slate-500 uppercase">
-                OBSERVER: <span className="text-cyan-300 font-medium">{observerState.replace(/_/g, ' ')}</span>
+                CONSCIOUSNESS:{' '}
+                <span className={hiddenDiscoveryActive ? 'text-yellow-300 font-semibold shadow-[0_0_12px_#fde047]' : 'text-cyan-300 font-medium'}>
+                  {hiddenDiscoveryActive
+                    ? 'HIDDEN MEMORY REVEAL'
+                    : observerState === 'GENESIS_RESPONSE_ACTIVE'
+                    ? 'AWARENESS LINK ESTABLISHED'
+                    : observerState === 'OBSERVER_SYNCHRONIZED'
+                    ? 'THE STRUCTURE HAS RECOGNIZED YOU'
+                    : 'THE OBSERVER HAS ARRIVED'}
+                </span>
               </span>
             </div>
           )}
         </div>
       </header>
+
 
 
       {/* Bottom Center: Act I Prompt (Dissolves as observer scrolls) */}

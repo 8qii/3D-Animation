@@ -32,6 +32,11 @@ class SoundEngine {
   private tensionFilter: BiquadFilterNode | null = null;
   private tensionGain: GainNode | null = null;
 
+  // Phase 9.18.5 Observer Human-Presence Resonance Layer
+  private presenceOsc: OscillatorNode | null = null;
+  private presenceFilter: BiquadFilterNode | null = null;
+  private presenceGain: GainNode | null = null;
+
   private isInitialized = false;
   private chimeTriggered = false;
   private isSilent = false;
@@ -132,8 +137,28 @@ class SoundEngine {
     this.tensionOsc.start();
     this.tensionSubOsc.start();
 
+    // 4. Observer Human-Presence Resonance Layer (warm vocal formant fifth at 220Hz -> 330Hz, bandpassed at 780Hz)
+    this.presenceOsc = this.ctx.createOscillator();
+    this.presenceOsc.type = 'sine';
+    this.presenceOsc.frequency.setValueAtTime(220.0, now);
+
+    this.presenceFilter = this.ctx.createBiquadFilter();
+    this.presenceFilter.type = 'bandpass';
+    this.presenceFilter.frequency.setValueAtTime(780.0, now);
+    this.presenceFilter.Q.setValueAtTime(6.0, now);
+
+    this.presenceGain = this.ctx.createGain();
+    this.presenceGain.gain.setValueAtTime(0.0001, now);
+
+    this.presenceOsc.connect(this.presenceFilter);
+    this.presenceFilter.connect(this.presenceGain);
+    this.presenceGain.connect(this.masterGain);
+
+    this.presenceOsc.start();
+
     this.isInitialized = true;
   }
+
 
   public setMuted(muted: boolean) {
     if (!this.isInitialized) {
@@ -635,19 +660,52 @@ class SoundEngine {
   }
 
   /**
-   * Clean transition hook for Act IV: The Dispersion
+   * Phase 9.18.5 Observer Consciousness Resonance:
+   * Modulates harmonic brightness via proximity, spatializes stereo field via cursor X,
+   * and introduces a warm vocal formant presence layer on synchronization and discovery.
    */
-  private dispersionReadyCallback: (() => void) | null = null;
+  public updateObserverPresence(
+    pointerX: number,
+    proximity: number,
+    isSynchronized: boolean,
+    hiddenDiscovery = false
+  ) {
+    if (!this.ctx || !this.isInitialized || this.isSilent) return;
+    const now = this.ctx.currentTime;
 
-  public onDispersionReady(callback?: () => void) {
-    if (callback) {
-      this.dispersionReadyCallback = callback;
-    } else if (this.dispersionReadyCallback) {
-      this.dispersionReadyCallback();
+    // 1. Stereo Field Spatialization
+    if (this.panner) {
+      const targetPan = Math.max(-0.85, Math.min(0.85, pointerX * 0.75));
+      this.panner.pan.setTargetAtTime(targetPan, now, 0.08);
+    }
+
+    // 2. Observer Distance / Proximity controls harmonic brightness
+    if (this.droneFilter) {
+      const baseFreq = 400.0;
+      const brightnessFreq = lerp(baseFreq, 1600.0, proximity);
+      this.droneFilter.frequency.setTargetAtTime(brightnessFreq, now, 0.12);
+    }
+
+    // 3. Synchronization human-presence resonance layer
+    if (this.presenceGain && this.presenceOsc && this.presenceFilter) {
+      if (hiddenDiscovery) {
+        // Ethereal golden discovery harmonic bloom
+        this.presenceOsc.frequency.setTargetAtTime(440.0, now, 0.15); // A4
+        this.presenceFilter.frequency.setTargetAtTime(1100.0, now, 0.15);
+        this.presenceGain.gain.setTargetAtTime(0.24, now, 0.2);
+      } else if (isSynchronized) {
+        // Subtle human-presence harmonic warmth (E4 harmonic fifth ~329.63Hz)
+        this.presenceOsc.frequency.setTargetAtTime(329.63, now, 0.2);
+        this.presenceFilter.frequency.setTargetAtTime(780.0, now, 0.2);
+        this.presenceGain.gain.setTargetAtTime(0.12 * Math.max(0.2, proximity), now, 0.2);
+      } else {
+        this.presenceGain.gain.setTargetAtTime(0.0001, now, 0.35);
+      }
     }
   }
 
   public destroy() {
+
     if (this.ctx) {
       this.ctx.close();
       this.ctx = null;

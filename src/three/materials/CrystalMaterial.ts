@@ -24,7 +24,12 @@ export interface CrystalMaterialUniforms {
   uObserverAttention: { value: number };
   uObserverProximity: { value: number };
   uTouchRipple: { value: THREE.Vector4 };
+  uAttentionDirection: { value: THREE.Vector3 };
+  uAttentionStrength: { value: number };
+  uHiddenDiscovery: { value: number };
 }
+
+
 
 export class CrystalMaterial extends THREE.ShaderMaterial {
   constructor(parameters?: Partial<{
@@ -65,6 +70,9 @@ export class CrystalMaterial extends THREE.ShaderMaterial {
       uObserverAttention: { value: 0 },
       uObserverProximity: { value: 0 },
       uTouchRipple: { value: new THREE.Vector4(0, 0, 0, 0) },
+      uAttentionDirection: { value: new THREE.Vector3(0, 0, -1) },
+      uAttentionStrength: { value: 0 },
+      uHiddenDiscovery: { value: 0 },
     };
 
     super({
@@ -116,5 +124,17 @@ export class CrystalMaterial extends THREE.ShaderMaterial {
     const u = this.uniforms as unknown as CrystalMaterialUniforms;
     u.uTouchRipple.value.set(pos[0], pos[1], pos[2], intensity);
   }
+
+  setAttention(direction: THREE.Vector3, strength: number) {
+    const u = this.uniforms as unknown as CrystalMaterialUniforms;
+    u.uAttentionDirection.value.copy(direction);
+    u.uAttentionStrength.value = strength;
+  }
+
+  setHiddenDiscovery(val: number) {
+    const u = this.uniforms as unknown as CrystalMaterialUniforms;
+    u.uHiddenDiscovery.value = val;
+  }
 }
+
 

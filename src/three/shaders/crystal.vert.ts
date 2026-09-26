@@ -7,6 +7,9 @@ export const crystalVertexShader = /* glsl */ `
   uniform float uObserverAttention;
   uniform float uObserverProximity;
   uniform vec4 uTouchRipple; // xyz pos, w intensity
+  uniform vec3 uAttentionDirection;
+  uniform float uAttentionStrength;
+  uniform float uHiddenDiscovery;
 
   varying vec3 vNormal;
   varying vec3 vPosition;
@@ -136,7 +139,10 @@ export const crystalVertexShader = /* glsl */ `
     float distToTouch = length(position - uTouchRipple.xyz);
     float touchWave = sin(distToTouch * 18.0 - uTime * 9.0) * exp(-distToTouch * 2.2) * (0.032 * uTouchRipple.w);
 
-    vec3 displacedPosition = position + normal * (noise * uDistortion + tensionDisplacement + observerRipple + touchWave) + fractureDeformation;
+    // Phase 9.18.5: Hidden Discovery Memory Pulse
+    float discoveryPulse = sin(uTime * 3.5 - length(position) * 4.5) * (0.025 * uHiddenDiscovery);
+
+    vec3 displacedPosition = position + normal * (noise * uDistortion + tensionDisplacement + observerRipple + touchWave + discoveryPulse) + fractureDeformation;
 
     // Compute localized vertex stress metric for fragment shader photoelastic fringes
     vStress = clamp(uTension * (0.35 + 0.65 * abs(noise) + abs(facetJitter) * 60.0) + uFractureProgress * 0.8, 0.0, 1.0);

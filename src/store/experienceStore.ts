@@ -144,6 +144,30 @@ interface ExperienceState {
   triggerTouchRipple: (position: [number, number, number], intensity?: number) => void;
   setTouchRippleIntensity: (intensity: number) => void;
 
+  // Attention Vector System
+  attentionVector: [number, number, number];
+  setAttentionVector: (vec: [number, number, number]) => void;
+  attentionStrength: number;
+  setAttentionStrength: (strength: number) => void;
+
+  // Hidden Discovery Event (stillness > 0.8 & hover > 10s)
+  hiddenDiscoveryActive: boolean;
+  hiddenDiscoveryProgress: number;
+  triggerHiddenDiscovery: () => void;
+  setHiddenDiscoveryProgress: (val: number) => void;
+
+  // Observer Memory Persistence (localStorage)
+  isReturningObserver: boolean;
+  setIsReturningObserver: (val: boolean) => void;
+  hasSynchronizedBefore: boolean;
+  setHasSynchronizedBefore: (val: boolean) => void;
+  discoveryLevel: number;
+  setDiscoveryLevel: (lvl: number) => void;
+
+  // Mobile Gyroscope Layer (±5°)
+  gyroOffset: { x: number; y: number };
+  setGyroOffset: (offset: { x: number; y: number }) => void;
+
   // Kinetic Scroll Energy (Thermodynamics)
   scrollEnergy: number; // 0 (cold vacuum) to 1 (excited plasma)
   addScrollEnergy: (amount: number) => void;
@@ -335,6 +359,33 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
         active: intensity > 0.01,
       },
     })),
+
+  // Attention Vector System
+  attentionVector: [0, 0, -1],
+  setAttentionVector: (attentionVector: [number, number, number]) => set({ attentionVector }),
+  attentionStrength: 0,
+  setAttentionStrength: (strength: number) =>
+    set({ attentionStrength: Math.min(1.0, Math.max(0.0, strength)) }),
+
+  // Hidden Discovery Event
+  hiddenDiscoveryActive: false,
+  hiddenDiscoveryProgress: 0,
+  triggerHiddenDiscovery: () => set({ hiddenDiscoveryActive: true, hiddenDiscoveryProgress: 1.0 }),
+  setHiddenDiscoveryProgress: (progress: number) =>
+    set({ hiddenDiscoveryProgress: Math.min(1.0, Math.max(0.0, progress)) }),
+
+  // Observer Memory Persistence
+  isReturningObserver: false,
+  setIsReturningObserver: (isReturningObserver: boolean) => set({ isReturningObserver }),
+  hasSynchronizedBefore: false,
+  setHasSynchronizedBefore: (hasSynchronizedBefore: boolean) => set({ hasSynchronizedBefore }),
+  discoveryLevel: 0,
+  setDiscoveryLevel: (discoveryLevel: number) => set({ discoveryLevel }),
+
+  // Mobile Gyroscope Layer
+  gyroOffset: { x: 0, y: 0 },
+  setGyroOffset: (gyroOffset: { x: number; y: number }) => set({ gyroOffset }),
+
 
   // Kinetic Scroll Energy
   scrollEnergy: 0,

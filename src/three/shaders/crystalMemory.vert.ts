@@ -3,6 +3,7 @@ export const crystalMemoryVertexShader = /* glsl */ `
   uniform float uMemoryIntensity; // [0, 1]
   uniform float uStillness;       // [0, 1] freezes motion down to 5%
   uniform float uPixelRatio;
+  uniform float uHiddenDiscovery;
 
   attribute vec3 aSeed;
   attribute float aLayer; // 0 = Void, 1 = Singularity, 2 = Matter
@@ -92,10 +93,15 @@ export const crystalMemoryVertexShader = /* glsl */ `
       localPos = normalize(localPos) * 1.15;
     }
 
+    // Phase 9.18.5: Hidden Discovery Memory Surge
+    vAlpha = mix(vAlpha, min(1.0, vAlpha * 2.2 + 0.35), uHiddenDiscovery);
+    vColor = mix(vColor, vec3(1.0, 0.92, 0.65), uHiddenDiscovery * 0.45);
+
     vec4 mvPosition = modelViewMatrix * vec4(localPos, 1.0);
     gl_Position = projectionMatrix * mvPosition;
 
-    // Attenuated point sizing
-    gl_PointSize = aSize * uPixelRatio * (24.0 / -mvPosition.z);
+    // Attenuated point sizing with discovery expansion
+    gl_PointSize = aSize * uPixelRatio * (24.0 / -mvPosition.z) * (1.0 + uHiddenDiscovery * 0.85);
   }
 `;
+

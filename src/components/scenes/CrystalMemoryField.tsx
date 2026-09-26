@@ -61,6 +61,7 @@ export function CrystalMemoryField() {
       uTime: { value: 0 },
       uMemoryIntensity: { value: 0 },
       uStillness: { value: 0 },
+      uHiddenDiscovery: { value: 0 },
       uPixelRatio: { value: typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 1 },
     }),
     []
@@ -71,17 +72,20 @@ export function CrystalMemoryField() {
     const store = useExperienceStore.getState();
     const memory = store.memoryProgress;
     const stillness = store.stillnessFactor;
+    const hiddenDiscovery = store.hiddenDiscoveryProgress;
 
     if (materialRef.current) {
       materialRef.current.uniforms.uTime.value = time;
-      materialRef.current.uniforms.uMemoryIntensity.value = memory;
+      materialRef.current.uniforms.uMemoryIntensity.value = Math.max(memory, hiddenDiscovery);
       materialRef.current.uniforms.uStillness.value = stillness;
+      materialRef.current.uniforms.uHiddenDiscovery.value = hiddenDiscovery;
     }
 
     if (pointsRef.current) {
-      pointsRef.current.visible = memory > 0.01;
+      pointsRef.current.visible = memory > 0.01 || hiddenDiscovery > 0.01;
     }
   });
+
 
   return (
     <points ref={pointsRef} renderOrder={8}>
