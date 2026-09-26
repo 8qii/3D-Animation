@@ -2,6 +2,7 @@ export const crystalVertexShader = /* glsl */ `
   uniform float uTime;
   uniform float uDistortion;
   uniform float uTension; // Phase 8.5 internal stress tension (0.0 to 1.0)
+  uniform float uFractureProgress; // Phase 9.0 Act IV fracture initiation (0.0 to 1.0)
 
   varying vec3 vNormal;
   varying vec3 vPosition;
@@ -84,18 +85,49 @@ export const crystalVertexShader = /* glsl */ `
     // 1. Simplex Noise Base Organic Breathing
     float noise = snoise(position * 1.5 + vec3(uTime * 0.2));
 
-    // 2. Phase 8.5 Subtle Vertex Displacement & Microscopic Facet Vibration:
-    // High-frequency facet jitter (internal mechanical shear)
+    // 2. Phase 8.5 Subtle Vertex Displacement & Microscopic Facet Vibration
     float facetJitter = sin(uTime * 48.0 + dot(position, vec3(14.2, 18.9, 11.7))) * 0.0035 * uTension;
-    // Harmonic radial breathing pulse under internal pressure
     float internalPulse = sin(uTime * 22.0 - length(position) * 6.0) * 0.0045 * uTension;
-    // High-frequency micro-tremor along vertex normals
     float tensionDisplacement = facetJitter + internalPulse;
 
-    vec3 displacedPosition = position + normal * (noise * uDistortion + tensionDisplacement);
+    // 3. Phase 9.0 Act IV Golden-Ratio Fracture Stress Deformation
+    const float PHI = 1.6180339887;
+    vec3 n1 = normalize(vec3(1.0, PHI, 0.0));
+    vec3 n2 = normalize(vec3(1.0, -PHI, 0.0));
+    vec3 n3 = normalize(vec3(0.0, 1.0, PHI));
+    vec3 n4 = normalize(vec3(0.0, 1.0, -PHI));
+    vec3 n5 = normalize(vec3(PHI, 0.0, 1.0));
+    vec3 n6 = normalize(vec3(-PHI, 0.0, 1.0));
+
+    float s1 = dot(position, n1);
+    float s2 = dot(position, n2);
+    float s3 = dot(position, n3);
+    float s4 = dot(position, n4);
+    float s5 = dot(position, n5);
+    float s6 = dot(position, n6);
+
+    float d1 = abs(s1);
+    float d2 = abs(s2);
+    float d3 = abs(s3);
+    float d4 = abs(s4);
+    float d5 = abs(s5);
+    float d6 = abs(s6);
+    float dFracture = min(min(min(d1, d2), min(d3, d4)), min(d5, d6));
+
+    // Opposing directional shear across the golden ratio fault planes
+    float shear1 = sign(s1) * smoothstep(0.15, 0.0, d1);
+    float shear2 = sign(s2) * smoothstep(0.15, 0.0, d2);
+    float shear3 = sign(s3) * smoothstep(0.15, 0.0, d3);
+    vec3 shearOffset = (n1 * shear1 + n2 * shear2 + n3 * shear3) * (0.028 * uFractureProgress);
+
+    // Microscopic outward normal dislocation at the fracture seams (monolith remains mostly intact)
+    float seamGap = smoothstep(0.08, 0.005, dFracture) * (0.038 * uFractureProgress);
+    vec3 fractureDeformation = normal * seamGap + shearOffset;
+
+    vec3 displacedPosition = position + normal * (noise * uDistortion + tensionDisplacement) + fractureDeformation;
 
     // Compute localized vertex stress metric for fragment shader photoelastic fringes
-    vStress = clamp(uTension * (0.35 + 0.65 * abs(noise) + abs(facetJitter) * 60.0), 0.0, 1.0);
+    vStress = clamp(uTension * (0.35 + 0.65 * abs(noise) + abs(facetJitter) * 60.0) + uFractureProgress * 0.8, 0.0, 1.0);
 
     vec4 worldPos = modelMatrix * vec4(displacedPosition, 1.0);
     vWorldPosition = worldPos.xyz;

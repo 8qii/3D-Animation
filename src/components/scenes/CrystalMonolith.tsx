@@ -7,6 +7,7 @@ import { CrystalMaterial } from '@/three/materials/CrystalMaterial';
 import { useExperienceStore } from '@/store/experienceStore';
 import { TrappedEnergyField } from './TrappedEnergyField';
 import { CrystalMemoryField } from './CrystalMemoryField';
+import { PhotonLeakage } from './PhotonLeakage';
 
 export function CrystalMonolith() {
   const groupRef = useRef<THREE.Group>(null);
@@ -29,15 +30,18 @@ export function CrystalMonolith() {
     const materialLock = store.materialLockProgress;
     const tension = store.tensionProgress;
     const stillness = store.stillnessFactor;
+    const fracture = store.fractureProgress;
 
-    // Motion scale decelerates from 1.0 down to 0.0 at complete stillness
-    const motionScale = Math.max(0.0, 1.0 - stillness);
+    // Motion scale decelerates from 1.0 down to 0.0 at complete stillness,
+    // and remains deeply arrested during fracture initiation
+    const motionScale = Math.max(0.0, 1.0 - stillness) * (1.0 - fracture * 0.7);
 
     if (materialRef.current) {
       materialRef.current.update(time);
       materialRef.current.setMaterialLock(materialLock);
       materialRef.current.setTension(tension);
       materialRef.current.setStressPreview(tension);
+      materialRef.current.setFracture(fracture);
     }
 
     if (groupRef.current) {
@@ -53,10 +57,11 @@ export function CrystalMonolith() {
       groupRef.current.rotation.y = rotationAccum.current.y;
       groupRef.current.rotation.z = rotationAccum.current.z;
 
-      // Microscopic facet vibration reduces down to 10% during pre-stillness
-      // and freezes completely during the final stillness window
+      // Microscopic facet vibration reduces down during pre-stillness, freezes,
+      // and then experiences high-frequency fracture shear jitter when fracture initiates
       const vibeFactor = motionScale * 0.9 + 0.1 * (1.0 - stillness);
-      const microVibe = Math.sin(time * 30.0) * 0.0035 * tension * vibeFactor;
+      const fractureJitter = Math.sin(time * 65.0) * 0.005 * fracture;
+      const microVibe = (Math.sin(time * 30.0) * 0.0035 * tension * vibeFactor) + fractureJitter;
       const targetScale = THREE.MathUtils.lerp(0.94, 1.0, materialLock) * (1.0 + microVibe);
       groupRef.current.scale.set(targetScale, targetScale, targetScale);
     }
@@ -70,7 +75,10 @@ export function CrystalMonolith() {
       {/* 2. Internal Genesis Memory System (Void, Singularity, Matter layers) */}
       <CrystalMemoryField />
 
-      {/* 3. Sacred Obsidian Monolith Mesh */}
+      {/* 3. Escaping Photons & Golden-Ratio Light Sheets */}
+      <PhotonLeakage />
+
+      {/* 4. Sacred Obsidian Monolith Mesh */}
       <mesh
         ref={meshRef}
         name="sacred-crystal-monolith"

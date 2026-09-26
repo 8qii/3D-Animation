@@ -13,23 +13,28 @@ export function CinematicTextReveal() {
   const tensionProgress = useExperienceStore((state) => state.tensionProgress);
   const monolithPhase = useExperienceStore((state) => state.monolithPhase);
   const stillnessFactor = useExperienceStore((state) => state.stillnessFactor);
+  const fractureProgress = useExperienceStore((state) => state.fractureProgress);
   const mouseWorld = useExperienceStore((state) => state.mouseWorld);
   const isMuted = useExperienceStore((state) => state.isMuted);
   const toggleMute = useExperienceStore((state) => state.toggleMute);
 
   // Compute opacities based on narrative progression
-  const totalPresence = Math.max(transitionProgress, act2Progress, act3Progress);
+  const isAct4 = fractureProgress > 0.001;
+  const totalPresence = Math.max(transitionProgress, act2Progress, act3Progress, fractureProgress);
   const act1Opacity = Math.max(0, 1 - totalPresence * 3.5);
 
-  const isAct3 = materialLockProgress >= 0.40 || act3Progress > 0.08;
-  const act2Opacity = !isAct3 ? Math.min(1, Math.max(0, (totalPresence - 0.12) / 0.65)) : Math.max(0, 1 - materialLockProgress * 2.5);
-  const act3Opacity = Math.min(1, Math.max(0, (materialLockProgress - 0.20) / 0.70));
+  const isAct3 = (materialLockProgress >= 0.40 || act3Progress > 0.08) && !isAct4;
+  const act2Opacity = !isAct3 && !isAct4 ? Math.min(1, Math.max(0, (totalPresence - 0.12) / 0.65)) : Math.max(0, 1 - materialLockProgress * 2.5);
+  const act3Opacity = !isAct4 ? Math.min(1, Math.max(0, (materialLockProgress - 0.20) / 0.70)) : Math.max(0, 1 - fractureProgress * 2.5);
+  const act4Opacity = Math.min(1, fractureProgress * 2.0);
 
   const isIgnited = transitionProgress >= 0.65 || act2Progress >= 0.20;
 
   // Formatting phase badge text
   let phaseLabel = 'QUANTUM VACUUM';
-  if (monolithPhase === 'FINAL_STILLNESS') {
+  if (isAct4) {
+    phaseLabel = `ACT IV: FRACTURE INITIATION [${(fractureProgress * 100).toFixed(0)}%]`;
+  } else if (monolithPhase === 'FINAL_STILLNESS') {
     phaseLabel = 'ACT III: FINAL STILLNESS';
   } else if (monolithPhase === 'MEMORY_RESONANCE') {
     phaseLabel = `HARMONIC TENSION: ${(tensionProgress * 100).toFixed(0)}%`;
@@ -78,7 +83,9 @@ export function CinematicTextReveal() {
         <div className="flex items-center space-x-3.5">
           <div
             className={`w-1.5 h-1.5 rounded-full transition-all duration-700 ${
-              isAct3
+              isAct4
+                ? 'bg-cyan-300 shadow-[0_0_18px_#38bdf8] animate-ping [animation-duration:2.5s]'
+                : isAct3
                 ? 'bg-amber-300 shadow-[0_0_16px_#fbbf24]'
                 : isIgnited
                 ? 'bg-amber-400 shadow-[0_0_12px_#f59e0b]'
@@ -86,7 +93,9 @@ export function CinematicTextReveal() {
             }`}
           />
           <h1 className="font-mono text-[11px] font-normal tracking-[0.32em] text-slate-400/80 uppercase">
-            {isAct3
+            {isAct4
+              ? 'AETHERIA // OBSERVATORY 0.4'
+              : isAct3
               ? 'AETHERIA // OBSERVATORY 0.3'
               : act2Progress > 0.5
               ? 'AETHERIA // OBSERVATORY 0.2'
@@ -100,7 +109,7 @@ export function CinematicTextReveal() {
           style={{ opacity: totalPresence > 0.05 ? 0.9 : 0.4 }}
         >
           <span className="font-mono text-[9px] tracking-[0.3em] text-slate-500 uppercase">
-            STATE: <span className={isAct3 ? 'text-amber-300 font-medium' : isIgnited ? 'text-amber-400/90' : 'text-cyan-400/80'}>{phaseLabel}</span>
+            STATE: <span className={isAct4 ? 'text-cyan-300 font-semibold' : isAct3 ? 'text-amber-300 font-medium' : isIgnited ? 'text-amber-400/90' : 'text-cyan-400/80'}>{phaseLabel}</span>
           </span>
         </div>
       </header>
@@ -209,6 +218,36 @@ export function CinematicTextReveal() {
               : tensionProgress > 0.15
               ? `PHASE: INTERNAL TENSION // STRESS COEFFICIENT: ${(tensionProgress * 100).toFixed(0)}% // FRACTURE PLANES: GOLDEN RATIO DETECTED`
               : 'PHASE: ORDER // GEOMETRIC SYMMETRY: 1.618 // STATUS: MONOLITH STABILIZED'}
+          </div>
+        </div>
+      </div>
+
+      {/* Center Cinematic Reveal: Act IV The Dispersion // Fracture Initiation */}
+      <div
+        className="fixed inset-0 z-25 flex flex-col items-center justify-end pb-24 md:pb-32 pointer-events-none select-none text-center px-6 transition-all duration-1000"
+        style={{
+          opacity: act4Opacity,
+          transform: `translateY(${(1 - act4Opacity) * 20}px)`,
+        }}
+      >
+        <div className="max-w-2xl mx-auto flex flex-col items-center space-y-3.5">
+          <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full border border-cyan-400/40 bg-slate-950/80 backdrop-blur-md shadow-[0_0_24px_rgba(56,189,248,0.25)]">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_#38bdf8] animate-pulse" />
+            <span className="font-mono text-[10px] tracking-[0.35em] text-cyan-300 uppercase font-medium">
+              ACT IV // THE DISPERSION
+            </span>
+          </div>
+
+          <h2 className="text-xl md:text-3xl font-extralight tracking-[0.22em] text-slate-100 uppercase italic">
+            &ldquo;Order fractures not by failure, but by abundance.&rdquo;
+          </h2>
+
+          <p className="max-w-lg font-sans text-xs md:text-sm font-light leading-relaxed tracking-[0.18em] text-slate-300/90">
+            Golden-ratio fault planes breach. The perfect crystalline lattice surrenders its captive light to the void.
+          </p>
+
+          <div className="pt-2 font-mono text-[9px] tracking-[0.32em] text-cyan-400/90 uppercase">
+            {`FRACTURE SEAMS: 6 ACTIVE (φ = 1.618) // PHOTON LEAKAGE: ${(fractureProgress * 100).toFixed(0)}% // MONOLITH: INTACT`}
           </div>
         </div>
       </div>

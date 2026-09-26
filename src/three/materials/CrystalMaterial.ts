@@ -7,6 +7,7 @@ export interface CrystalMaterialUniforms {
   uMaterialLock: { value: number };
   uTension: { value: number };
   uStressPreview: { value: number };
+  uFractureProgress: { value: number };
   uDistortion: { value: number };
   uColorA: { value: THREE.Color };
   uColorB: { value: THREE.Color };
@@ -36,12 +37,14 @@ export class CrystalMaterial extends THREE.ShaderMaterial {
     materialLock: number;
     tension: number;
     stressPreview: number;
+    fractureProgress: number;
   }>) {
     const uniforms: CrystalMaterialUniforms = {
       uTime: { value: 0 },
       uMaterialLock: { value: parameters?.materialLock ?? 0.0 },
       uTension: { value: parameters?.tension ?? 0.0 },
       uStressPreview: { value: parameters?.stressPreview ?? 0.0 },
+      uFractureProgress: { value: parameters?.fractureProgress ?? 0.0 },
       uDistortion: { value: parameters?.distortion ?? 0.04 },
       uColorA: { value: new THREE.Color(parameters?.colorA ?? '#030712') },
       uColorB: { value: new THREE.Color(parameters?.colorB ?? '#1e293b') },
@@ -80,6 +83,10 @@ export class CrystalMaterial extends THREE.ShaderMaterial {
 
   setStressPreview(val: number) {
     (this.uniforms as unknown as CrystalMaterialUniforms).uStressPreview.value = val;
+  }
+
+  setFracture(val: number) {
+    (this.uniforms as unknown as CrystalMaterialUniforms).uFractureProgress.value = val;
   }
 
   setTransmission(val: number) {

@@ -10,7 +10,7 @@ export const crystalFragmentShader = /* glsl */ `
   uniform float uDispersion;     // Chromatic dispersion dlambda/dn
   uniform float uRefractiveIndex;// IOR ~ 1.52
   uniform float uIntensity;
-
+  uniform float uFractureProgress; // Phase 9.0 Act IV fracture initiation (0.0 to 1.0)
   uniform vec3 uColorA;          // Deep obsidian dark (#030712)
   uniform vec3 uColorB;          // Ionized facet rim (#1e293b)
   uniform vec3 uGlowColor;       // Internal amber glow (#f59e0b)
@@ -130,8 +130,16 @@ export const crystalFragmentShader = /* glsl */ `
     float previewLine = smoothstep(0.010, 0.001, dFracture) * calcPulse * uStressPreview;
     vec3 previewEmission = mix(vec3(0.98, 0.65, 0.20), vec3(0.40, 0.82, 1.00), calcPulse) * previewLine * 2.2;
 
+    // Phase 9.0 Act IV Fracture Initiation: Golden-Ratio Fissure Ignition & Optical Disruption
+    // The fault planes ignite into luminous incandescent cracks with ionized cyan fringes.
+    float fissureCoreWidth = mix(0.003, 0.024, uFractureProgress);
+    float fissureCore = smoothstep(fissureCoreWidth, 0.0005, dFracture) * uFractureProgress;
+    float fissureAura = exp(-dFracture * dFracture * mix(900.0, 160.0, uFractureProgress)) * uFractureProgress;
+    vec3 fissureCol = mix(vec3(0.28, 0.82, 1.00), vec3(1.0, 0.97, 0.88), fissureCore);
+    vec3 fissureEmission = fissureCol * (fissureCore * 5.4 + fissureAura * 2.6);
+
     // Photoelastic Stress Fringes (Birefringence along shear planes)
-    float planeStress = exp(-dFracture * dFracture * 160.0) * uTension;
+    float planeStress = exp(-dFracture * dFracture * 160.0) * max(uTension, uFractureProgress);
     float photoPhase = planeStress * 20.0 - uTime * 4.0;
     vec3 photoelasticCol = mix(
       vec3(1.0, 0.58, 0.18), // Hot incandescent amber
@@ -142,15 +150,15 @@ export const crystalFragmentShader = /* glsl */ `
 
     // Acoustic / Photonic Concentric Pressure Waves
     float pressureWave = sin(length(vPosition) * 24.0 - uTime * 14.0) * 0.5 + 0.5;
-    float pressurePulse = pow(pressureWave, 4.0) * uTension * 0.45;
+    float pressurePulse = pow(pressureWave, 4.0) * max(uTension, uFractureProgress * 0.8) * 0.45;
     vec3 pressureEmission = vec3(0.95, 0.60, 0.20) * pressurePulse;
 
     // 9. Internal Quantum Spark Self-Emission (Expanding Core under mounting pressure)
     float distToCore = length(vPosition);
-    float coreSpread = mix(6.0, 2.8, uTension);
-    float coreHeartbeat = sin(uTime * (3.0 + uTension * 8.0)) * 0.22 + 0.95;
+    float coreSpread = mix(6.0, 2.2, max(uTension, uFractureProgress));
+    float coreHeartbeat = sin(uTime * (3.0 + max(uTension, uFractureProgress) * 8.0)) * 0.22 + 0.95;
     float internalCoreGlow = exp(-distToCore * distToCore * coreSpread) * coreHeartbeat * internalFlicker;
-    vec3 coreEmission = uGlowColor * internalCoreGlow * (2.8 + uTension * 3.2) * effectiveTransmission;
+    vec3 coreEmission = uGlowColor * internalCoreGlow * (2.8 + (uTension + uFractureProgress * 1.5) * 3.2) * effectiveTransmission;
 
     // 10. Composite Color & Alpha (Controlled brightness - mysterious, never flashy)
     vec3 finalColor = obsidianBase * surfaceDensity;
@@ -159,8 +167,9 @@ export const crystalFragmentShader = /* glsl */ `
     finalColor += coreEmission;
     finalColor += stressGlow;
     finalColor += previewEmission;
+    finalColor += fissureEmission;
     finalColor += pressureEmission;
-    finalColor += vec3(0.25, 0.85, 1.0) * internalCaustics * 1.2;
+    finalColor += vec3(0.25, 0.85, 1.0) * internalCaustics * (1.2 + uFractureProgress * 0.8);
 
     // Fresnel specular rim glow
     finalColor += uGlowColor * pow(vFresnel, 4.0) * uIntensity * 0.45;

@@ -14,6 +14,7 @@ export function useAudioTransition() {
   const tensionProgress = useExperienceStore((state) => state.tensionProgress);
   const monolithPhase = useExperienceStore((state) => state.monolithPhase);
   const stillnessFactor = useExperienceStore((state) => state.stillnessFactor);
+  const fractureProgress = useExperienceStore((state) => state.fractureProgress);
   const scrollEnergy = useExperienceStore((state) => state.scrollEnergy);
   const pointer = useExperienceStore((state) => state.pointer);
   const attentionLevel = useExperienceStore((state) => state.attentionLevel);
@@ -38,8 +39,16 @@ export function useAudioTransition() {
       soundEngine.updateTension(tensionProgress);
 
       // Phase 8.75 Pre-Dispersion Unstable Harmonics & Final Stillness Silence
-      const isPreDispersion = monolithPhase === 'MEMORY_RESONANCE' || monolithPhase === 'FINAL_STILLNESS';
+      const isPreDispersion = (monolithPhase === 'MEMORY_RESONANCE' || monolithPhase === 'FINAL_STILLNESS') && fractureProgress <= 0.001;
       soundEngine.preDispersionState(isPreDispersion, stillnessFactor);
+
+      // Phase 9.0 Act IV Fracture Snap & Instability
+      if (fractureProgress >= 0.02) {
+        soundEngine.triggerFractureSnap();
+        soundEngine.updateFractureInstability(fractureProgress);
+      } else if (fractureProgress < 0.01) {
+        soundEngine.resetFractureSnap();
+      }
 
       // Trigger D-Minor singularity bell chime when spark ignition threshold crossed
       if (transitionProgress >= 0.65 || act2Progress >= 0.20) {
@@ -74,6 +83,7 @@ export function useAudioTransition() {
     tensionProgress,
     monolithPhase,
     stillnessFactor,
+    fractureProgress,
     scrollEnergy,
     pointer.x,
     attentionLevel,

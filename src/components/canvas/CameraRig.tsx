@@ -78,9 +78,11 @@ export function CameraRig() {
     const tension = store.tensionProgress;
     const memoryProgress = store.memoryProgress;
     const stillness = store.stillnessFactor;
+    const fracture = store.fractureProgress;
 
-    // Dynamic FOV based on choreo stage & tension optical compression:
+    // Dynamic FOV based on choreo stage, tension optical compression, and fracture expansion:
     // 45° (Act I) -> 42° (Act II) -> 39° (Witness) -> 38° (Contemplation) -> 32° (Maximum Cinematic Compression)
+    // -> 38° (Act IV Fracture Expansion & Shock Impulse)
     let baseFov = 45.0;
     if (choreoStage === 0) {
       baseFov = THREE.MathUtils.lerp(45.0, 42.0, stageProgress);
@@ -91,6 +93,11 @@ export function CameraRig() {
       // Optical compression under tension & memory contemplation down to 32.0°
       const compressionProg = Math.max(tension * 0.7, memoryProgress);
       baseFov = THREE.MathUtils.lerp(stageFov, 32.0, compressionProg);
+      // Phase 9.0 Act IV: FOV expands from 32° to 38° as the structure cracks
+      if (fracture > 0.001) {
+        const fractureShock = Math.sin(Math.min(fracture * Math.PI, Math.PI)) * Math.exp(-fracture * 1.8);
+        baseFov = THREE.MathUtils.lerp(baseFov, 38.0, THREE.MathUtils.smoothstep(fracture, 0.0, 1.0)) + fractureShock * 2.5;
+      }
     }
 
     // Lens breathing freezes to 0 when entering complete stillness
@@ -151,10 +158,17 @@ export function CameraRig() {
       const closePosY = THREE.MathUtils.lerp(THREE.MathUtils.lerp(basePosY, 1.15, tension), 1.0, contemplationFactor);
       const closePosZ = THREE.MathUtils.lerp(THREE.MathUtils.lerp(basePosZ, 3.45, tension), 3.2, contemplationFactor);
 
+      // Phase 9.0 Act IV Impulse Shock Recoil & Fracture Tremor
+      const fractureShock = Math.sin(Math.min(fracture * Math.PI, Math.PI)) * Math.exp(-fracture * 2.2);
+      const recoilZ = fracture * 0.45 + fractureShock * 0.40;
+      const recoilY = fracture * 0.15 + fractureShock * 0.10;
+      const fractureTremorX = Math.sin(time * 74.0) * 0.007 * (1.0 - fracture * 0.5) * Math.min(1.0, fracture * 4.0);
+      const fractureTremorY = Math.cos(time * 82.0) * 0.007 * (1.0 - fracture * 0.5) * Math.min(1.0, fracture * 4.0);
+
       targetCamPos.current.set(
-        closePosX + parallaxX * 0.25 + microTremorX,
-        closePosY + breathingY + microTremorY,
-        closePosZ + driftZ
+        closePosX + parallaxX * 0.25 + microTremorX + fractureTremorX,
+        closePosY + breathingY + microTremorY + recoilY + fractureTremorY,
+        closePosZ + driftZ + recoilZ
       );
 
       const targetY = THREE.MathUtils.lerp(

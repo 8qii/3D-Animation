@@ -33,6 +33,7 @@ class SoundEngine {
   private chimeTriggered = false;
   private isSilent = false;
   private resolutionTriggered = false;
+  private fractureSnapTriggered = false;
 
   private initContext() {
     if (this.ctx || typeof window === 'undefined') return;
@@ -427,6 +428,132 @@ class SoundEngine {
         const quietFactor = Math.max(0.0001, (1.0 - (stillnessFactor - 0.90) / 0.10) * 0.65);
         this.masterGain.gain.setTargetAtTime(quietFactor, now, 0.18);
       }
+    }
+  }
+
+  /**
+   * Phase 9.0 Act IV Fracture Snap Transient:
+   * A violent, hyper-focused crystalline snap that abruptly shatters the silence of stillness.
+   * Crystalline high-frequency impulse (6.8kHz - 9.2kHz) with cleavage crack and sub-bass impact.
+   */
+  public triggerFractureSnap() {
+    if (!this.ctx || !this.masterGain || this.fractureSnapTriggered) return;
+    if (this.ctx.state === 'suspended') return;
+
+    this.fractureSnapTriggered = true;
+    this.isSilent = false;
+    const now = this.ctx.currentTime;
+
+    // Instantly cancel silence and bring master gain up to full power
+    this.masterGain.gain.cancelScheduledValues(now);
+    this.masterGain.gain.setValueAtTime(0.75, now);
+
+    // 1. Hyper-focused high-Q crystalline cleavage snap transient (6.8kHz - 9.2kHz)
+    const snapOsc = this.ctx.createOscillator();
+    const snapFilter = this.ctx.createBiquadFilter();
+    const snapGain = this.ctx.createGain();
+
+    snapOsc.type = 'triangle';
+    snapOsc.frequency.setValueAtTime(7400.0, now);
+    snapOsc.frequency.exponentialRampToValueAtTime(2400.0, now + 0.12);
+
+    snapFilter.type = 'bandpass';
+    snapFilter.frequency.setValueAtTime(6800.0, now);
+    snapFilter.Q.setValueAtTime(28.0, now);
+
+    snapGain.gain.setValueAtTime(0.0001, now);
+    snapGain.gain.linearRampToValueAtTime(0.85, now + 0.004);
+    snapGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+
+    snapOsc.connect(snapFilter);
+    snapFilter.connect(snapGain);
+    snapGain.connect(this.masterGain);
+
+    snapOsc.start(now);
+    snapOsc.stop(now + 0.20);
+
+    // 2. High-frequency brittle noise crack (cleavage impulse)
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.08);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.2));
+    }
+
+    const noiseNode = this.ctx.createBufferSource();
+    noiseNode.buffer = buffer;
+
+    const noiseFilter = this.ctx.createBiquadFilter();
+    noiseFilter.type = 'highpass';
+    noiseFilter.frequency.setValueAtTime(4500.0, now);
+
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.55, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+
+    noiseNode.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(this.masterGain);
+
+    noiseNode.start(now);
+
+    // 3. Low-frequency cleavage impact thud (64Hz down to 22Hz)
+    const thudOsc = this.ctx.createOscillator();
+    const thudGain = this.ctx.createGain();
+    thudOsc.type = 'sine';
+    thudOsc.frequency.setValueAtTime(64.0, now);
+    thudOsc.frequency.exponentialRampToValueAtTime(22.0, now + 0.35);
+
+    thudGain.gain.setValueAtTime(0.65, now);
+    thudGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.40);
+
+    thudOsc.connect(thudGain);
+    thudGain.connect(this.masterGain);
+
+    thudOsc.start(now);
+    thudOsc.stop(now + 0.45);
+  }
+
+  public resetFractureSnap() {
+    this.fractureSnapTriggered = false;
+  }
+
+  /**
+   * Phase 9.0 Act IV Fracture Instability:
+   * Continuous modulation during fracture initiation:
+   * Tearing sub-bass overdrive, screaming singing-glass flutter, and spatial turbulence.
+   */
+  public updateFractureInstability(fracture: number) {
+    if (!this.ctx || !this.droneOsc || !this.droneFilter || !this.tensionGain || !this.tensionFilter) return;
+    if (this.ctx.state === 'suspended') return;
+
+    const now = this.ctx.currentTime;
+    const clampedFracture = Math.max(0.0, Math.min(1.0, fracture));
+    if (clampedFracture <= 0.001) return;
+
+    // 1. Tearing Sub-Bass Drone: Drop frequency into sub-infrasound with high-resonance growl
+    const droneFreq = 38.0 - clampedFracture * 10.0;
+    this.droneOsc.frequency.setTargetAtTime(droneFreq, now, 0.06);
+
+    const filterCutoff = 400.0 + clampedFracture * 1600.0;
+    this.droneFilter.frequency.setTargetAtTime(filterCutoff, now, 0.06);
+    this.droneFilter.Q.setTargetAtTime(6.5 + clampedFracture * 8.0, now, 0.06);
+
+    // 2. Chaotic singing glass flutter (intense modal instability)
+    if (this.crystalResonator1 && this.crystalResonator2) {
+      const flutter1 = 587.33 + Math.sin(now * 26.0) * (clampedFracture * 140.0);
+      const flutter2 = 880.00 + Math.cos(now * 32.0) * (clampedFracture * 180.0);
+      this.crystalResonator1.frequency.setTargetAtTime(flutter1, now, 0.04);
+      this.crystalResonator2.frequency.setTargetAtTime(flutter2, now, 0.04);
+    }
+
+    // 3. Tension & Shearing Gain surge
+    const shearFreq = 2200.0 + clampedFracture * 2800.0 + Math.sin(now * 18.0) * 400.0;
+    this.tensionFilter.frequency.setTargetAtTime(shearFreq, now, 0.04);
+    this.tensionGain.gain.setTargetAtTime(0.12 + clampedFracture * 0.28, now, 0.06);
+
+    if (this.masterGain) {
+      this.masterGain.gain.setTargetAtTime(0.70 + clampedFracture * 0.15, now, 0.06);
     }
   }
 

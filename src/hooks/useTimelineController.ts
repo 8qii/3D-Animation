@@ -29,6 +29,8 @@ export function useTimelineController() {
   const setMonolithPhase = useExperienceStore((state) => state.setMonolithPhase);
   const setMemoryProgress = useExperienceStore((state) => state.setMemoryProgress);
   const setStillnessFactor = useExperienceStore((state) => state.setStillnessFactor);
+  const setAct4Progress = useExperienceStore((state) => state.setAct4Progress);
+  const setFractureProgress = useExperienceStore((state) => state.setFractureProgress);
 
   useEffect(() => {
     // 1. Cross-Scene Transition Progress (Act I -> Act II boundary)
@@ -50,7 +52,7 @@ export function useTimelineController() {
     }
     setTransitionState(nextTransitionState);
 
-    // 2. Act II, Act III, & Phase 8.75 Timeline Calculations
+    // 2. Act II, Act III, & Act IV Phase 9.0 Timeline Calculations
     let act2Prog = 0.0;
     let act2Ph: Act2Phase = 'IDLE';
     let matterProg = 0.0;
@@ -60,17 +62,19 @@ export function useTimelineController() {
     let monolithPh: MonolithPhase = 'MONOLITH_REST';
     let memProg = 0.0;
     let stillness = 0.0;
+    let act4Prog = 0.0;
+    let fractureProg = 0.0;
 
     if (isPreviewMode) {
-      // 0 - 50s Cinematic sequence:
+      // 0 - 60s Cinematic sequence:
       // 0-10s: Spark Ignition
       // 10-20s: Coordinate Genesis
       // 20-30s: Geometry Stabilization & Matter Genesis
       // 30-34s: Pre-Materialization Silence & Caustics
       // 34-38s: Act III The Monolith Revealed & Solidified
-      // 38-44s: Phase 8.75 MONOLITH_REST (memory awakens subtly)
-      // 44-48s: Phase 8.75 MEMORY_RESONANCE (fracture prediction, tension 0.85 -> 0.98)
-      // 48-50s: Phase 8.75 FINAL_STILLNESS (complete freeze, near absolute silence)
+      // 38-44s: Phase 8.75 MEMORY_RESONANCE (fracture prediction, tension 0.85 -> 0.98)
+      // 44-47.5s: Phase 8.75 FINAL_STILLNESS (3s complete freeze, near absolute silence)
+      // 47.5-60s: Phase 9.0 Act IV — The Dispersion // Fracture Initiation
       act2Prog = clamp(previewTime / 40.0, 0.0, 1.0);
       if (previewTime < 10.0) {
         act2Ph = 'SPARK_IGNITION';
@@ -90,24 +94,23 @@ export function useTimelineController() {
       }
 
       if (previewTime >= 38.0 && previewTime < 44.0) {
-        monolithPh = 'MONOLITH_REST';
-        memProg = clamp((previewTime - 38.0) / 6.0, 0.0, 0.4);
-        tensionProg = 0.85;
-      } else if (previewTime >= 44.0 && previewTime < 48.0) {
         monolithPh = 'MEMORY_RESONANCE';
-        const t = (previewTime - 44.0) / 4.0;
-        memProg = 0.4 + t * 0.6;
+        const t = (previewTime - 38.0) / 6.0;
+        memProg = 0.35 + t * 0.65;
         tensionProg = 0.85 + t * 0.13; // 0.85 -> 0.98
-
-        // Motion reduction starts at 46.5s (tension >= 0.92)
-        if (previewTime >= 46.5) {
-          stillness = clamp((previewTime - 46.5) / 1.5, 0.0, 1.0);
-        }
-      } else if (previewTime >= 48.0) {
+      } else if (previewTime >= 44.0 && previewTime < 47.5) {
         monolithPh = 'FINAL_STILLNESS';
         memProg = 1.0;
         tensionProg = 1.0;
         stillness = 1.0;
+      } else if (previewTime >= 47.5) {
+        // Phase 9.0 Act IV: Fracture Initiation
+        const t = clamp((previewTime - 47.5) / 12.5, 0.0, 1.0);
+        fractureProg = t;
+        act4Prog = t;
+        memProg = 1.0;
+        tensionProg = 1.0;
+        stillness = Math.max(0.0, 1.0 - t * 4.0); // Quick unfreeze on fracture snap
       } else if (previewTime >= 35.0) {
         tensionProg = clamp((previewTime - 35.0) / 3.0, 0.0, 0.85);
       }
@@ -151,28 +154,37 @@ export function useTimelineController() {
         act3Prog = rawAct3 * rawAct3 * (3 - 2 * rawAct3);
       }
 
-      // Phase 8.75: Monolith Memory & Final Stillness Timeline
-      if (scrollProgress >= 0.95) {
-        // S = 0.95 - 1.00: FINAL_STILLNESS
+      // Phase 8.75 & Phase 9.0 Act IV Timeline
+      if (scrollProgress >= 0.93) {
+        // S = 0.93 - 1.00: Phase 9.0 Act IV Fracture Initiation
+        const t = clamp((scrollProgress - 0.93) / 0.07, 0.0, 1.0);
+        fractureProg = t;
+        act4Prog = t;
+        monolithPh = 'FINAL_STILLNESS';
+        memProg = 1.0;
+        tensionProg = 1.0;
+        stillness = Math.max(0.0, 1.0 - t * 4.0);
+      } else if (scrollProgress >= 0.88) {
+        // S = 0.88 - 0.93: FINAL_STILLNESS window
         monolithPh = 'FINAL_STILLNESS';
         memProg = 1.0;
         tensionProg = 1.0;
         stillness = 1.0;
-      } else if (scrollProgress >= 0.80) {
-        // S = 0.80 - 0.95: MEMORY_RESONANCE
+      } else if (scrollProgress >= 0.78) {
+        // S = 0.78 - 0.88: MEMORY_RESONANCE
         monolithPh = 'MEMORY_RESONANCE';
-        const t = (scrollProgress - 0.80) / 0.15;
+        const t = (scrollProgress - 0.78) / 0.10;
         memProg = 0.35 + t * 0.65;
         tensionProg = 0.85 + t * 0.13; // 0.85 -> 0.98
 
-        // At 0.92: begin reducing all motion
-        if (scrollProgress >= 0.92) {
-          stillness = clamp((scrollProgress - 0.92) / 0.03, 0.0, 1.0);
+        // Motion reduction preceding final stillness
+        if (scrollProgress >= 0.85) {
+          stillness = clamp((scrollProgress - 0.85) / 0.03, 0.0, 1.0);
         }
       } else if (scrollProgress >= 0.65) {
-        // S = 0.65 - 0.80: MONOLITH_REST
+        // S = 0.65 - 0.78: MONOLITH_REST
         monolithPh = 'MONOLITH_REST';
-        memProg = clamp((scrollProgress - 0.65) / 0.15 * 0.35, 0.0, 0.35);
+        memProg = clamp((scrollProgress - 0.65) / 0.13 * 0.35, 0.0, 0.35);
         tensionProg = 0.85;
       } else if (scrollProgress >= 0.50) {
         const rawTension = clamp((scrollProgress - 0.50) / 0.15, 0.0, 0.85);
@@ -189,6 +201,8 @@ export function useTimelineController() {
     setMonolithPhase(monolithPh);
     setMemoryProgress(memProg);
     setStillnessFactor(stillness);
+    setAct4Progress(act4Prog);
+    setFractureProgress(fractureProg);
   }, [
     scrollProgress,
     isPreviewMode,
@@ -204,5 +218,7 @@ export function useTimelineController() {
     setMonolithPhase,
     setMemoryProgress,
     setStillnessFactor,
+    setAct4Progress,
+    setFractureProgress,
   ]);
 }
