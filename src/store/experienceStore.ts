@@ -17,7 +17,7 @@ export const SCENES: SceneMeta[] = [
     index: 0,
     title: 'Genesis',
     subtitle: 'The Core Awakening',
-    cameraPosition: [0, 0, 6],
+    cameraPosition: [0, 0, 7],
     cameraTarget: [0, 0, 0],
   },
   {
@@ -63,6 +63,27 @@ interface ExperienceState {
   // Audio & Experience controls
   isMuted: boolean;
   toggleMute: () => void;
+
+  // Cinematic Preview Mode (Shortcut 'P')
+  isPreviewMode: boolean;
+  previewTime: number; // 0 to 30s
+  togglePreviewMode: () => void;
+  setPreviewMode: (val: boolean) => void;
+  setPreviewTime: (time: number) => void;
+
+  // Debug & Performance
+  isDebugMode: boolean;
+  setDebugMode: (val: boolean) => void;
+  fps: number;
+  setFps: (fps: number) => void;
+
+  // Real-time Tuning Uniforms / Parameters
+  bloomIntensity: number;
+  setBloomIntensity: (val: number) => void;
+  dofEnabled: boolean;
+  setDofEnabled: (val: boolean) => void;
+  particleSpeedMultiplier: number;
+  setParticleSpeedMultiplier: (val: number) => void;
 }
 
 export const useExperienceStore = create<ExperienceState>((set) => ({
@@ -112,4 +133,25 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   // Audio controls
   isMuted: true,
   toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+
+  // Cinematic Preview Mode
+  isPreviewMode: false,
+  previewTime: 0,
+  togglePreviewMode: () => set((state) => ({ isPreviewMode: !state.isPreviewMode, previewTime: 0 })),
+  setPreviewMode: (val: boolean) => set({ isPreviewMode: val, previewTime: 0 }),
+  setPreviewTime: (time: number) => set({ previewTime: time }),
+
+  // Debug & Performance
+  isDebugMode: false,
+  setDebugMode: (val: boolean) => set({ isDebugMode: val }),
+  fps: 60,
+  setFps: (fps: number) => set({ fps }),
+
+  // Real-time Tuning Parameters
+  bloomIntensity: 1.2,
+  setBloomIntensity: (val: number) => set({ bloomIntensity: val }),
+  dofEnabled: true,
+  setDofEnabled: (val: boolean) => set({ dofEnabled: val }),
+  particleSpeedMultiplier: 1.0,
+  setParticleSpeedMultiplier: (val: number) => set({ particleSpeedMultiplier: val }),
 }));

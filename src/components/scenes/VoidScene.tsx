@@ -9,6 +9,7 @@ import { voidParticlesVertexShader } from '@/three/shaders/voidParticles.vert';
 import { voidParticlesFragmentShader } from '@/three/shaders/voidParticles.frag';
 import { voidAtmosphereVertexShader } from '@/three/shaders/voidAtmosphere.vert';
 import { voidAtmosphereFragmentShader } from '@/three/shaders/voidAtmosphere.frag';
+import { useExperienceStore } from '@/store/experienceStore';
 
 const PARTICLE_COUNT = 1400;
 
@@ -44,6 +45,11 @@ const VOID_DUST = generateVoidDustData(PARTICLE_COUNT);
 export function VoidScene() {
   const fluctuationMatRef = useRef<THREE.ShaderMaterial>(null);
   const dustMatRef = useRef<THREE.ShaderMaterial>(null);
+  const particleTimeAccumulator = useRef(0);
+
+  const particleSpeedMultiplier = useExperienceStore(
+    (state) => state.particleSpeedMultiplier
+  );
 
   // Fluctuations Uniforms
   const fluctuationUniforms = useMemo(() => {
@@ -65,15 +71,18 @@ export function VoidScene() {
   }, []);
 
   // Frame update loop
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
 
     if (fluctuationMatRef.current) {
       fluctuationMatRef.current.uniforms.uTime.value = time;
     }
 
+    // Accumulate particle time modulated by debug speed multiplier
+    particleTimeAccumulator.current += delta * particleSpeedMultiplier;
+
     if (dustMatRef.current) {
-      dustMatRef.current.uniforms.uTime.value = time;
+      dustMatRef.current.uniforms.uTime.value = particleTimeAccumulator.current;
     }
   });
 

@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useScrollProgress } from '@/hooks/useScrollProgress';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { DebugPanel } from '@/components/ui/DebugPanel';
 
 // Dynamic client import with SSR disabled for pure WebGL lifecycle
 const Experience = dynamic(
@@ -18,6 +19,9 @@ export default function Home() {
     <main className="relative min-h-[200vh] bg-[#030712] text-slate-100 font-sans selection:bg-cyan-500/20 selection:text-cyan-200">
       {/* Cinematic Fullscreen Loader */}
       <LoadingScreen />
+
+      {/* Development Preview Mode, FPS & Debug Panel */}
+      <DebugPanel />
 
       {/* Fixed Fullscreen Three.js WebGL Canvas (Act I: The Void) */}
       <Experience />

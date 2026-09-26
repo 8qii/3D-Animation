@@ -8,51 +8,138 @@ import { damp } from '@/utils/helpers';
 
 export function CameraRig() {
   const pointer = useExperienceStore((state) => state.pointer);
+  const isPreviewMode = useExperienceStore((state) => state.isPreviewMode);
+  const previewTime = useExperienceStore((state) => state.previewTime);
+  const setPreviewTime = useExperienceStore((state) => state.setPreviewTime);
+  const setFps = useExperienceStore((state) => state.setFps);
 
   // Pre-allocated vectors to eliminate garbage collection
   const targetCamPos = useRef(new THREE.Vector3(0, 0, 7));
   const targetLookAt = useRef(new THREE.Vector3(0, 0, 0));
   const currentLookAt = useRef(new THREE.Vector3(0, 0, 0));
 
+  // Frame timing accumulator for FPS measurement
+  const frameCounter = useRef(0);
+  const timeAccumulator = useRef(0);
+
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
 
-    // 0.05 Hz subtle human breathing motion (20s period)
-    const breathingY = Math.sin(time * 0.314159) * 0.045;
+    // 1. FPS Calculation (smoothed over 0.25 seconds)
+    frameCounter.current += 1;
+    timeAccumulator.current += delta;
+    if (timeAccumulator.current >= 0.25) {
+      const currentFps = Math.round(frameCounter.current / timeAccumulator.current);
+      setFps(currentFps);
+      frameCounter.current = 0;
+      timeAccumulator.current = 0;
+    }
 
-    // Extremely slow ancient longitudinal drift
-    const driftZ = Math.cos(time * 0.08) * 0.06;
-    const driftX = Math.sin(time * 0.05) * 0.04;
+    // 2. Automatic 30-Second Cinematic Sequence vs. Default Contemplative Drift
+    if (isPreviewMode) {
+      // Advance preview clock (loops continuously at 30 seconds)
+      const nextTime = (previewTime + delta) % 30.0;
+      setPreviewTime(nextTime);
 
-    // Subtle pointer parallax (constrained nodal pivot)
-    const parallaxX = pointer.x * 0.32;
-    const parallaxY = pointer.y * 0.24;
+      const t = nextTime;
 
-    // Target camera position centered around [0, 0, 7]
-    targetCamPos.current.set(
-      0.0 + driftX + parallaxX,
-      0.0 + breathingY + parallaxY,
-      7.0 + driftZ
-    );
+      if (t < 7.0) {
+        // Phase 1 (0s - 7s): The Approaching Gaze
+        const progress = t / 7.0;
+        const ease = THREE.MathUtils.smoothstep(progress, 0, 1);
+        targetCamPos.current.set(
+          THREE.MathUtils.lerp(0.0, 0.3, ease),
+          THREE.MathUtils.lerp(0.3, -0.15, ease),
+          THREE.MathUtils.lerp(7.2, 4.6, ease)
+        );
+        targetLookAt.current.set(0, 0, 0);
+      } else if (t < 16.0) {
+        // Phase 2 (7s - 16s): Orbital Vitrine Arc
+        const progress = (t - 7.0) / 9.0;
+        const angle = progress * Math.PI; // Sweep 180 degrees
+        const radius = 4.4;
+        targetCamPos.current.set(
+          Math.sin(angle) * 2.8,
+          -0.15 + Math.sin(progress * Math.PI) * 0.9,
+          Math.cos(angle) * 1.5 + 3.2
+        );
+        targetLookAt.current.set(
+          Math.sin(angle) * 0.2,
+          0.1,
+          0
+        );
+      } else if (t < 23.0) {
+        // Phase 3 (16s - 23s): Ascending Crane & Downward Tilt
+        const progress = (t - 16.0) / 7.0;
+        const ease = THREE.MathUtils.smoothstep(progress, 0, 1);
+        targetCamPos.current.set(
+          THREE.MathUtils.lerp(-1.2, 0.4, ease),
+          THREE.MathUtils.lerp(0.75, 3.2, ease),
+          THREE.MathUtils.lerp(4.7, 3.4, ease)
+        );
+        targetLookAt.current.set(
+          THREE.MathUtils.lerp(0.2, 0.0, ease),
+          THREE.MathUtils.lerp(0.1, 0.0, ease),
+          0
+        );
+      } else {
+        // Phase 4 (23s - 30s): Transcendent Longitudinal Pull-Back
+        const progress = (t - 23.0) / 7.0;
+        const ease = THREE.MathUtils.smoothstep(progress, 0, 1);
+        targetCamPos.current.set(
+          THREE.MathUtils.lerp(0.4, 0.0, ease),
+          THREE.MathUtils.lerp(3.2, 0.0, ease),
+          THREE.MathUtils.lerp(3.4, 7.0, ease)
+        );
+        targetLookAt.current.set(0, 0, 0);
+      }
 
-    // Subtle lookAt tracking
-    targetLookAt.current.set(
-      parallaxX * 0.15,
-      parallaxY * 0.15,
-      0.0
-    );
+      // Slightly faster damping in choreographed preview mode for responsive flight
+      const activeCamera = state.camera;
+      activeCamera.position.x = damp(activeCamera.position.x, targetCamPos.current.x, 3.0, delta);
+      activeCamera.position.y = damp(activeCamera.position.y, targetCamPos.current.y, 3.0, delta);
+      activeCamera.position.z = damp(activeCamera.position.z, targetCamPos.current.z, 3.0, delta);
 
-    // High-inertia exponential damping for silent, meditative fluidity
-    const activeCamera = state.camera;
-    activeCamera.position.x = damp(activeCamera.position.x, targetCamPos.current.x, 2.5, delta);
-    activeCamera.position.y = damp(activeCamera.position.y, targetCamPos.current.y, 2.5, delta);
-    activeCamera.position.z = damp(activeCamera.position.z, targetCamPos.current.z, 2.5, delta);
+      currentLookAt.current.x = damp(currentLookAt.current.x, targetLookAt.current.x, 3.2, delta);
+      currentLookAt.current.y = damp(currentLookAt.current.y, targetLookAt.current.y, 3.2, delta);
+      currentLookAt.current.z = damp(currentLookAt.current.z, targetLookAt.current.z, 3.2, delta);
 
-    currentLookAt.current.x = damp(currentLookAt.current.x, targetLookAt.current.x, 3.0, delta);
-    currentLookAt.current.y = damp(currentLookAt.current.y, targetLookAt.current.y, 3.0, delta);
-    currentLookAt.current.z = damp(currentLookAt.current.z, targetLookAt.current.z, 3.0, delta);
+      activeCamera.lookAt(currentLookAt.current);
+    } else {
+      // Standard Contemplative Mode: 0.05 Hz subtle human breathing motion (20s period)
+      const breathingY = Math.sin(time * 0.314159) * 0.045;
 
-    activeCamera.lookAt(currentLookAt.current);
+      // Extremely slow ancient longitudinal drift
+      const driftZ = Math.cos(time * 0.08) * 0.06;
+      const driftX = Math.sin(time * 0.05) * 0.04;
+
+      // Subtle pointer parallax (constrained nodal pivot)
+      const parallaxX = pointer.x * 0.32;
+      const parallaxY = pointer.y * 0.24;
+
+      targetCamPos.current.set(
+        0.0 + driftX + parallaxX,
+        0.0 + breathingY + parallaxY,
+        7.0 + driftZ
+      );
+
+      targetLookAt.current.set(
+        parallaxX * 0.15,
+        parallaxY * 0.15,
+        0.0
+      );
+
+      const activeCamera = state.camera;
+      activeCamera.position.x = damp(activeCamera.position.x, targetCamPos.current.x, 2.5, delta);
+      activeCamera.position.y = damp(activeCamera.position.y, targetCamPos.current.y, 2.5, delta);
+      activeCamera.position.z = damp(activeCamera.position.z, targetCamPos.current.z, 2.5, delta);
+
+      currentLookAt.current.x = damp(currentLookAt.current.x, targetLookAt.current.x, 3.0, delta);
+      currentLookAt.current.y = damp(currentLookAt.current.y, targetLookAt.current.y, 3.0, delta);
+      currentLookAt.current.z = damp(currentLookAt.current.z, targetLookAt.current.z, 3.0, delta);
+
+      activeCamera.lookAt(currentLookAt.current);
+    }
   });
 
   return null;
