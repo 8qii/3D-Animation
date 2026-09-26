@@ -3,6 +3,7 @@ export const exposedCoreVertexShader = /* glsl */ `
   uniform float uFractureProgress;
   uniform float uFacetMemoryProgress;
   uniform float uCollapseProgress;
+  uniform float uThresholdProgress;
 
   varying vec3 vNormal;
   varying vec3 vPosition;
@@ -14,14 +15,16 @@ export const exposedCoreVertexShader = /* glsl */ `
     vPosition = position;
 
     // Organic harmonic breathing of the unveiled quantum core
-    // Under collapse: density increases, pulse frequency surges from 2.2 -> 14.0, while amplitude sharpens
-    float pulseSpeed = 2.2 + uCollapseProgress * 12.0;
-    float pulse = sin(uTime * pulseSpeed - length(position) * 4.0) * (0.04 + uCollapseProgress * 0.05);
-    pulse += sin(uTime * (5.5 + uCollapseProgress * 15.0) + position.x * 6.0) * 0.015 * (1.0 + uFacetMemoryProgress);
+    // Under collapse & threshold: density increases, pulse frequency surges from 2.2 -> 14.0 -> 24.0
+    float pulseSpeed = 2.2 + uCollapseProgress * 12.0 + uThresholdProgress * 10.0;
+    float pulse = sin(uTime * pulseSpeed - length(position) * 4.0) * (0.04 + uCollapseProgress * 0.05 + uThresholdProgress * 0.04);
+    pulse += sin(uTime * (5.5 + uCollapseProgress * 15.0 + uThresholdProgress * 15.0) + position.x * 6.0) * 0.015 * (1.0 + uFacetMemoryProgress);
 
-    // High density compression: radius compresses slightly under immense inward gravitational collapse
-    float compressionScale = mix(1.0, 0.82, uCollapseProgress);
-    vec3 displacedPos = position * compressionScale + normal * pulse;
+    // Phase 9.17 Singularity Threshold Compression:
+    // Compress radius further from 0.85 -> 0.65
+    float collapseScale = mix(1.0, 0.85, uCollapseProgress);
+    float thresholdScale = mix(collapseScale, 0.65, uThresholdProgress);
+    vec3 displacedPos = position * thresholdScale + normal * pulse;
 
     vec4 worldPos = modelMatrix * vec4(displacedPos, 1.0);
     vWorldPosition = worldPos.xyz;

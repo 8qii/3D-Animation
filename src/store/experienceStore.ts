@@ -101,15 +101,17 @@ interface ExperienceState {
   setMemoryProgress: (progress: number) => void;
   setStillnessFactor: (factor: number) => void;
 
-  // Act IV: The Dispersion Engine (Phase 9.0 Fracture, Phase 9.15 Facet Memory Drift, Phase 9.16 Memory Collapse Trigger)
+  // Act IV: The Dispersion Engine (Phase 9.0 Fracture, Phase 9.15 Facet Memory Drift, Phase 9.16 Memory Collapse, Phase 9.17 Singularity Threshold)
   act4Progress: number; // 0 to 1 across Act IV timeline
   fractureProgress: number; // 0 to 1 (initial crack fissure opening and facet separation)
   facetMemoryProgress: number; // 0 to 1 (Phase 9.15 facet memory drift & invisible mathematical connection)
   collapseProgress: number; // 0 to 1 (Phase 9.16 memory network collapse & core compression)
+  singularityThresholdProgress: number; // 0 to 1 (Phase 9.17 maximum compression & blue-white plasma threshold)
   setAct4Progress: (progress: number) => void;
   setFractureProgress: (progress: number) => void;
   setFacetMemoryProgress: (progress: number) => void;
   setCollapseProgress: (progress: number) => void;
+  setSingularityThresholdProgress: (progress: number) => void;
 
   // Cursor Parallax (Screen Normalized [-1, 1])
   pointer: { x: number; y: number };
@@ -254,6 +256,7 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   fractureProgress: 0,
   facetMemoryProgress: 0,
   collapseProgress: 0,
+  singularityThresholdProgress: 0,
   setAct4Progress: (progress: number) =>
     set({
       act4Progress: Math.min(1.0, Math.max(0.0, progress)),
@@ -269,6 +272,10 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   setCollapseProgress: (progress: number) =>
     set({
       collapseProgress: Math.min(1.0, Math.max(0.0, progress)),
+    }),
+  setSingularityThresholdProgress: (progress: number) =>
+    set({
+      singularityThresholdProgress: Math.min(1.0, Math.max(0.0, progress)),
     }),
 
   // Pointer parallax initial state

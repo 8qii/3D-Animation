@@ -158,13 +158,15 @@ export function PhotonLeakage() {
     const fracture = store.fractureProgress;
     const facetMemory = store.facetMemoryProgress;
     const collapse = store.collapseProgress;
+    const threshold = store.singularityThresholdProgress;
 
-    // Time freeze at final 10%
-    const freezeFactor = collapse >= 0.90 ? Math.max(0, 1.0 - (collapse - 0.90) / 0.10) : 1.0;
+    // Time freeze at final 10% of collapse, and absolute 0 leakage during threshold
+    const freezeFactor = (threshold > 0.0001 || collapse >= 0.90) ? (threshold > 0.0001 ? 0.0 : Math.max(0, 1.0 - (collapse - 0.90) / 0.10)) : 1.0;
     const dilation = (1.0 - facetMemory * 0.70) * freezeFactor; // 100% -> 30% -> 0%
 
     if (groupRef.current) {
-      groupRef.current.visible = fracture > 0.001 || facetMemory > 0.001 || collapse > 0.001;
+      // Completely hidden when threshold > 0 (photon leakage = 0)
+      groupRef.current.visible = threshold <= 0.0001 && (fracture > 0.001 || facetMemory > 0.001 || collapse > 0.001);
     }
 
     if (particleMaterialRef.current) {

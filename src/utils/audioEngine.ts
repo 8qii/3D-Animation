@@ -527,7 +527,7 @@ class SoundEngine {
    * - Phase 9.15: Removes debris resonance, introduces harmonic suspension,
    *   deep cosmic inhale (vacuum frequency sweep), and rising energy pressure.
    */
-  public updateFractureInstability(fracture: number, pointerX = 0, facetMemory = 0, collapse = 0) {
+  public updateFractureInstability(fracture: number, pointerX = 0, facetMemory = 0, collapse = 0, threshold = 0) {
     if (!this.ctx || !this.droneOsc || !this.droneFilter || !this.tensionGain || !this.tensionFilter) return;
     if (this.ctx.state === 'suspended') return;
 
@@ -535,93 +535,102 @@ class SoundEngine {
     const clampedFracture = Math.max(0.0, Math.min(1.0, fracture));
     const clampedMemory = Math.max(0.0, Math.min(1.0, facetMemory));
     const clampedCollapse = Math.max(0.0, Math.min(1.0, collapse));
-    if (clampedFracture <= 0.001 && clampedMemory <= 0.001 && clampedCollapse <= 0.001) return;
+    const clampedThreshold = Math.max(0.0, Math.min(1.0, threshold));
+    if (clampedFracture <= 0.001 && clampedMemory <= 0.001 && clampedCollapse <= 0.001 && clampedThreshold <= 0.001) return;
 
     // 1. Widening Stereo Field: Acoustic space expands from centered to ultra-wide
     if (this.panner) {
-      const panBreadth = (0.35 + (clampedFracture * 0.35 + clampedMemory * 0.25)) * (1.0 - clampedCollapse * 0.75); // Centers slightly under collapse focus
-      const spatialDrift = Math.sin(now * (0.45 * (1.0 - clampedMemory * 0.6))) * 0.25 * (1.0 - clampedCollapse);
+      const panBreadth = (0.35 + (clampedFracture * 0.35 + clampedMemory * 0.25)) * (1.0 - clampedCollapse * 0.75) * (1.0 - clampedThreshold); // Centers strictly on singularity
+      const spatialDrift = Math.sin(now * (0.45 * (1.0 - clampedMemory * 0.6))) * 0.25 * (1.0 - clampedCollapse) * (1.0 - clampedThreshold);
       const targetPan = Math.max(-0.85, Math.min(0.85, pointerX * panBreadth + spatialDrift));
       this.panner.pan.setTargetAtTime(targetPan, now, 0.08);
     }
 
-    // 2. Deep Harmonic Expansion & Deep Cosmic Inhale & Phase 9.16 Infrasound Collapse:
+    // 2. Deep Harmonic Expansion & Infrasound Sub Collapse:
     // Memory drift: 38Hz -> 24Hz vacuum draw
     // Memory collapse: 24Hz -> 18Hz sub-bass pressure
+    // Singularity threshold: 18Hz collapses down to 14Hz
     const baseDrone = 38.0 - clampedFracture * 8.0; // 38Hz -> 30Hz
     const inhaleDrone = lerp(baseDrone, 24.0, clampedMemory); // Vacuum draw down to 24Hz
-    const finalSubDrone = lerp(inhaleDrone, 18.0, clampedCollapse); // 24Hz -> 18Hz
+    const collapseDrone = lerp(inhaleDrone, 18.0, clampedCollapse); // 24Hz -> 18Hz
+    const finalSubDrone = lerp(collapseDrone, 14.0, clampedThreshold); // 18Hz -> 14Hz sub collapse
     this.droneOsc.frequency.setTargetAtTime(finalSubDrone, now, 0.06);
 
     if (this.subOsc) {
-      const subDrone = finalSubDrone * 0.5; // 9Hz deep infrasound
+      const subDrone = finalSubDrone * 0.5; // 7Hz deep infrasound
       this.subOsc.frequency.setTargetAtTime(subDrone, now, 0.06);
     }
 
-    // Lowpass filter sweeps inward into heavy resonant containment, then narrows intensely
+    // Lowpass filter sweeps inward into heavy resonant containment, then narrows intensely (final vacuum inhale)
     const openFilter = 450.0 + clampedFracture * 2200.0;
     const inhaleFilter = lerp(openFilter, 220.0, clampedMemory * 0.85);
     const collapseFilter = lerp(inhaleFilter, 120.0, clampedCollapse);
-    this.droneFilter.frequency.setTargetAtTime(collapseFilter, now, 0.08);
-    this.droneFilter.Q.setTargetAtTime(5.5 + clampedFracture * 4.0 + clampedMemory * 7.5 + clampedCollapse * 8.0, now, 0.08);
+    const thresholdFilter = lerp(collapseFilter, 60.0, clampedThreshold); // 120Hz -> 60Hz final vacuum inhale
+    this.droneFilter.frequency.setTargetAtTime(thresholdFilter, now, 0.08);
+    this.droneFilter.Q.setTargetAtTime(5.5 + clampedFracture * 4.0 + clampedMemory * 7.5 + clampedCollapse * 8.0 + clampedThreshold * 12.0, now, 0.08);
 
-    // 3. Remove Debris Resonance, Harmonic Suspension & Collapse Tension:
+    // 3. High Harmonic Tension:
     if (this.crystalResonator1 && this.crystalResonator2) {
       const debrisFlutter1 = 1200.0 + Math.sin(now * 18.0) * (clampedFracture * 180.0) + Math.cos(now * 6.5) * 80.0;
       const debrisFlutter2 = 2400.0 + Math.cos(now * 24.0) * (clampedFracture * 220.0) + Math.sin(now * 9.0) * 120.0;
 
-      // Pure suspended harmonics (open fifth crystalline overtone)
+      // Pure suspended harmonics
       const suspendedFreq1 = 587.33 + Math.sin(now * 1.2) * 4.0;
       const suspendedFreq2 = 880.00 + Math.cos(now * 1.5) * 6.0;
 
-      // Collapse climbs into acute harmonic tension
+      // Collapse & Threshold climb into maximum crystalline tension
       const collapseFreq1 = 1174.66; // D6 overtone
       const collapseFreq2 = 1760.00; // A6 overtone
+      const thresholdFreq1 = 2349.32; // D7 extreme tension
+      const thresholdFreq2 = 3520.00; // A7 extreme tension
 
-      const targetFreq1 = lerp(lerp(debrisFlutter1, suspendedFreq1, clampedMemory), collapseFreq1, clampedCollapse);
-      const targetFreq2 = lerp(lerp(debrisFlutter2, suspendedFreq2, clampedMemory), collapseFreq2, clampedCollapse);
+      const targetFreq1 = lerp(lerp(lerp(debrisFlutter1, suspendedFreq1, clampedMemory), collapseFreq1, clampedCollapse), thresholdFreq1, clampedThreshold);
+      const targetFreq2 = lerp(lerp(lerp(debrisFlutter2, suspendedFreq2, clampedMemory), collapseFreq2, clampedCollapse), thresholdFreq2, clampedThreshold);
 
       this.crystalResonator1.frequency.setTargetAtTime(targetFreq1, now, 0.06);
       this.crystalResonator2.frequency.setTargetAtTime(targetFreq2, now, 0.06);
 
-      // Higher Q creates ringing singing-bowl harmonic suspension
-      this.crystalResonator1.Q.setTargetAtTime(18.0 + clampedMemory * 16.0 + clampedCollapse * 12.0, now, 0.08);
-      this.crystalResonator2.Q.setTargetAtTime(22.0 + clampedMemory * 18.0 + clampedCollapse * 14.0, now, 0.08);
+      // Higher Q creates singing-bowl overtone ring
+      this.crystalResonator1.Q.setTargetAtTime(18.0 + clampedMemory * 16.0 + clampedCollapse * 12.0 + clampedThreshold * 15.0, now, 0.08);
+      this.crystalResonator2.Q.setTargetAtTime(22.0 + clampedMemory * 18.0 + clampedCollapse * 14.0 + clampedThreshold * 15.0, now, 0.08);
     }
 
     if (this.crystalGain) {
-      // Debris resonance is removed, replaced by pristine harmonic singing level
       const debrisLevel = 0.12 + clampedFracture * 0.32;
       const suspensionLevel = 0.28;
       const baseCrystalGain = lerp(debrisLevel, suspensionLevel, clampedMemory);
-      // At final collapse completion (>= 0.90), drops toward silence
-      const collapseDrop = clampedCollapse >= 0.90 ? (1.0 - (clampedCollapse - 0.90) / 0.10) : 1.0;
-      const effectiveCrystalGain = lerp(baseCrystalGain, 0.40, clampedCollapse) * collapseDrop;
+      // Drops toward complete silence at threshold completion (>= 0.85)
+      const silenceDrop = clampedThreshold >= 0.85 ? Math.max(0.0, 1.0 - (clampedThreshold - 0.85) / 0.15) : 1.0;
+      const effectiveCrystalGain = lerp(baseCrystalGain, 0.40, clampedCollapse) * silenceDrop;
       this.crystalGain.gain.setTargetAtTime(effectiveCrystalGain, now, 0.08);
     }
 
-    // 4. Tension, Shearing & Rising Energy Pressure -> Near Silence:
+    // 4. Tension, Shearing & Rising Energy Pressure -> Complete Silence:
     const shearFreq = 2200.0 + clampedFracture * 2800.0 + Math.sin(now * 18.0) * 400.0;
     const suspendedShear = 3200.0;
     const collapseShear = 4800.0;
+    const thresholdShear = 6400.0;
     this.tensionFilter.frequency.setTargetAtTime(
-      lerp(lerp(shearFreq, suspendedShear, clampedMemory), collapseShear, clampedCollapse),
+      lerp(lerp(lerp(shearFreq, suspendedShear, clampedMemory), collapseShear, clampedCollapse), thresholdShear, clampedThreshold),
       now,
       0.06
     );
 
-    const activeTensionGain = (0.12 + clampedFracture * 0.28) * (1.0 - clampedMemory * 0.65) * (1.0 - clampedCollapse * 0.7);
+    const activeTensionGain = (0.12 + clampedFracture * 0.28) * (1.0 - clampedMemory * 0.65) * (1.0 - clampedCollapse * 0.7) * (1.0 - clampedThreshold);
     this.tensionGain.gain.setTargetAtTime(activeTensionGain, now, 0.06);
 
-    // Rising energy pressure: master gain swells steadily under containment,
-    // then at final completion (> 0.90), plunges into near silence (breathless pause before dispersion)
+    // Master gain: rises under containment pressure, then plunges into COMPLETE SILENCE at completion
     if (this.masterGain) {
       const risingPressure = 0.70 + clampedFracture * 0.10 + clampedMemory * 0.18 + clampedCollapse * 0.15;
-      const nearSilence = 0.015;
-      const finalGain = clampedCollapse >= 0.90
-        ? lerp(risingPressure, nearSilence, (clampedCollapse - 0.90) / 0.10)
-        : risingPressure;
-      this.masterGain.gain.setTargetAtTime(finalGain, now, 0.08);
+      const completeSilence = 0.0001;
+      let finalGain = risingPressure;
+      if (clampedThreshold >= 0.80) {
+        // Absolute complete silence before dispersion
+        finalGain = lerp(risingPressure, completeSilence, (clampedThreshold - 0.80) / 0.20);
+      } else if (clampedCollapse >= 0.90) {
+        finalGain = lerp(risingPressure, 0.02, (clampedCollapse - 0.90) / 0.10);
+      }
+      this.masterGain.gain.setTargetAtTime(finalGain, now, 0.06);
     }
   }
 

@@ -33,6 +33,7 @@ export function useTimelineController() {
   const setFractureProgress = useExperienceStore((state) => state.setFractureProgress);
   const setFacetMemoryProgress = useExperienceStore((state) => state.setFacetMemoryProgress);
   const setCollapseProgress = useExperienceStore((state) => state.setCollapseProgress);
+  const setSingularityThresholdProgress = useExperienceStore((state) => state.setSingularityThresholdProgress);
 
   useEffect(() => {
     // 1. Cross-Scene Transition Progress (Act I -> Act II boundary)
@@ -68,6 +69,7 @@ export function useTimelineController() {
     let fractureProg = 0.0;
     let facetMemProg = 0.0;
     let collapseProg = 0.0;
+    let thresholdProg = 0.0;
 
     if (isPreviewMode) {
       // 0 - 60s Cinematic sequence:
@@ -108,27 +110,36 @@ export function useTimelineController() {
         tensionProg = 1.0;
         stillness = 1.0;
       } else if (previewTime >= 47.5) {
-        // Phase 9.0, 9.1, 9.15, 9.16 Act IV
-        const t = clamp((previewTime - 47.5) / 13.0, 0.0, 1.0);
+        // Phase 9.0, 9.1, 9.15, 9.16, 9.17 Act IV
+        const t = clamp((previewTime - 47.5) / 16.0, 0.0, 1.0);
         act4Prog = t;
         memProg = 1.0;
         tensionProg = 1.0;
         stillness = Math.max(0.0, 1.0 - t * 4.0); // Quick unfreeze on fracture snap
 
-        if (previewTime >= 57.5) {
-          // Phase 9.16: Memory Collapse Trigger (3s sequence: 57.5s -> 60.5s)
+        if (previewTime >= 60.0) {
+          // Phase 9.17: Singularity Threshold (3.5s sequence: 60.0s -> 63.5s)
           fractureProg = 1.0;
           facetMemProg = 1.0;
-          collapseProg = clamp((previewTime - 57.5) / 3.0, 0.0, 1.0);
+          collapseProg = 1.0;
+          thresholdProg = clamp((previewTime - 60.0) / 3.5, 0.0, 1.0);
+        } else if (previewTime >= 57.5) {
+          // Phase 9.16: Memory Collapse Trigger (2.5s sequence: 57.5s -> 60.0s)
+          fractureProg = 1.0;
+          facetMemProg = 1.0;
+          collapseProg = clamp((previewTime - 57.5) / 2.5, 0.0, 1.0);
+          thresholdProg = 0.0;
         } else if (previewTime >= 53.5) {
           // Phase 9.15: Facet Memory Drift
           fractureProg = 1.0;
           facetMemProg = clamp((previewTime - 53.5) / 4.0, 0.0, 1.0);
           collapseProg = 0.0;
+          thresholdProg = 0.0;
         } else {
           fractureProg = clamp((previewTime - 47.5) / 6.0, 0.0, 1.0);
           facetMemProg = 0.0;
           collapseProg = 0.0;
+          thresholdProg = 0.0;
         }
       } else if (previewTime >= 35.0) {
         tensionProg = clamp((previewTime - 35.0) / 3.0, 0.0, 0.85);
@@ -173,12 +184,24 @@ export function useTimelineController() {
         act3Prog = rawAct3 * rawAct3 * (3 - 2 * rawAct3);
       }
 
-      // Phase 8.75 & Phase 9.0 & Phase 9.15 & Phase 9.16 Act IV Timeline
-      if (scrollProgress >= 0.985) {
-        // S = 0.985 - 1.00: Phase 9.16 Memory Collapse Trigger
+      // Phase 8.75 & Phase 9.0 & Phase 9.15 & Phase 9.16 & Phase 9.17 Act IV Timeline
+      if (scrollProgress >= 0.995) {
+        // S = 0.995 - 1.00: Phase 9.17 Singularity Threshold
         fractureProg = 1.0;
         facetMemProg = 1.0;
-        collapseProg = clamp((scrollProgress - 0.985) / 0.015, 0.0, 1.0);
+        collapseProg = 1.0;
+        thresholdProg = clamp((scrollProgress - 0.995) / 0.005, 0.0, 1.0);
+        act4Prog = 1.0;
+        monolithPh = 'FINAL_STILLNESS';
+        memProg = 1.0;
+        tensionProg = 1.0;
+        stillness = 0.0;
+      } else if (scrollProgress >= 0.985) {
+        // S = 0.985 - 0.995: Phase 9.16 Memory Collapse Trigger
+        fractureProg = 1.0;
+        facetMemProg = 1.0;
+        collapseProg = clamp((scrollProgress - 0.985) / 0.010, 0.0, 1.0);
+        thresholdProg = 0.0;
         act4Prog = 1.0;
         monolithPh = 'FINAL_STILLNESS';
         memProg = 1.0;
@@ -189,6 +212,7 @@ export function useTimelineController() {
         fractureProg = 1.0;
         facetMemProg = clamp((scrollProgress - 0.965) / 0.020, 0.0, 1.0);
         collapseProg = 0.0;
+        thresholdProg = 0.0;
         act4Prog = 1.0;
         monolithPh = 'FINAL_STILLNESS';
         memProg = 1.0;
@@ -200,6 +224,7 @@ export function useTimelineController() {
         fractureProg = t;
         facetMemProg = 0.0;
         collapseProg = 0.0;
+        thresholdProg = 0.0;
         act4Prog = clamp((scrollProgress - 0.93) / 0.07, 0.0, 1.0);
         monolithPh = 'FINAL_STILLNESS';
         memProg = 1.0;
@@ -246,6 +271,7 @@ export function useTimelineController() {
     setFractureProgress(fractureProg);
     setFacetMemoryProgress(facetMemProg);
     setCollapseProgress(collapseProg);
+    setSingularityThresholdProgress(thresholdProg);
   }, [
     scrollProgress,
     isPreviewMode,
@@ -265,5 +291,6 @@ export function useTimelineController() {
     setFractureProgress,
     setFacetMemoryProgress,
     setCollapseProgress,
+    setSingularityThresholdProgress,
   ]);
 }

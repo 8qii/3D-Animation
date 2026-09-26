@@ -43,10 +43,12 @@ function SingleFacetMesh({ facet }: SingleFacetProps) {
     const fractureProgress = store.fractureProgress;
     const facetMemory = store.facetMemoryProgress;
     const collapse = store.collapseProgress;
+    const threshold = store.singularityThresholdProgress;
 
     // Time Dilation Moment: facet velocity decelerates 100% -> 20%
     // Phase 9.16 Time Freeze: at final 10% (collapse > 0.90), motion drops 20% -> 0%
-    const freezeFactor = collapse >= 0.90 ? Math.max(0, 1.0 - (collapse - 0.90) / 0.10) : 1.0;
+    // Phase 9.17 Singularity Threshold: Absolute Stillness, velocity strictly = 0
+    const freezeFactor = (threshold > 0.0001 || collapse >= 0.90) ? (threshold > 0.0001 ? 0.0 : Math.max(0, 1.0 - (collapse - 0.90) / 0.10)) : 1.0;
     const facetVelocityScale = (1.0 - facetMemory * 0.80) * freezeFactor;
 
     if (materialRef.current) {

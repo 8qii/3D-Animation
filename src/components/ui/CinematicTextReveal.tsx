@@ -16,26 +16,29 @@ export function CinematicTextReveal() {
   const fractureProgress = useExperienceStore((state) => state.fractureProgress);
   const facetMemoryProgress = useExperienceStore((state) => state.facetMemoryProgress);
   const collapseProgress = useExperienceStore((state) => state.collapseProgress);
+  const singularityThresholdProgress = useExperienceStore((state) => state.singularityThresholdProgress);
   const mouseWorld = useExperienceStore((state) => state.mouseWorld);
   const isMuted = useExperienceStore((state) => state.isMuted);
   const toggleMute = useExperienceStore((state) => state.toggleMute);
 
   // Compute opacities based on narrative progression
-  const isAct4 = fractureProgress > 0.001 || collapseProgress > 0.001;
-  const totalPresence = Math.max(transitionProgress, act2Progress, act3Progress, fractureProgress, collapseProgress);
+  const isAct4 = fractureProgress > 0.001 || collapseProgress > 0.001 || singularityThresholdProgress > 0.001;
+  const totalPresence = Math.max(transitionProgress, act2Progress, act3Progress, fractureProgress, collapseProgress, singularityThresholdProgress);
   const act1Opacity = Math.max(0, 1 - totalPresence * 3.5);
 
   const isAct3 = (materialLockProgress >= 0.40 || act3Progress > 0.08) && !isAct4;
   const act2Opacity = !isAct3 && !isAct4 ? Math.min(1, Math.max(0, (totalPresence - 0.12) / 0.65)) : Math.max(0, 1 - materialLockProgress * 2.5);
   const act3Opacity = !isAct4 ? Math.min(1, Math.max(0, (materialLockProgress - 0.20) / 0.70)) : Math.max(0, 1 - fractureProgress * 2.5);
-  const act4Opacity = Math.min(1, Math.max(fractureProgress * 2.0, collapseProgress * 2.0));
+  const act4Opacity = Math.min(1, Math.max(fractureProgress * 2.0, collapseProgress * 2.0, singularityThresholdProgress * 2.0));
 
   const isIgnited = transitionProgress >= 0.65 || act2Progress >= 0.20;
 
   // Formatting phase badge text
   let phaseLabel = 'QUANTUM VACUUM';
   if (isAct4) {
-    if (collapseProgress > 0.05) {
+    if (singularityThresholdProgress > 0.05) {
+      phaseLabel = 'SINGULARITY THRESHOLD';
+    } else if (collapseProgress > 0.05) {
       phaseLabel = 'MEMORY COLLAPSE';
     } else if (facetMemoryProgress > 0.05) {
       phaseLabel = 'STATE: GEOMETRY RELEASED';
@@ -256,14 +259,18 @@ export function CinematicTextReveal() {
 
           <div className="pt-2 font-mono text-[9px] tracking-[0.32em] text-cyan-400/90 uppercase space-y-1">
             <div>
-              {collapseProgress > 0.05
+              {singularityThresholdProgress > 0.05
+                ? 'STRUCTURE: TRANSCENDED'
+                : collapseProgress > 0.05
                 ? 'GENESIS: READY FOR DISPERSION'
                 : facetMemoryProgress > 0.05
                 ? 'STRUCTURE: SUSPENDED IN MEMORY // 20 FACETS ENTANGLED'
                 : `STRUCTURE: SEPARATING // FACET COUNT: ${Math.max(0, Math.round(20 * (1.0 - Math.min(1.0, fractureProgress * 1.1))))} → 0`}
             </div>
             <div className="text-amber-400/90">
-              {collapseProgress > 0.05
+              {singularityThresholdProgress > 0.05
+                ? 'ENERGY: MAXIMUM POTENTIAL // SILENCE: ABSOLUTE'
+                : collapseProgress > 0.05
                 ? 'ENERGY: CRITICAL MASS // TIME FREEZE: 0%'
                 : facetMemoryProgress > 0.05
                 ? 'ENERGY: AWAITING DISPERSION // TIME DILATION: ACTIVE (0.2x)'

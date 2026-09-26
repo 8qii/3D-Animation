@@ -174,6 +174,7 @@ export function FacetMemoryField() {
       uTime: { value: 0 },
       uFacetMemoryProgress: { value: 0 },
       uCollapseProgress: { value: 0 },
+      uThresholdProgress: { value: 0 },
     }),
     []
   );
@@ -183,6 +184,7 @@ export function FacetMemoryField() {
       uTime: { value: 0 },
       uFractureProgress: { value: 0 },
       uCollapseProgress: { value: 0 },
+      uThresholdProgress: { value: 0 },
     }),
     []
   );
@@ -194,8 +196,9 @@ export function FacetMemoryField() {
     const fracture = store.fractureProgress;
     const facetMemory = store.facetMemoryProgress;
     const collapse = store.collapseProgress;
+    const threshold = store.singularityThresholdProgress;
 
-    const isActive = fracture > 0.05 || facetMemory > 0.001 || collapse > 0.001;
+    const isActive = fracture > 0.05 || facetMemory > 0.001 || collapse > 0.001 || threshold > 0.001;
     if (groupRef.current) {
       groupRef.current.visible = isActive;
     }
@@ -206,16 +209,21 @@ export function FacetMemoryField() {
       lineMatRef.current.uniforms.uTime.value = time;
       lineMatRef.current.uniforms.uFacetMemoryProgress.value = facetMemory;
       lineMatRef.current.uniforms.uCollapseProgress.value = collapse;
+      lineMatRef.current.uniforms.uThresholdProgress.value = threshold;
     }
 
     if (streamMatRef.current) {
       streamMatRef.current.uniforms.uTime.value = time;
-      // Dilation slows photon stream velocity: 100% -> 30%, freezes at 90% collapse
+      // In threshold, all photons are absorbed completely (visibility = 0)
+      const photonAbsorption = Math.max(0.0, 1.0 - threshold * 1.5);
       const freezeFactor = collapse >= 0.90 ? Math.max(0, 1.0 - (collapse - 0.90) / 0.10) : 1.0;
-      const dilation = (1.0 - facetMemory * 0.70) * freezeFactor;
+      const dilation = (1.0 - facetMemory * 0.70) * freezeFactor * photonAbsorption;
       streamMatRef.current.uniforms.uFractureProgress.value = facetMemory * dilation;
       if (streamMatRef.current.uniforms.uCollapseProgress) {
         streamMatRef.current.uniforms.uCollapseProgress.value = collapse;
+      }
+      if (streamMatRef.current.uniforms.uThresholdProgress) {
+        streamMatRef.current.uniforms.uThresholdProgress.value = threshold;
       }
     }
 
@@ -238,35 +246,63 @@ export function FacetMemoryField() {
     }
 
     // Update 30 line connections in BufferGeometry
+    // In Phase 9.17: When threshold > 0, threads have contracted to 0,
+    // but a final outward energy pulse expands across all 20 facet positions
     if (lineGeomRef.current) {
       const posAttr = lineGeomRef.current.getAttribute('position') as THREE.BufferAttribute;
       if (posAttr) {
-        for (let i = 0; i < adjacencyPairs.length; i++) {
-          const pair = adjacencyPairs[i];
-          const pA = currentPositions[pair.faceA];
-          const pB = currentPositions[pair.faceB];
+        if (threshold > 0.001) {
+          // Final energy pulse travels from core outwards to all 20 facet coordinates
+          const pulseWave = Math.sin(threshold * Math.PI); // 0 -> 1 -> 0
+          for (let i = 0; i < adjacencyPairs.length; i++) {
+            const pair = adjacencyPairs[i];
+            const pA = currentPositions[pair.faceA];
+            const pB = currentPositions[pair.faceB];
 
-          const v0 = i * 6;
-          const v1 = i * 6 + 3;
+            // Trace a short shockwave filament expanding outward to facet coordinates
+            const waveA = pA.clone().multiplyScalar(threshold);
+            const waveB = pB.clone().multiplyScalar(threshold);
 
-          posAttr.array[v0] = pA.x;
-          posAttr.array[v0 + 1] = pA.y;
-          posAttr.array[v0 + 2] = pA.z;
+            const v0 = i * 6;
+            const v1 = i * 6 + 3;
 
-          posAttr.array[v1] = pB.x;
-          posAttr.array[v1 + 1] = pB.y;
-          posAttr.array[v1 + 2] = pB.z;
+            posAttr.array[v0] = waveA.x;
+            posAttr.array[v0 + 1] = waveA.y;
+            posAttr.array[v0 + 2] = waveA.z;
+
+            posAttr.array[v1] = waveB.x;
+            posAttr.array[v1 + 1] = waveB.y;
+            posAttr.array[v1 + 2] = waveB.z;
+          }
+        } else {
+          for (let i = 0; i < adjacencyPairs.length; i++) {
+            const pair = adjacencyPairs[i];
+            const pA = currentPositions[pair.faceA];
+            const pB = currentPositions[pair.faceB];
+
+            const v0 = i * 6;
+            const v1 = i * 6 + 3;
+
+            posAttr.array[v0] = pA.x;
+            posAttr.array[v0 + 1] = pA.y;
+            posAttr.array[v0 + 2] = pA.z;
+
+            posAttr.array[v1] = pB.x;
+            posAttr.array[v1 + 1] = pB.y;
+            posAttr.array[v1 + 2] = pB.z;
+          }
         }
         posAttr.needsUpdate = true;
       }
     }
 
     // Update photon streams between facets:
-    // When collapse is active, stream direction reverses toward center core (0,0,0)
+    // Completely absorbed into core during threshold (distance scaled to 0)
     if (streamGeomRef.current && (facetMemory > 0.01 || collapse > 0.01)) {
       const posAttr = streamGeomRef.current.getAttribute('position') as THREE.BufferAttribute;
       if (posAttr) {
         const freezeFactor = collapse >= 0.90 ? Math.max(0, 1.0 - (collapse - 0.90) / 0.10) : 1.0;
+        const absorptionFactor = Math.max(0.0, 1.0 - threshold * 2.0); // Drops to 0 at 50% threshold
         for (let i = 0; i < PHOTON_STREAM_COUNT; i++) {
           const pairIndex = i % adjacencyPairs.length;
           const pair = adjacencyPairs[pairIndex];
@@ -276,12 +312,11 @@ export function FacetMemoryField() {
           const speed = streamSpeeds[i] * freezeFactor;
           const seed = streamSeeds[i];
 
-          if (collapse > 0.001) {
-            // Reversing stream direction toward quantum core (0,0,0)
+          if (collapse > 0.001 || threshold > 0.001) {
+            // Reversing stream direction toward quantum core (0,0,0) and absorbing
             const midPoint = new THREE.Vector3().addVectors(pA, pB).multiplyScalar(0.5);
-            // Cycle flows backward from facet midpoint into (0,0,0)
             const collapseCycle = (1.0 - (time * 0.8 * speed + seed) % 1.0);
-            const targetPos = midPoint.multiplyScalar(collapseCycle * (1.0 - collapse * 0.85));
+            const targetPos = midPoint.multiplyScalar(collapseCycle * (1.0 - collapse * 0.85) * absorptionFactor);
 
             posAttr.array[i * 3] = targetPos.x;
             posAttr.array[i * 3 + 1] = targetPos.y;

@@ -49,7 +49,7 @@ export function CameraRig() {
     let stageProgress = 0; // [0..1] within the active stage
 
     if (isPreviewMode) {
-      const nextTime = (previewTime + delta) % 61.0;
+      const nextTime = (previewTime + delta) % 64.0;
       setPreviewTime(nextTime);
 
       if (nextTime < 12.0) {
@@ -81,10 +81,11 @@ export function CameraRig() {
     const fracture = store.fractureProgress;
     const facetMemory = store.facetMemoryProgress;
     const collapse = store.collapseProgress;
+    const threshold = store.singularityThresholdProgress;
 
     // Dynamic FOV based on choreo stage, tension optical compression, and fracture expansion:
     // 45° (Act I) -> 42° (Act II) -> 39° (Witness) -> 38° (Contemplation) -> 32° (Maximum Cinematic Compression)
-    // -> 38° (Act IV Fracture Expansion) -> 39.5° (Facet Memory Drift) -> 36° (Phase 9.16 Collapse Lock)
+    // -> 38° (Act IV Fracture Expansion) -> 39.5° (Facet Memory Drift) -> 36° (Phase 9.16 & Phase 9.17 Collapse/Threshold Lock)
     let baseFov = 45.0;
     if (choreoStage === 0) {
       baseFov = THREE.MathUtils.lerp(45.0, 42.0, stageProgress);
@@ -102,15 +103,15 @@ export function CameraRig() {
         if (facetMemory > 0.001) {
           baseFov = THREE.MathUtils.lerp(baseFov, 39.5, facetMemory);
         }
-        // Phase 9.16: Lock FOV to 36° during collapse
-        if (collapse > 0.001) {
-          baseFov = THREE.MathUtils.lerp(baseFov, 36.0, collapse);
+        // Phase 9.16 & 9.17: Lock FOV strictly to 36° during collapse and threshold
+        if (collapse > 0.001 || threshold > 0.001) {
+          baseFov = THREE.MathUtils.lerp(baseFov, 36.0, Math.max(collapse, threshold));
         }
       }
     }
 
-    // Lens breathing freezes to 0 when entering complete stillness or collapse
-    const collapseFreezeFactor = collapse >= 0.90 ? Math.max(0, 1.0 - (collapse - 0.90) / 0.10) : 1.0;
+    // Lens breathing freezes completely to 0 during stillness, collapse, and threshold
+    const collapseFreezeFactor = (collapse >= 0.90 || threshold > 0.001) ? 0.0 : 1.0;
     const respirationScale = Math.max(0.0, 1.0 - stillness) * (1.0 - collapse * 0.8) * collapseFreezeFactor;
     const lensBreathing = (Math.sin(time * 0.314159) * 0.25 - scrollEnergy * 0.65) * respirationScale;
     const targetFov = baseFov + lensBreathing;
@@ -120,16 +121,15 @@ export function CameraRig() {
       activeCamera.updateProjectionMatrix();
     }
 
-    // Natural Organic Breathing & Pointer Parallax
-    // Slower, suspended breathing: 0.02Hz -> 0Hz at final stillness
+    // Natural Organic Breathing & Pointer Parallax: 0 during threshold
     const breathFreq = THREE.MathUtils.lerp(0.314159, 0.12, tension) * respirationScale;
     const breathingY = Math.sin(time * breathFreq) * THREE.MathUtils.lerp(0.035, 0.014, tension) * respirationScale;
     const driftZ = Math.cos(time * 0.08) * 0.04 * respirationScale;
-    const parallaxDamp = THREE.MathUtils.lerp(1.0, 0.1, stillness) * (1.0 - collapse * 0.9);
+    const parallaxDamp = THREE.MathUtils.lerp(1.0, 0.1, stillness) * (1.0 - collapse * 0.9) * (1.0 - threshold);
     const parallaxX = pointer.x * 0.25 * parallaxDamp;
     const parallaxY = pointer.y * 0.18 * parallaxDamp;
 
-    // Subliminal micro-tremor under mechanical strain (fades out in final stillness)
+    // Subliminal micro-tremor: 0 during threshold
     const microTremorX = Math.sin(time * 52.0) * 0.0025 * tension * respirationScale;
     const microTremorY = Math.cos(time * 58.0) * 0.0025 * tension * respirationScale;
 
@@ -184,16 +184,16 @@ export function CameraRig() {
       const orbitY = Math.cos(memoryOrbitPhase * 0.8) * 0.20 * facetMemory * orbitDamp;
       const orbitZ = Math.sin(memoryOrbitPhase * 0.5) * 0.35 * facetMemory * orbitDamp;
 
-      // Phase 9.16: Lock position at [4.0, 3.0, 5.8]
-      const finalHoldX = THREE.MathUtils.lerp(THREE.MathUtils.lerp(recoilPosX, 4.0, facetMemory * 0.65) + orbitX, 4.0, collapse);
-      const finalHoldY = THREE.MathUtils.lerp(THREE.MathUtils.lerp(recoilPosY, 3.0, facetMemory * 0.65) + orbitY, 3.0, collapse);
-      const finalHoldZ = THREE.MathUtils.lerp(THREE.MathUtils.lerp(recoilPosZ, 5.8, facetMemory * 0.65) + orbitZ, 5.8, collapse);
+      // Phase 9.16 & Phase 9.17: Lock position at [4.0, 3.0, 5.8]
+      const finalHoldX = THREE.MathUtils.lerp(THREE.MathUtils.lerp(recoilPosX, 4.0, facetMemory * 0.65) + orbitX, 4.0, Math.max(collapse, threshold));
+      const finalHoldY = THREE.MathUtils.lerp(THREE.MathUtils.lerp(recoilPosY, 3.0, facetMemory * 0.65) + orbitY, 3.0, Math.max(collapse, threshold));
+      const finalHoldZ = THREE.MathUtils.lerp(THREE.MathUtils.lerp(recoilPosZ, 5.8, facetMemory * 0.65) + orbitZ, 5.8, Math.max(collapse, threshold));
 
       // Impulse shock transient on initial crack (fades out as memory drift enters suspended stillness)
       const fractureShock = Math.sin(Math.min(fracture * Math.PI, Math.PI)) * Math.exp(-fracture * 2.2) * (1.0 - facetMemory);
-      const shockZ = fractureShock * 0.35 * (1.0 - collapse);
-      const shockY = fractureShock * 0.12 * (1.0 - collapse);
-      const tremorDecay = (1.0 - fracture * 0.6) * (1.0 - facetMemory * 0.9) * (1.0 - collapse);
+      const shockZ = fractureShock * 0.35 * (1.0 - collapse) * (1.0 - threshold);
+      const shockY = fractureShock * 0.12 * (1.0 - collapse) * (1.0 - threshold);
+      const tremorDecay = (1.0 - fracture * 0.6) * (1.0 - facetMemory * 0.9) * (1.0 - collapse) * (1.0 - threshold);
       const fractureTremorX = Math.sin(time * 74.0) * 0.007 * tremorDecay * Math.min(1.0, fracture * 4.0);
       const fractureTremorY = Math.cos(time * 82.0) * 0.007 * tremorDecay * Math.min(1.0, fracture * 4.0);
 
@@ -203,7 +203,7 @@ export function CameraRig() {
         finalHoldZ + driftZ + shockZ
       );
 
-      // LookAt locks directly onto the core [0, 0, 0] under collapse
+      // LookAt locks directly onto the core [0, 0, 0] under collapse and threshold
       const targetY = THREE.MathUtils.lerp(
         THREE.MathUtils.lerp(
           THREE.MathUtils.lerp(0.05, 0.18, ease),
@@ -211,10 +211,10 @@ export function CameraRig() {
           contemplationFactor
         ),
         0.0,
-        collapse
+        Math.max(collapse, threshold)
       );
       targetLookAt.current.set(
-        THREE.MathUtils.lerp(THREE.MathUtils.lerp(0.08, 0.0, ease), 0.0, collapse),
+        THREE.MathUtils.lerp(THREE.MathUtils.lerp(0.08, 0.0, ease), 0.0, Math.max(collapse, threshold)),
         targetY,
         0.0
       );
