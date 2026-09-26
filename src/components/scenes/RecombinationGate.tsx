@@ -25,6 +25,7 @@ export function RecombinationGate() {
       uArchetypeColor: { value: new THREE.Vector3(0.3, 0.85, 1.0) },
       uUniverseSynchronized: { value: 0 },
       uBreathPhase: { value: 0 },
+      uPortalExpansion: { value: 0 },
     }),
     []
   );
@@ -34,6 +35,8 @@ export function RecombinationGate() {
     const store = useExperienceStore.getState();
     const act5GateArmed = store.act5GateArmed;
     const act5Active = store.act5Active;
+    const ceremonyActive = store.ceremonyActive;
+    const portalExpansionProgress = store.portalExpansionProgress;
     const singularity = store.singularityThresholdProgress;
     const aperture = store.gateApertureProgress;
     const activation = store.gateActivationProgress;
@@ -51,7 +54,7 @@ export function RecombinationGate() {
       syncFlashRef.current = Math.max(0, syncFlashRef.current - delta * 0.85);
     }
 
-    // Archetype color styling
+    // Archetype personal color styling
     let targetColor = new THREE.Vector3(0.35, 0.85, 1.0);
     if (archetype === 'THE_WITNESS') {
       targetColor = new THREE.Vector3(0.25, 0.65, 1.0);
@@ -70,16 +73,18 @@ export function RecombinationGate() {
       ringMaterialRef.current.uniforms.uArchetypeColor.value.copy(targetColor);
       ringMaterialRef.current.uniforms.uUniverseSynchronized.value = isSync ? 1.0 : 0.0;
       ringMaterialRef.current.uniforms.uBreathPhase.value = breathPhase;
+      ringMaterialRef.current.uniforms.uPortalExpansion.value = portalExpansionProgress;
     }
 
     if (groupRef.current) {
-      // Visible once singularity threshold starts or Act V gate is armed / active
-      const isVisible = singularity > 0.05 || act5GateArmed || act5Active;
+      // Visible once singularity threshold starts, Act V gate armed, or ceremony active
+      const isVisible = singularity > 0.05 || act5GateArmed || act5Active || ceremonyActive;
       groupRef.current.visible = isVisible;
 
-      // Subtle breath dilation
+      // Subtle breath dilation + Ceremonial Portal Expansion scale boost
       const breathScale = 1.0 + Math.sin(time * 1.5) * 0.025;
-      const targetScale = (0.75 + aperture * 0.45 + activation * 0.2) * breathScale;
+      const expansionScale = 1.0 + portalExpansionProgress * 2.8;
+      const targetScale = (0.75 + aperture * 0.45 + activation * 0.2) * breathScale * expansionScale;
       groupRef.current.scale.set(targetScale, targetScale, targetScale);
 
       // Face camera softly while maintaining sacred alignment
@@ -87,10 +92,10 @@ export function RecombinationGate() {
     }
 
     if (torusRef.current) {
-      torusRef.current.rotation.z += delta * (0.35 + activation * 1.2);
+      torusRef.current.rotation.z += delta * (0.35 + activation * 1.2 + portalExpansionProgress * 2.0);
     }
     if (outerTorusRef.current) {
-      outerTorusRef.current.rotation.z -= delta * (0.22 + activation * 0.8);
+      outerTorusRef.current.rotation.z -= delta * (0.22 + activation * 0.8 + portalExpansionProgress * 1.5);
     }
   });
 

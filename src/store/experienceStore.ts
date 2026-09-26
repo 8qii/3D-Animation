@@ -252,6 +252,28 @@ interface ExperienceState {
   act5Active: boolean;
   setAct5Active: (val: boolean) => void;
 
+  // Phase 9.23 Aetheria Recombination Ceremony
+  ceremonyActive: boolean;
+  setCeremonyActive: (val: boolean) => void;
+  ceremonyProgress: number; // 0 to 1
+  setCeremonyProgress: (val: number) => void;
+  ceremonyStep: 'DNA_ENGRAVING' | 'BREATH_LOCK' | 'PORTAL_EXPANSION' | 'REALITY_RECONSTRUCTION';
+  setCeremonyStep: (step: 'DNA_ENGRAVING' | 'BREATH_LOCK' | 'PORTAL_EXPANSION' | 'REALITY_RECONSTRUCTION') => void;
+  ceremonyBreathStage: 'INHALE' | 'SUSPENSION' | 'EXHALE';
+  setCeremonyBreathStage: (stage: 'INHALE' | 'SUSPENSION' | 'EXHALE') => void;
+  ceremonyBreathPhase: number; // 0 to 1
+  setCeremonyBreathPhase: (phase: number) => void;
+  dnaEngravingProgress: number; // 0 to 1
+  setDnaEngravingProgress: (val: number) => void;
+  ceremonyNarrativeStep: number; // 0 to 4
+  setCeremonyNarrativeStep: (step: number) => void;
+  portalExpansionProgress: number; // 0 to 1
+  setPortalExpansionProgress: (val: number) => void;
+  handoffFlashProgress: number; // 0 to 1
+  setHandoffFlashProgress: (val: number) => void;
+  recombinationPrepared: boolean;
+  setRecombinationPrepared: (val: boolean) => void;
+
 
   // Kinetic Scroll Energy (Thermodynamics)
   scrollEnergy: number; // 0 (cold vacuum) to 1 (excited plasma)
@@ -581,6 +603,32 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   setAct5HandshakeCompleted: (act5HandshakeCompleted: boolean) => set({ act5HandshakeCompleted }),
   act5Active: false,
   setAct5Active: (act5Active: boolean) => set({ act5Active }),
+
+  // Phase 9.23 Aetheria Recombination Ceremony
+  ceremonyActive: false,
+  setCeremonyActive: (ceremonyActive: boolean) => set({ ceremonyActive }),
+  ceremonyProgress: 0,
+  setCeremonyProgress: (ceremonyProgress: number) => set({ ceremonyProgress }),
+  ceremonyStep: 'DNA_ENGRAVING',
+  setCeremonyStep: (
+    ceremonyStep: 'DNA_ENGRAVING' | 'BREATH_LOCK' | 'PORTAL_EXPANSION' | 'REALITY_RECONSTRUCTION'
+  ) => set({ ceremonyStep }),
+  ceremonyBreathStage: 'INHALE',
+  setCeremonyBreathStage: (ceremonyBreathStage: 'INHALE' | 'SUSPENSION' | 'EXHALE') =>
+    set({ ceremonyBreathStage }),
+  ceremonyBreathPhase: 0,
+  setCeremonyBreathPhase: (ceremonyBreathPhase: number) => set({ ceremonyBreathPhase }),
+  dnaEngravingProgress: 0,
+  setDnaEngravingProgress: (dnaEngravingProgress: number) => set({ dnaEngravingProgress }),
+  ceremonyNarrativeStep: 0,
+  setCeremonyNarrativeStep: (ceremonyNarrativeStep: number) => set({ ceremonyNarrativeStep }),
+  portalExpansionProgress: 0,
+  setPortalExpansionProgress: (portalExpansionProgress: number) =>
+    set({ portalExpansionProgress }),
+  handoffFlashProgress: 0,
+  setHandoffFlashProgress: (handoffFlashProgress: number) => set({ handoffFlashProgress }),
+  recombinationPrepared: false,
+  setRecombinationPrepared: (recombinationPrepared: boolean) => set({ recombinationPrepared }),
 
 
 

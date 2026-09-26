@@ -88,6 +88,18 @@ export function ObserverController() {
   const setAct5HandshakeCompleted = useExperienceStore((state) => state.setAct5HandshakeCompleted);
   const setAct5Active = useExperienceStore((state) => state.setAct5Active);
 
+  // Phase 9.23 Aetheria Recombination Ceremony Hooks
+  const setCeremonyActive = useExperienceStore((state) => state.setCeremonyActive);
+  const setCeremonyProgress = useExperienceStore((state) => state.setCeremonyProgress);
+  const setCeremonyStep = useExperienceStore((state) => state.setCeremonyStep);
+  const setCeremonyBreathStage = useExperienceStore((state) => state.setCeremonyBreathStage);
+  const setCeremonyBreathPhase = useExperienceStore((state) => state.setCeremonyBreathPhase);
+  const setDnaEngravingProgress = useExperienceStore((state) => state.setDnaEngravingProgress);
+  const setCeremonyNarrativeStep = useExperienceStore((state) => state.setCeremonyNarrativeStep);
+  const setPortalExpansionProgress = useExperienceStore((state) => state.setPortalExpansionProgress);
+  const setHandoffFlashProgress = useExperienceStore((state) => state.setHandoffFlashProgress);
+  const setRecombinationPrepared = useExperienceStore((state) => state.setRecombinationPrepared);
+
   // Pre-allocated geometries and vectors
   const focalPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
   const crystalSphere = useRef(new THREE.Sphere(new THREE.Vector3(0, 0.1, 0), 1.9));
@@ -114,6 +126,10 @@ export function ObserverController() {
   const gateApertureRef = useRef(0);
   const gateActivationRef = useRef(0);
   const gazeHoldTimerRef = useRef(0);
+
+  // Phase 9.23 Recombination Ceremony dynamics
+  const ceremonyTimerRef = useRef(0);
+  const ceremonyAudioTriggered = useRef(false);
 
   // Evolution & scoring accumulators
   const scoreFlushTimer = useRef(0);
@@ -172,6 +188,9 @@ export function ObserverController() {
         setAct5HandshakeCompleted(true);
         setAct5Active(true);
       }
+      if (archive.act5CeremonyCompleted) {
+        setRecombinationPrepared(true);
+      }
     } catch {
       // Graceful fallback if storage disabled
     }
@@ -191,6 +210,7 @@ export function ObserverController() {
     setObserverDna,
     setAct5HandshakeCompleted,
     setAct5Active,
+    setRecombinationPrepared,
   ]);
 
   // 2. Mobile Gyroscope Layer (Optional Subtle Shift ±5°)
@@ -662,10 +682,75 @@ export function ObserverController() {
       if (gateActivationRef.current >= 1.0 && !storeState.act5HandshakeCompleted) {
         setAct5HandshakeCompleted(true);
         setAct5Active(true);
+        setCeremonyActive(true);
         soundEngine.playRecombinationGateOpen(pFreq);
         if (archive) {
           archive.act5HandshakeCompleted = true;
           saveArchive(archive);
+        }
+      }
+    }
+
+    // 15.5 Phase 9.23 Aetheria Recombination Ceremony Progression (16-second ceremonial timeline)
+    if (storeState.ceremonyActive || (storeState.act5HandshakeCompleted && !storeState.recombinationPrepared)) {
+      if (!storeState.ceremonyActive) {
+        setCeremonyActive(true);
+      }
+
+      if (!ceremonyAudioTriggered.current) {
+        ceremonyAudioTriggered.current = true;
+        soundEngine.playRecombinationCeremonyTheme(pFreq);
+      }
+
+      ceremonyTimerRef.current += delta;
+      const cTime = ceremonyTimerRef.current;
+      const normProgress = Math.min(1.0, cTime / 16.0);
+      setCeremonyProgress(normProgress);
+
+      if (cTime < 4.0) {
+        // Stage 1: Holographic DNA Engraving (0s - 4s)
+        setCeremonyStep('DNA_ENGRAVING');
+        setDnaEngravingProgress(Math.min(1.0, cTime / 4.0));
+        setCeremonyNarrativeStep(0);
+      } else if (cTime < 8.0) {
+        // Stage 2: Universe Breath Synchronization & Facet Inhale (4s - 8s)
+        setCeremonyStep('BREATH_LOCK');
+        setDnaEngravingProgress(1.0);
+        if (cTime < 6.0) {
+          setCeremonyBreathStage('INHALE');
+          setCeremonyBreathPhase((cTime - 4.0) / 2.0);
+        } else {
+          setCeremonyBreathStage('SUSPENSION');
+          setCeremonyBreathPhase(1.0);
+        }
+        setCeremonyNarrativeStep(1);
+      } else if (cTime < 12.0) {
+        // Stage 3: ACT V Transition Portal Expansion (8s - 12s)
+        setCeremonyStep('PORTAL_EXPANSION');
+        setDnaEngravingProgress(1.0);
+        const portalProg = Math.min(1.0, (cTime - 8.0) / 4.0);
+        setPortalExpansionProgress(portalProg);
+        setCeremonyNarrativeStep(2);
+      } else if (cTime < 14.0) {
+        // Stage 4: Reality Reconstruction (12s - 14s)
+        setCeremonyStep('REALITY_RECONSTRUCTION');
+        setPortalExpansionProgress(1.0);
+        setCeremonyBreathStage('EXHALE');
+        setCeremonyBreathPhase(Math.max(0, 1.0 - (cTime - 12.0) / 2.0));
+        setCeremonyNarrativeStep(3);
+      } else if (cTime < 16.0) {
+        // Stage 5: Transcendence Flash Handoff (14s - 16s)
+        const flashProg = cTime < 15.0 ? (cTime - 14.0) / 1.0 : Math.max(0, 1.0 - (cTime - 15.0) / 1.0);
+        setHandoffFlashProgress(flashProg);
+        setCeremonyNarrativeStep(4);
+      } else {
+        // Ceremony Complete & Reality Reconstructed
+        setHandoffFlashProgress(0);
+        setRecombinationPrepared(true);
+        const curArchive = useExperienceStore.getState().observerArchive;
+        if (curArchive && !curArchive.act5CeremonyCompleted) {
+          curArchive.act5CeremonyCompleted = true;
+          saveArchive(curArchive);
         }
       }
     }

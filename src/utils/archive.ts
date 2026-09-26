@@ -44,6 +44,7 @@ export interface ObserverArchive {
   movementMemory: MovementMemory;
   dna: ObserverDna;
   act5HandshakeCompleted: boolean;
+  act5CeremonyCompleted: boolean;
 }
 
 export const ARCHIVE_STORAGE_KEY = 'aetheria_memory_archive';
@@ -213,6 +214,7 @@ export function loadArchive(): ObserverArchive {
         movementMemory: data.movementMemory || defaultMovement,
         dna,
         act5HandshakeCompleted: !!data.act5HandshakeCompleted,
+        act5CeremonyCompleted: !!data.act5CeremonyCompleted,
       };
 
       saveArchive(archive);
@@ -266,6 +268,7 @@ export function loadArchive(): ObserverArchive {
       },
       dna,
       act5HandshakeCompleted: false,
+      act5CeremonyCompleted: false,
     };
 
     saveArchive(newArchive);
@@ -310,5 +313,6 @@ function createDefaultArchive(): ObserverArchive {
     },
     dna,
     act5HandshakeCompleted: false,
+    act5CeremonyCompleted: false,
   };
 }

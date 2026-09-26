@@ -38,6 +38,9 @@ export function CinematicTextReveal() {
   const memoryReciprocityProgress = useExperienceStore((state) => state.memoryReciprocityProgress);
   const gateActivationProgress = useExperienceStore((state) => state.gateActivationProgress);
   const act5HandshakeCompleted = useExperienceStore((state) => state.act5HandshakeCompleted);
+  const ceremonyActive = useExperienceStore((state) => state.ceremonyActive);
+  const ceremonyStep = useExperienceStore((state) => state.ceremonyStep);
+  const recombinationPrepared = useExperienceStore((state) => state.recombinationPrepared);
 
   // Compute opacities based on narrative progression
   const isAct4 = fractureProgress > 0.001 || collapseProgress > 0.001 || singularityThresholdProgress > 0.001;
@@ -53,7 +56,11 @@ export function CinematicTextReveal() {
 
   // Formatting phase badge text
   let phaseLabel = 'QUANTUM VACUUM';
-  if (isAct4) {
+  if (recombinationPrepared) {
+    phaseLabel = 'ACT V: REALITY RECONSTRUCTED';
+  } else if (ceremonyActive) {
+    phaseLabel = `CEREMONY: ${ceremonyStep.replace('_', ' ')}`;
+  } else if (isAct4) {
     if (singularityThresholdProgress > 0.05) {
       phaseLabel = 'SINGULARITY THRESHOLD';
     } else if (collapseProgress > 0.05) {
@@ -317,7 +324,15 @@ export function CinematicTextReveal() {
                 {`DESTINY TRAJECTORY: ${hiddenEnding} // ARCHETYPE: ${observerArchetype.replace('THE_', '')}`}
               </div>
             )}
-            {act5HandshakeCompleted ? (
+            {recombinationPrepared ? (
+              <div className="text-yellow-100 font-bold tracking-[0.42em] animate-pulse drop-shadow-[0_0_20px_rgba(253,224,71,1)]">
+                {`ACT V: THE LIVING CONTINUUM // REALITY RECONSTRUCTED`}
+              </div>
+            ) : ceremonyActive ? (
+              <div className="text-yellow-200 font-bold tracking-[0.42em] animate-pulse drop-shadow-[0_0_16px_rgba(250,204,21,0.9)]">
+                {`CEREMONY: ${ceremonyStep} // THE RECOMBINATION IN PROGRESS`}
+              </div>
+            ) : act5HandshakeCompleted ? (
               <div className="text-yellow-200 font-bold tracking-[0.42em] animate-pulse drop-shadow-[0_0_16px_rgba(250,204,21,0.9)]">
                 {`ACT V: THE RECOMBINATION INITIATED // APERTURE OPEN`}
               </div>

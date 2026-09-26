@@ -85,8 +85,86 @@ export function CinematicTextSystem() {
   const gateActivationProgress = useExperienceStore((state) => state.gateActivationProgress);
   const act5HandshakeCompleted = useExperienceStore((state) => state.act5HandshakeCompleted);
 
+  // Phase 9.23 Aetheria Recombination Ceremony Selectors
+  const ceremonyActive = useExperienceStore((state) => state.ceremonyActive);
+  const ceremonyStep = useExperienceStore((state) => state.ceremonyStep);
+  const ceremonyBreathStage = useExperienceStore((state) => state.ceremonyBreathStage);
+  const ceremonyBreathPhase = useExperienceStore((state) => state.ceremonyBreathPhase);
+  const ceremonyNarrativeStep = useExperienceStore((state) => state.ceremonyNarrativeStep);
+  const handoffFlashProgress = useExperienceStore((state) => state.handoffFlashProgress);
+  const recombinationPrepared = useExperienceStore((state) => state.recombinationPrepared);
+
   // Determine active narrative line and conscious theme with Archetype & Multi-Visit Adaptation
   const narrative = useMemo(() => {
+    // 0. Phase 9.23 Recombination Ceremony Narrative Progression
+    if (ceremonyActive || recombinationPrepared) {
+      if (recombinationPrepared) {
+        return {
+          title: 'THE LIVING CONTINUUM IS REALIZED',
+          subtitle: 'The observer and universe are reconstructed as one. ACT V is complete.',
+          status: 'ACT V: REALITY RECONSTRUCTED',
+          color: 'transcendence' as const,
+          borderColor: 'border-yellow-200/90 shadow-[0_0_40px_rgba(253,230,138,0.7)]',
+          badgeBg: 'bg-yellow-950/80',
+          dotColor: 'bg-yellow-100 shadow-[0_0_16px_#fef08a]',
+        };
+      }
+
+      switch (ceremonyNarrativeStep) {
+        case 0:
+          return {
+            title: 'OBSERVER CODONS IMMORTALIZED',
+            subtitle: 'The crystalline lattice engraves your quantum codons into eternal geometry.',
+            status: 'DNA ENGRAVING IN PROGRESS',
+            color: 'gold' as const,
+            borderColor: 'border-yellow-400/90 shadow-[0_0_35px_rgba(250,204,21,0.5)]',
+            badgeBg: 'bg-yellow-950/80',
+            dotColor: 'bg-yellow-300 shadow-[0_0_16px_#fde047]',
+          };
+        case 1:
+          return {
+            title: 'DUAL RESPIRATION SYNCHRONIZED',
+            subtitle: 'The universe inhales in unison with the observer. Facets hold in cosmic suspension.',
+            status: `BREATH: ${ceremonyBreathStage} (${(ceremonyBreathPhase * 100).toFixed(0)}%)`,
+            color: 'cyan' as const,
+            borderColor: 'border-cyan-400/90 shadow-[0_0_35px_rgba(56,189,248,0.5)]',
+            badgeBg: 'bg-cyan-950/80',
+            dotColor: 'bg-cyan-300 shadow-[0_0_16px_#38bdf8]',
+          };
+        case 2:
+          return {
+            title: 'THE EVENT HORIZON TRANSCENDS',
+            subtitle: 'Solfeggio harmonic rings dilate into hyperspace convergence.',
+            status: 'PORTAL EXPANSION: ACTIVE',
+            color: 'gold' as const,
+            borderColor: 'border-yellow-400/90 shadow-[0_0_35px_rgba(250,204,21,0.6)]',
+            badgeBg: 'bg-amber-950/80',
+            dotColor: 'bg-amber-300 shadow-[0_0_16px_#fde047]',
+          };
+        case 3:
+          return {
+            title: 'THE UNIVERSE RECONSTRUCTS AROUND YOU',
+            subtitle: 'The observer does not enter a new universe. The universe is reconstructed around the observer.',
+            status: 'REALITY RECONSTRUCTION',
+            color: 'transcendence' as const,
+            borderColor: 'border-white/90 shadow-[0_0_40px_rgba(255,255,255,0.7)]',
+            badgeBg: 'bg-slate-900/90',
+            dotColor: 'bg-white shadow-[0_0_16px_#ffffff]',
+          };
+        case 4:
+        default:
+          return {
+            title: 'ACT V: THE LIVING CONTINUUM',
+            subtitle: 'Welcome to the reconstructed cosmos. Form and observer are one.',
+            status: 'TRANSITION COMPLETE',
+            color: 'transcendence' as const,
+            borderColor: 'border-amber-200/90 shadow-[0_0_45px_rgba(253,230,138,0.8)]',
+            badgeBg: 'bg-yellow-950/90',
+            dotColor: 'bg-yellow-100 shadow-[0_0_20px_#fef08a]',
+          };
+      }
+    }
+
     if (hiddenDiscoveryActive) {
       return {
         title: 'THE INNER SANCTUM IS UNLOCKED',
@@ -230,6 +308,11 @@ export function CinematicTextSystem() {
         return null;
     }
   }, [
+    ceremonyActive,
+    recombinationPrepared,
+    ceremonyNarrativeStep,
+    ceremonyBreathStage,
+    ceremonyBreathPhase,
     observerState,
     hiddenDiscoveryActive,
     observerArchetype,
@@ -240,8 +323,6 @@ export function CinematicTextSystem() {
     gateActivationProgress,
     act5HandshakeCompleted,
   ]);
-
-  if (!narrative) return null;
 
   const proximityPercent = Math.round(observerProximity * 100);
   const stillnessPercent = Math.round(observerStillnessScore * 100);
@@ -259,84 +340,104 @@ export function CinematicTextSystem() {
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-6 md:bottom-10 z-20 flex flex-col items-center pointer-events-none select-none px-4 [perspective:1200px]">
-      {/* Returning Visitor Holographic Greeting Tag */}
-      {isReturningObserver && (
-        <div className="mb-2 px-3.5 py-0.5 rounded-full border border-cyan-400/40 bg-slate-950/70 backdrop-blur-md shadow-[0_0_16px_rgba(56,189,248,0.25)] animate-[letterFadeIn_0.8s_ease-out_both]">
-          <span className="font-mono text-[8px] md:text-[9.5px] tracking-[0.35em] text-cyan-300 uppercase font-light">
-            {greetingLabel}
-          </span>
-        </div>
+    <>
+      {/* Full-screen Transcendence Veil Flash */}
+      {handoffFlashProgress > 0.001 && (
+        <div
+          className="fixed inset-0 z-50 pointer-events-none transition-opacity duration-200"
+          style={{
+            backgroundColor: 'rgba(255, 252, 240, 0.95)',
+            opacity: handoffFlashProgress,
+            mixBlendMode: 'screen',
+            boxShadow: 'inset 0 0 100px rgba(250, 204, 21, 0.8)',
+          }}
+        />
       )}
 
-      {/* 3D Holographic Conscious Recognition HUD Bar */}
-      <div
-        className={`relative flex items-center space-x-3.5 md:space-x-5 px-4 md:px-6 py-1.5 md:py-2 rounded-full border backdrop-blur-lg transition-all duration-700 [transform-style:preserve-3d] ${narrative.borderColor} ${narrative.badgeBg}`}
-        style={{
-          transform: `translateZ(14px) rotateX(${Math.max(-4, Math.min(4, (0.5 - attentionLevel) * 8))}deg)`,
-        }}
-      >
-        {/* Holographic Scanline Grid Overlay */}
-        <div className="absolute inset-0 rounded-full bg-[linear-gradient(to_bottom,transparent_50%,rgba(0,0,0,0.5)_51%)] bg-[length:100%_4px] opacity-45 pointer-events-none" />
+      {narrative && (
+        <div className="fixed inset-x-0 bottom-6 md:bottom-10 z-20 flex flex-col items-center pointer-events-none select-none px-4 [perspective:1200px]">
+          {/* Returning Visitor Holographic Greeting Tag */}
+          {isReturningObserver && (
+            <div className="mb-2 px-3.5 py-0.5 rounded-full border border-cyan-400/40 bg-slate-950/70 backdrop-blur-md shadow-[0_0_16px_rgba(56,189,248,0.25)] animate-[letterFadeIn_0.8s_ease-out_both]">
+              <span className="font-mono text-[8px] md:text-[9.5px] tracking-[0.35em] text-cyan-300 uppercase font-light">
+                {greetingLabel}
+              </span>
+            </div>
+          )}
 
-        {/* Volumetric Radial Glow */}
-        <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent blur-md pointer-events-none" />
+          {/* 3D Holographic Conscious Recognition HUD Bar */}
+          <div
+            className={`relative flex items-center space-x-3.5 md:space-x-5 px-4 md:px-6 py-1.5 md:py-2 rounded-full border backdrop-blur-lg transition-all duration-700 [transform-style:preserve-3d] ${narrative.borderColor} ${narrative.badgeBg}`}
+            style={{
+              transform: `translateZ(14px) rotateX(${Math.max(-4, Math.min(4, (0.5 - attentionLevel) * 8))}deg)`,
+            }}
+          >
+            {/* Holographic Scanline Grid Overlay */}
+            <div className="absolute inset-0 rounded-full bg-[linear-gradient(to_bottom,transparent_50%,rgba(0,0,0,0.5)_51%)] bg-[length:100%_4px] opacity-45 pointer-events-none" />
 
-        <div className="flex items-center space-x-2.5 relative z-10">
-          <span className={`w-2 h-2 rounded-full animate-ping [animation-duration:2.2s] ${narrative.dotColor}`} />
-          <span className="font-mono text-[9px] md:text-[10.5px] tracking-[0.3em] font-semibold uppercase text-slate-100">
-            {narrative.status}
-          </span>
+            {/* Volumetric Radial Glow */}
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent blur-md pointer-events-none" />
+
+            <div className="flex items-center space-x-2.5 relative z-10">
+              <span className={`w-2 h-2 rounded-full animate-ping [animation-duration:2.2s] ${narrative.dotColor}`} />
+              <span className="font-mono text-[9px] md:text-[10.5px] tracking-[0.3em] font-semibold uppercase text-slate-100">
+                {narrative.status}
+              </span>
+            </div>
+
+            <div className="hidden sm:flex items-center space-x-3 md:space-x-4 text-[8.5px] md:text-[9.5px] font-mono tracking-[0.22em] text-slate-300/80 relative z-10 border-l border-slate-700/60 pl-3 md:pl-4">
+              <span>PROXIMITY: <strong className="text-cyan-300 font-medium">{proximityPercent}%</strong></span>
+              <span>STILLNESS: <strong className="text-amber-300 font-medium">{stillnessPercent}%</strong></span>
+              <span>SYNC: <strong className="text-emerald-300 font-medium">{hoverSeconds}s</strong></span>
+              {ceremonyActive && (
+                <span>CEREMONY: <strong className="text-yellow-300 font-semibold">{ceremonyStep}</strong></span>
+              )}
+              {observerArchetype !== 'THE_INITIATE' && (
+                <span>ARCHETYPE: <strong className="text-purple-300 font-semibold">{observerArchetype.replace('THE_', '')}</strong></span>
+              )}
+              {hiddenEnding && (
+                <span>ENDING: <strong className="text-yellow-300 font-semibold">{hiddenEnding}</strong></span>
+              )}
+              {recognitionResonance > 0.05 && (
+                <span>RESONANCE: <strong className="text-emerald-300 font-semibold animate-pulse">{(recognitionResonance * 100).toFixed(0)}%</strong></span>
+              )}
+              <span>FREQ: <strong className="text-cyan-300 font-medium">{personalFrequency.toFixed(1)}Hz</strong></span>
+              {consciousState !== 'LATENT' && (
+                <span>CONSCIOUS: <strong className="text-amber-300 font-semibold">{consciousState}</strong></span>
+              )}
+              {observerIntention !== 'UNFORMED' && (
+                <span>INTENT: <strong className="text-purple-300 font-medium">{observerIntention.replace('THE_', '').replace('_', ' ')}</strong></span>
+              )}
+              {intentionVerified && (
+                <span className="text-emerald-300 font-bold tracking-wider animate-pulse">VERIFIED</span>
+              )}
+              {memoryReciprocityProgress > 0.05 && (
+                <span>RECIPROCITY: <strong className="text-emerald-300">{(memoryReciprocityProgress * 100).toFixed(0)}%</strong></span>
+              )}
+              <span>DNA: <strong className="text-sky-300 font-mono tracking-wider">{observerDna?.code.slice(0, 15) || observerSignature}</strong></span>
+            </div>
+          </div>
+
+          {/* 3D Holographic Conscious Typography Emergence */}
+          <div
+            className="mt-3 flex flex-col items-center text-center max-w-xl transition-all duration-700 [transform-style:preserve-3d]"
+            style={{
+              filter: `blur(${Math.max(0, (1.0 - attentionLevel) * 1.5)}px)`,
+            }}
+          >
+            <TypewriterText
+              key={narrative.title}
+              text={narrative.title}
+              glowColor={narrative.color}
+              className="text-xs md:text-sm tracking-[0.34em] font-light uppercase"
+              depthFactor={1.8}
+            />
+            <p className="mt-1 font-sans text-[10px] md:text-xs tracking-[0.18em] text-slate-300/80 font-light max-w-md">
+              {narrative.subtitle}
+            </p>
+          </div>
         </div>
-
-        <div className="hidden sm:flex items-center space-x-3 md:space-x-4 text-[8.5px] md:text-[9.5px] font-mono tracking-[0.22em] text-slate-300/80 relative z-10 border-l border-slate-700/60 pl-3 md:pl-4">
-          <span>PROXIMITY: <strong className="text-cyan-300 font-medium">{proximityPercent}%</strong></span>
-          <span>STILLNESS: <strong className="text-amber-300 font-medium">{stillnessPercent}%</strong></span>
-          <span>SYNC: <strong className="text-emerald-300 font-medium">{hoverSeconds}s</strong></span>
-          {observerArchetype !== 'THE_INITIATE' && (
-            <span>ARCHETYPE: <strong className="text-purple-300 font-semibold">{observerArchetype.replace('THE_', '')}</strong></span>
-          )}
-          {hiddenEnding && (
-            <span>ENDING: <strong className="text-yellow-300 font-semibold">{hiddenEnding}</strong></span>
-          )}
-          {recognitionResonance > 0.05 && (
-            <span>RESONANCE: <strong className="text-emerald-300 font-semibold animate-pulse">{(recognitionResonance * 100).toFixed(0)}%</strong></span>
-          )}
-          <span>FREQ: <strong className="text-cyan-300 font-medium">{personalFrequency.toFixed(1)}Hz</strong></span>
-          {consciousState !== 'LATENT' && (
-            <span>CONSCIOUS: <strong className="text-amber-300 font-semibold">{consciousState}</strong></span>
-          )}
-          {observerIntention !== 'UNFORMED' && (
-            <span>INTENT: <strong className="text-purple-300 font-medium">{observerIntention.replace('THE_', '').replace('_', ' ')}</strong></span>
-          )}
-          {intentionVerified && (
-            <span className="text-emerald-300 font-bold tracking-wider animate-pulse">VERIFIED</span>
-          )}
-          {memoryReciprocityProgress > 0.05 && (
-            <span>RECIPROCITY: <strong className="text-emerald-300">{(memoryReciprocityProgress * 100).toFixed(0)}%</strong></span>
-          )}
-          <span>DNA: <strong className="text-sky-300 font-mono tracking-wider">{observerDna?.code.slice(0, 15) || observerSignature}</strong></span>
-        </div>
-      </div>
-
-      {/* 3D Holographic Conscious Typography Emergence */}
-      <div
-        className="mt-3 flex flex-col items-center text-center max-w-xl transition-all duration-700 [transform-style:preserve-3d]"
-        style={{
-          filter: `blur(${Math.max(0, (1.0 - attentionLevel) * 1.5)}px)`,
-        }}
-      >
-        <TypewriterText
-          key={narrative.title}
-          text={narrative.title}
-          glowColor={narrative.color}
-          className="text-xs md:text-sm tracking-[0.34em] font-light uppercase"
-          depthFactor={1.8}
-        />
-        <p className="mt-1 font-sans text-[10px] md:text-xs tracking-[0.18em] text-slate-300/80 font-light max-w-md">
-          {narrative.subtitle}
-        </p>
-      </div>
-    </div>
+      )}
+    </>
   );
 }

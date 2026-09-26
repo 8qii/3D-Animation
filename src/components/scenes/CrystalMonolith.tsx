@@ -15,6 +15,7 @@ import { ObserverWakeField } from './ObserverWakeField';
 import { ObserverImprintField } from './ObserverImprintField';
 import { ObserverTrajectoryGhosts } from './ObserverTrajectoryGhosts';
 import { RecombinationGate } from './RecombinationGate';
+import { ObserverDnaEngraving } from './ObserverDnaEngraving';
 
 export function CrystalMonolith() {
   const groupRef = useRef<THREE.Group>(null);
@@ -170,6 +171,9 @@ export function CrystalMonolith() {
 
       {/* 11. Phase 9.22: Aetheria Recombination Gate */}
       <RecombinationGate />
+
+      {/* 12. Phase 9.23: Observer DNA Holographic Engraving */}
+      <ObserverDnaEngraving />
     </group>
 
   );

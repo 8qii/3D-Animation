@@ -101,7 +101,17 @@ function SingleFacetMesh({ facet }: SingleFacetProps) {
         endingDistMod = 1.0 + Math.sin(facet.id * 1.618) * 0.15;
       }
 
-      const currentDist = (ease * facet.maxDistance * endingDistMod + memoryDrift) * (1.0 - 0.05 * (1.0 - facetVelocityScale));
+      // Phase 9.23 Ceremony Universe Breath Inhale & Facet Alignment
+      let ceremonyDistMod = 1.0;
+      if (store.ceremonyActive) {
+        if (store.ceremonyStep === 'BREATH_LOCK') {
+          ceremonyDistMod = THREE.MathUtils.lerp(1.0, 0.68, store.ceremonyBreathPhase);
+        } else if (store.ceremonyStep === 'PORTAL_EXPANSION' || store.ceremonyStep === 'REALITY_RECONSTRUCTION') {
+          ceremonyDistMod = 0.68;
+        }
+      }
+
+      const currentDist = (ease * facet.maxDistance * endingDistMod * ceremonyDistMod + memoryDrift) * (1.0 - 0.05 * (1.0 - facetVelocityScale));
 
       // Position: Centroid + outward direction along normal and cleavage slip
       meshRef.current.position.copy(facet.centroid).addScaledVector(facet.outwardDirection, currentDist);

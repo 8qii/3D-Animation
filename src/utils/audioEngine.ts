@@ -50,6 +50,7 @@ class SoundEngine {
   private consciousGain: GainNode | null = null;
   private intentionChimeTriggered = false;
   private gateOpenTriggered = false;
+  private ceremonyTriggered = false;
 
   private isInitialized = false;
   private chimeTriggered = false;
@@ -946,6 +947,81 @@ class SoundEngine {
       osc.start(now);
       osc.stop(now + 4.6);
     });
+  }
+
+  /**
+   * Phase 9.23 Aetheria Recombination Ceremony Theme:
+   * Sacred Singing Bowl chime + deep ceremonial 24Hz drone + cosmic breath vacuum sweep.
+   */
+  public playRecombinationCeremonyTheme(personalFreq: number) {
+    if (!this.ctx || !this.masterGain || this.ceremonyTriggered) return;
+    this.ceremonyTriggered = true;
+    const now = this.ctx.currentTime;
+    const fundamental = personalFreq > 100 ? personalFreq : 432.0;
+
+    // 1. Ultra-deep 24Hz Ceremonial Drone with slow breath pulse
+    const droneOsc = this.ctx.createOscillator();
+    const droneGain = this.ctx.createGain();
+    droneOsc.type = 'sine';
+    droneOsc.frequency.setValueAtTime(24.0, now);
+
+    droneGain.gain.setValueAtTime(0.0001, now);
+    droneGain.gain.linearRampToValueAtTime(0.35, now + 1.2);
+    droneGain.gain.exponentialRampToValueAtTime(0.0001, now + 8.0);
+
+    droneOsc.connect(droneGain);
+    droneGain.connect(this.masterGain);
+    droneOsc.start(now);
+    droneOsc.stop(now + 8.2);
+
+    // 2. Tibetan Singing Bowl Multi-Harmonic Resonator
+    const bowlHarmonics = [1.0, 2.76, 5.4, 8.93];
+    bowlHarmonics.forEach((mult, i) => {
+      if (!this.ctx || !this.masterGain) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(fundamental * mult, now);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.16 / (i + 1), now + 0.4 + i * 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 7.5);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 7.8);
+    });
+
+    // 3. Cosmic Inhale / Vacuum Breath Noise Sweep
+    const bufferSize = Math.floor(this.ctx.sampleRate * 4.0);
+    const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const channelData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      channelData[i] = (Math.random() * 2 - 1) * 0.4;
+    }
+
+    const noiseSrc = this.ctx.createBufferSource();
+    noiseSrc.buffer = noiseBuffer;
+
+    const noiseFilter = this.ctx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.Q.setValueAtTime(4.0, now);
+    noiseFilter.frequency.setValueAtTime(220.0, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(1400.0, now + 2.5);
+    noiseFilter.frequency.exponentialRampToValueAtTime(180.0, now + 4.0);
+
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.0001, now);
+    noiseGain.gain.linearRampToValueAtTime(0.25, now + 2.0);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 4.0);
+
+    noiseSrc.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(this.masterGain);
+
+    noiseSrc.start(now);
   }
 
   public destroy() {
