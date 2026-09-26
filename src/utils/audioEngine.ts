@@ -37,6 +37,12 @@ class SoundEngine {
   private presenceFilter: BiquadFilterNode | null = null;
   private presenceGain: GainNode | null = null;
 
+  // Phase 9.20.5 Adaptive Audio Memory Resonance Layer
+  private memoryResonanceOsc: OscillatorNode | null = null;
+  private memoryResonanceFilter: BiquadFilterNode | null = null;
+  private memoryResonanceGain: GainNode | null = null;
+  private lastChimeTime = 0;
+
   private isInitialized = false;
   private chimeTriggered = false;
   private isSilent = false;
@@ -155,6 +161,25 @@ class SoundEngine {
     this.presenceGain.connect(this.masterGain);
 
     this.presenceOsc.start();
+
+    // Phase 9.20.5 Adaptive Audio Memory Resonance System
+    this.memoryResonanceOsc = this.ctx.createOscillator();
+    this.memoryResonanceOsc.type = 'sine';
+    this.memoryResonanceOsc.frequency.setValueAtTime(587.33, now);
+
+    this.memoryResonanceFilter = this.ctx.createBiquadFilter();
+    this.memoryResonanceFilter.type = 'bandpass';
+    this.memoryResonanceFilter.frequency.setValueAtTime(880.0, now);
+    this.memoryResonanceFilter.Q.setValueAtTime(14.0, now);
+
+    this.memoryResonanceGain = this.ctx.createGain();
+    this.memoryResonanceGain.gain.setValueAtTime(0.0001, now);
+
+    this.memoryResonanceOsc.connect(this.memoryResonanceFilter);
+    this.memoryResonanceFilter.connect(this.memoryResonanceGain);
+    this.memoryResonanceGain.connect(this.masterGain);
+
+    this.memoryResonanceOsc.start();
 
     this.isInitialized = true;
   }
@@ -702,6 +727,75 @@ class SoundEngine {
         this.presenceGain.gain.setTargetAtTime(0.0001, now, 0.35);
       }
     }
+  }
+
+  /**
+   * Phase 9.20.5 Adaptive Audio Memory Response
+   * Modulates harmonic overtones based on past sessions, archetype, and trajectory resonance.
+   */
+  public updateMemoryResonance(
+    sessionCount: number,
+    archetype: string,
+    recognitionResonance: number
+  ) {
+    if (!this.ctx || !this.memoryResonanceOsc || !this.memoryResonanceFilter || !this.memoryResonanceGain) return;
+    if (this.ctx.state === 'suspended' || this.isSilent) return;
+
+    const now = this.ctx.currentTime;
+    const isReturning = sessionCount > 1;
+
+    let targetFreq = 587.33; // Default D5
+    let filterFreq = 880.00; // A5
+
+    if (archetype === 'THE_WITNESS') {
+      // Pure Pythagorean fifths: D5 (587.33) -> A5 (880.0) -> E6 (1318.5)
+      targetFreq = 587.33;
+      filterFreq = 1318.5;
+    } else if (archetype === 'THE_CATALYST') {
+      // Micro-detuned kinetic vibrato (adding active harmonic flutter)
+      targetFreq = 622.25 + Math.sin(now * 8.0) * 8.0; // D#5 / Eb5
+      filterFreq = 1244.5;
+    } else if (archetype === 'THE_ARCHITECT') {
+      // Golden ratio harmonic interval: 587.33 * 1.61803 = 950.32 Hz
+      targetFreq = 587.33 * 1.6180339887;
+      filterFreq = targetFreq * 1.6180339887;
+    }
+
+    this.memoryResonanceOsc.frequency.setTargetAtTime(targetFreq, now, 0.1);
+    this.memoryResonanceFilter.frequency.setTargetAtTime(filterFreq, now, 0.1);
+
+    // Gain increases with recognition resonance and past session count
+    const baseMemoryGain = isReturning ? Math.min(0.22, 0.05 + (sessionCount - 1) * 0.04) : 0.0;
+    const resonanceBoost = recognitionResonance * 0.18;
+    const totalMemoryGain = baseMemoryGain + resonanceBoost;
+
+    this.memoryResonanceGain.gain.setTargetAtTime(totalMemoryGain, now, 0.12);
+
+    // Trigger soft glass chime on ghost encounter surge
+    if (recognitionResonance > 0.75 && now - this.lastChimeTime > 2.5) {
+      this.lastChimeTime = now;
+      this.playGhostEncounterChime(targetFreq);
+    }
+  }
+
+  private playGhostEncounterChime(freq: number) {
+    if (!this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+    const chimeOsc = this.ctx.createOscillator();
+    const chimeGain = this.ctx.createGain();
+
+    chimeOsc.type = 'sine';
+    chimeOsc.frequency.setValueAtTime(freq * 2.0, now);
+    chimeOsc.frequency.exponentialRampToValueAtTime(freq, now + 1.2);
+
+    chimeGain.gain.setValueAtTime(0.15, now);
+    chimeGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+
+    chimeOsc.connect(chimeGain);
+    chimeGain.connect(this.masterGain);
+
+    chimeOsc.start(now);
+    chimeOsc.stop(now + 1.25);
   }
 
   public destroy() {

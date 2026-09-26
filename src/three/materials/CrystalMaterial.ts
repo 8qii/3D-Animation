@@ -30,6 +30,7 @@ export interface CrystalMaterialUniforms {
   uArchetypeMode: { value: number };
   uArchetypeColor: { value: THREE.Color };
   uGravitationalForce: { value: number };
+  uRecognitionResonance: { value: number };
 }
 
 
@@ -79,6 +80,7 @@ export class CrystalMaterial extends THREE.ShaderMaterial {
       uArchetypeMode: { value: 0 },
       uArchetypeColor: { value: new THREE.Color('#38bdf8') },
       uGravitationalForce: { value: 0 },
+      uRecognitionResonance: { value: 0 },
     };
 
     super({
@@ -147,6 +149,11 @@ export class CrystalMaterial extends THREE.ShaderMaterial {
     u.uArchetypeMode.value = mode;
     u.uArchetypeColor.value.set(color);
     u.uGravitationalForce.value = gravForce;
+  }
+
+  setRecognitionResonance(val: number) {
+    const u = this.uniforms as unknown as CrystalMaterialUniforms;
+    u.uRecognitionResonance.value = val;
   }
 }
 

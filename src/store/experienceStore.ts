@@ -210,6 +210,12 @@ interface ExperienceState {
   setUniverseCoherenceScore: (score: number) => void;
   recordMilestone: (id: string, act: number) => void;
 
+  // Phase 9.20.5 Observer Memory Resonance
+  recognitionResonance: number; // 0 to 1
+  setRecognitionResonance: (val: number) => void;
+  act5GateArmed: boolean;
+  setAct5GateArmed: (val: boolean) => void;
+
 
   // Kinetic Scroll Energy (Thermodynamics)
   scrollEnergy: number; // 0 (cold vacuum) to 1 (excited plasma)
@@ -486,6 +492,12 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
       };
       return { observerArchive: updatedArchive };
     }),
+
+  // Phase 9.20.5 Observer Memory Resonance
+  recognitionResonance: 0,
+  setRecognitionResonance: (recognitionResonance: number) => set({ recognitionResonance }),
+  act5GateArmed: false,
+  setAct5GateArmed: (act5GateArmed: boolean) => set({ act5GateArmed }),
 
 
 

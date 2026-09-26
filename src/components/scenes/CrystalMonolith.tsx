@@ -13,6 +13,7 @@ import { FacetMemoryField } from './FacetMemoryField';
 import { ExposedQuantumCore } from './ExposedQuantumCore';
 import { ObserverWakeField } from './ObserverWakeField';
 import { ObserverImprintField } from './ObserverImprintField';
+import { ObserverTrajectoryGhosts } from './ObserverTrajectoryGhosts';
 
 export function CrystalMonolith() {
   const groupRef = useRef<THREE.Group>(null);
@@ -92,6 +93,7 @@ export function CrystalMonolith() {
           color = '#f59e0b';
         }
         materialRef.current.setArchetype(mode, color, store.cursorGravitationalForce);
+        materialRef.current.setRecognitionResonance(store.recognitionResonance);
       }
     }
 
@@ -161,6 +163,9 @@ export function CrystalMonolith() {
 
       {/* 9. Phase 9.20: Aetheria Memory Archive Imprint Field */}
       <ObserverImprintField />
+
+      {/* 10. Phase 9.20.5: Living Observation Trajectory Ghosts */}
+      <ObserverTrajectoryGhosts />
     </group>
 
   );

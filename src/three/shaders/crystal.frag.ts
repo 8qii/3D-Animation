@@ -27,6 +27,7 @@ export const crystalFragmentShader = /* glsl */ `
   uniform float uArchetypeMode;
   uniform vec3 uArchetypeColor;
   uniform float uGravitationalForce;
+  uniform float uRecognitionResonance;
 
   varying vec3 vNormal;
   varying vec3 vPosition;
@@ -223,7 +224,13 @@ export const crystalFragmentShader = /* glsl */ `
       archetypeAura = mix(vec3(0.95, 0.75, 0.25), vec3(1.0, 0.92, 0.6), vFresnel) * (0.55 + architectLattice * 0.8);
     }
 
-    finalColor += observerAura + localizedFresnelCol + rippleEmission + discoveryEmission + archetypeAura;
+    // Phase 9.20.5: Crystal Memory Recognition Waves
+    float distFromCenter = length(vPosition);
+    float recognitionRing = sin(distFromCenter * 16.0 - uTime * 6.0) * 0.5 + 0.5;
+    float recognitionGlow = pow(recognitionRing, 4.0) * uRecognitionResonance;
+    vec3 recognitionCol = mix(vec3(0.35, 0.85, 1.0), vec3(1.0, 0.95, 0.7), recognitionRing) * recognitionGlow * 2.8;
+
+    finalColor += observerAura + localizedFresnelCol + rippleEmission + discoveryEmission + archetypeAura + recognitionCol;
 
 
     // Alpha transitions from translucent hologram (0.45) to solid obsidian glass (0.96)

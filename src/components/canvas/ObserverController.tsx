@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { useExperienceStore } from '@/store/experienceStore';
 import { damp } from '@/utils/helpers';
 import { loadArchive, saveArchive, computeWorldMutation, generateObserverSignature } from '@/utils/archive';
+import { soundEngine } from '@/utils/audioEngine';
 
 const STORAGE_KEY = 'aetheria_observer_memory';
 const EVOLUTION_STORAGE_KEY = 'aetheria_observer_evolution';
@@ -45,6 +46,7 @@ export function ObserverController() {
   const setAct5Prepared = useExperienceStore((state) => state.setAct5Prepared);
   const setUniverseCoherenceScore = useExperienceStore((state) => state.setUniverseCoherenceScore);
   const recordMilestone = useExperienceStore((state) => state.recordMilestone);
+  const setAct5GateArmed = useExperienceStore((state) => state.setAct5GateArmed);
 
   // Pre-allocated geometries and vectors
   const focalPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
@@ -412,21 +414,38 @@ export function ObserverController() {
     if (fracture >= 0.75) recordMilestone('ACT_IV_DISPERSION', 4);
     if (hiddenActive) recordMilestone('HIDDEN_SANCTUM_DISCOVERY', 3);
 
-    // Act V Recognition Preparation
-    if (singularity > 0.80) {
-      const archive = storeState.observerArchive;
-      const milestoneBonus = (archive?.milestones.length || 0) * 12;
-      const sessionBonus = Math.min(25, ((archive?.sessionCount || 1) - 1) * 8);
-      const stillnessBonus = Math.round(stillnessScoreRef.current * 15);
-      const coherence = Math.min(100, 50 + milestoneBonus + sessionBonus + stillnessBonus);
-      setUniverseCoherenceScore(coherence);
+    // 12. Phase 9.20.5 Universe Coherence Refinement & Act V Recognition Gate
+    const archive = storeState.observerArchive;
+    const sessionCount = archive?.sessionCount || 1;
+    const currentArch = storeState.observerArchetype;
+    const recognitionRes = storeState.recognitionResonance;
 
-      if (coherence >= 75 && singularity >= 0.90 && !storeState.act5Prepared) {
+    // Trigger Adaptive Audio Memory Resonance
+    soundEngine.updateMemoryResonance(sessionCount, currentArch, recognitionRes);
+
+    // Multi-factor continuous coherence calculation:
+    // Base 30% + milestones (up to 50%) + sessions (up to 20%) + stillness (15%) + attention (15%) + ghost resonance (15%)
+    const milestoneScore = Math.min(50, (archive?.milestones.length || 0) * 10);
+    const sessionScore = Math.min(20, (sessionCount - 1) * 4);
+    const stillnessScore = Math.round(stillnessScoreRef.current * 15);
+    const attentionScore = Math.round(attentionRef.current * 15);
+    const resonanceScore = Math.round(recognitionRes * 15);
+
+    const calculatedCoherence = Math.min(100, 30 + milestoneScore + sessionScore + stillnessScore + attentionScore + resonanceScore);
+    setUniverseCoherenceScore(calculatedCoherence);
+
+    if (singularity > 0.80) {
+      if (calculatedCoherence >= 75 && singularity >= 0.88 && !storeState.act5Prepared) {
         setAct5Prepared(true);
         if (archive) {
           archive.act5Unlocked = true;
           saveArchive(archive);
         }
+      }
+
+      // Act V Recognition Gate Armed
+      if (calculatedCoherence >= 90 && singularity >= 0.92 && !storeState.act5GateArmed) {
+        setAct5GateArmed(true);
       }
     }
 

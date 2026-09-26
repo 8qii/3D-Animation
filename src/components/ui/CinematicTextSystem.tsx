@@ -75,6 +75,7 @@ export function CinematicTextSystem() {
   const hiddenEnding = useExperienceStore((state) => state.hiddenEnding);
   const observerArchive = useExperienceStore((state) => state.observerArchive);
   const observerSignature = useExperienceStore((state) => state.observerSignature);
+  const recognitionResonance = useExperienceStore((state) => state.recognitionResonance);
 
   // Determine active narrative line and conscious theme with Archetype & Multi-Visit Adaptation
   const narrative = useMemo(() => {
@@ -231,6 +232,9 @@ export function CinematicTextSystem() {
           )}
           {hiddenEnding && (
             <span>ENDING: <strong className="text-yellow-300 font-semibold">{hiddenEnding}</strong></span>
+          )}
+          {recognitionResonance > 0.05 && (
+            <span>RESONANCE: <strong className="text-emerald-300 font-semibold animate-pulse">{(recognitionResonance * 100).toFixed(0)}%</strong></span>
           )}
           <span>SIG: <strong className="text-sky-300 font-mono tracking-wider">{observerSignature}</strong></span>
         </div>
