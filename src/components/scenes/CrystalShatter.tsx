@@ -31,6 +31,8 @@ function SingleFacetMesh({ facet }: SingleFacetProps) {
     () => ({
       uTime: { value: 0 },
       uFractureProgress: { value: 0 },
+      uObserverPos: { value: new THREE.Vector3(0, 0, 0) },
+      uObserverAttention: { value: 0 },
       uKeyLightDir: { value: new THREE.Vector3(4.0, 5.0, 3.5).normalize() },
       uRimLightDir: { value: new THREE.Vector3(-4.0, 2.5, -3.5).normalize() },
     }),
@@ -54,6 +56,8 @@ function SingleFacetMesh({ facet }: SingleFacetProps) {
     if (materialRef.current) {
       materialRef.current.uniforms.uTime.value = time;
       materialRef.current.uniforms.uFractureProgress.value = fractureProgress;
+      materialRef.current.uniforms.uObserverPos.value.set(store.mouseWorld[0], store.mouseWorld[1], store.mouseWorld[2]);
+      materialRef.current.uniforms.uObserverAttention.value = store.attentionLevel * store.observerProximity;
     }
 
     if (meshRef.current) {
@@ -84,8 +88,29 @@ function SingleFacetMesh({ facet }: SingleFacetProps) {
       // Rotation: Gentle, dignified angular velocity preserving golden orientation
       const currentAngle = (Math.sin(ease * Math.PI * 0.5) * facet.maxRotation) + Math.cos(time * 0.35 + facet.id) * 0.015 * facetMemory * freezeFactor;
       meshRef.current.quaternion.setFromAxisAngle(facet.rotationAxis, currentAngle);
+
+      // Phase 9.18: Observer Attention Magnetic Tilt
+      // When observer gazes close to this facet, impart a subtle orienting torque
+      if (freezeFactor > 0.05 && store.attentionLevel > 0.1) {
+        const obsWorld = new THREE.Vector3(store.mouseWorld[0], store.mouseWorld[1], store.mouseWorld[2]);
+        const worldPos = meshRef.current.position.clone();
+        if (meshRef.current.parent) {
+          meshRef.current.parent.localToWorld(worldPos);
+        }
+        const distToObs = worldPos.distanceTo(obsWorld);
+        if (distToObs < 2.2) {
+          const tiltFactor = (1.0 - distToObs / 2.2) * store.attentionLevel * 0.08;
+          const toObs = obsWorld.clone().sub(worldPos).normalize();
+          const tiltAxis = new THREE.Vector3().crossVectors(facet.normal, toObs).normalize();
+          if (tiltAxis.lengthSq() > 0.01) {
+            const tiltQuat = new THREE.Quaternion().setFromAxisAngle(tiltAxis, tiltFactor);
+            meshRef.current.quaternion.multiply(tiltQuat);
+          }
+        }
+      }
     }
   });
+
 
   return (
     <mesh ref={meshRef} geometry={facet.geometry} renderOrder={7}>

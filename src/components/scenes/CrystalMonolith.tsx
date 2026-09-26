@@ -53,7 +53,23 @@ export function CrystalMonolith() {
       materialRef.current.setTension(tension);
       materialRef.current.setStressPreview(tension);
       materialRef.current.setFracture(fracture);
+
+      // Phase 9.18: Observer Awakening & Living Crystal Response
+      if (groupRef.current) {
+        const obsWorld = new THREE.Vector3(store.mouseWorld[0], store.mouseWorld[1], store.mouseWorld[2]);
+        const obsLocal = groupRef.current.worldToLocal(obsWorld);
+        materialRef.current.setObserver(obsLocal, store.attentionLevel, store.observerProximity);
+
+        const ripplePosLocal = groupRef.current.worldToLocal(
+          new THREE.Vector3(store.touchRipple.position[0], store.touchRipple.position[1], store.touchRipple.position[2])
+        );
+        materialRef.current.setTouchRipple(
+          [ripplePosLocal.x, ripplePosLocal.y, ripplePosLocal.z],
+          store.touchRipple.active ? store.touchRipple.intensity : 0
+        );
+      }
     }
+
 
     if (meshRef.current) {
       // Solid monolithic crystal mesh is visible during material lock and hairline fracture,

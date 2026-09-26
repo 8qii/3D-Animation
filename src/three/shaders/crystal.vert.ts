@@ -3,6 +3,10 @@ export const crystalVertexShader = /* glsl */ `
   uniform float uDistortion;
   uniform float uTension; // Phase 8.5 internal stress tension (0.0 to 1.0)
   uniform float uFractureProgress; // Phase 9.0 Act IV fracture initiation (0.0 to 1.0)
+  uniform vec3 uObserverPos;
+  uniform float uObserverAttention;
+  uniform float uObserverProximity;
+  uniform vec4 uTouchRipple; // xyz pos, w intensity
 
   varying vec3 vNormal;
   varying vec3 vPosition;
@@ -124,7 +128,15 @@ export const crystalVertexShader = /* glsl */ `
     float seamGap = smoothstep(0.08, 0.005, dFracture) * (0.038 * uFractureProgress);
     vec3 fractureDeformation = normal * seamGap + shearOffset;
 
-    vec3 displacedPosition = position + normal * (noise * uDistortion + tensionDisplacement) + fractureDeformation;
+    // Phase 9.18: Observer Awakening Micro-Displacement & Gravitational Response
+    float distToObserver = length(position - uObserverPos);
+    float observerRipple = sin(distToObserver * 12.0 - uTime * 4.0) * exp(-distToObserver * 1.5) * (0.016 * uObserverAttention * uObserverProximity);
+    
+    // Touch Gravitational Disturbance Ripple
+    float distToTouch = length(position - uTouchRipple.xyz);
+    float touchWave = sin(distToTouch * 18.0 - uTime * 9.0) * exp(-distToTouch * 2.2) * (0.032 * uTouchRipple.w);
+
+    vec3 displacedPosition = position + normal * (noise * uDistortion + tensionDisplacement + observerRipple + touchWave) + fractureDeformation;
 
     // Compute localized vertex stress metric for fragment shader photoelastic fringes
     vStress = clamp(uTension * (0.35 + 0.65 * abs(noise) + abs(facetJitter) * 60.0) + uFractureProgress * 0.8, 0.0, 1.0);

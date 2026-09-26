@@ -20,6 +20,10 @@ export interface CrystalMaterialUniforms {
   uRefractiveIndex: { value: number };
   uKeyLightDir: { value: THREE.Vector3 };
   uRimLightDir: { value: THREE.Vector3 };
+  uObserverPos: { value: THREE.Vector3 };
+  uObserverAttention: { value: number };
+  uObserverProximity: { value: number };
+  uTouchRipple: { value: THREE.Vector4 };
 }
 
 export class CrystalMaterial extends THREE.ShaderMaterial {
@@ -57,6 +61,10 @@ export class CrystalMaterial extends THREE.ShaderMaterial {
       uRefractiveIndex: { value: parameters?.refractiveIndex ?? 1.52 },
       uKeyLightDir: { value: new THREE.Vector3(4.0, 5.0, 3.5).normalize() },
       uRimLightDir: { value: new THREE.Vector3(-4.0, 2.5, -3.5).normalize() },
+      uObserverPos: { value: new THREE.Vector3(0, 0, 0) },
+      uObserverAttention: { value: 0 },
+      uObserverProximity: { value: 0 },
+      uTouchRipple: { value: new THREE.Vector4(0, 0, 0, 0) },
     };
 
     super({
@@ -96,4 +104,17 @@ export class CrystalMaterial extends THREE.ShaderMaterial {
   setDispersion(val: number) {
     (this.uniforms as unknown as CrystalMaterialUniforms).uDispersion.value = val;
   }
+
+  setObserver(pos: THREE.Vector3, attention: number, proximity: number) {
+    const u = this.uniforms as unknown as CrystalMaterialUniforms;
+    u.uObserverPos.value.copy(pos);
+    u.uObserverAttention.value = attention;
+    u.uObserverProximity.value = proximity;
+  }
+
+  setTouchRipple(pos: [number, number, number], intensity: number) {
+    const u = this.uniforms as unknown as CrystalMaterialUniforms;
+    u.uTouchRipple.value.set(pos[0], pos[1], pos[2], intensity);
+  }
 }
+

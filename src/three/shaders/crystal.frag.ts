@@ -17,6 +17,10 @@ export const crystalFragmentShader = /* glsl */ `
   uniform vec3 uAbsorptionColor; // Beer-Lambert absorption tone (#02040a)
   uniform vec3 uKeyLightDir;     // Architectural key light direction
   uniform vec3 uRimLightDir;     // Grazing rim light direction
+  uniform vec3 uObserverPos;
+  uniform float uObserverAttention;
+  uniform float uObserverProximity;
+  uniform vec4 uTouchRipple; // xyz pos, w intensity
 
   varying vec3 vNormal;
   varying vec3 vPosition;
@@ -73,12 +77,14 @@ export const crystalFragmentShader = /* glsl */ `
       dot(refB, vec3(0.0, 0.0, 1.0)) * 0.5 + 0.5
     );
 
-    // 4. Moving Internal Caustic Lattice with Sub-Surface Light Flicker
+    // 4. Moving Internal Caustic Lattice with Sub-Surface Light Flicker & Observer Caustic Excitation
+    float distToObs = length(vPosition - uObserverPos);
+    float observerCausticBoost = exp(-distToObs * distToObs * 4.0) * uObserverProximity * (1.5 + uObserverAttention * 2.5);
     float internalFlicker = 0.96 + hash21(floor(vPosition.xy * 28.0 + uTime * 1.8)) * 0.07;
     vec3 causticCoord = vPosition * 5.0 + vec3(0.0, 0.0, uTime * 0.6);
     float c1 = abs(sin(causticCoord.x * 3.0 + sin(causticCoord.y * 2.5)));
     float c2 = abs(cos(causticCoord.y * 3.0 + cos(causticCoord.z * 2.5)));
-    float internalCaustics = pow(1.0 - (c1 * c2), 3.5) * effectiveTransmission * internalFlicker;
+    float internalCaustics = pow(1.0 - (c1 * c2), 3.5) * effectiveTransmission * internalFlicker * (1.0 + observerCausticBoost);
 
     // 5. Beer-Lambert Internal Volumetric Absorption
     float opticalDepth = length(vPosition) * 1.8;
@@ -173,6 +179,18 @@ export const crystalFragmentShader = /* glsl */ `
 
     // Fresnel specular rim glow
     finalColor += uGlowColor * pow(vFresnel, 4.0) * uIntensity * 0.45;
+
+    // Phase 9.18: Observer Awakening Response
+    // Heightened Fresnel emission and iridescent responsiveness near observer gaze
+    float observerFresnel = pow(vFresnel, 1.8) * uObserverProximity * (0.8 + uObserverAttention * 1.4);
+    vec3 observerAura = mix(vec3(0.28, 0.85, 1.0), vec3(1.0, 0.88, 0.55), uObserverAttention) * observerFresnel * 1.6;
+
+    // Touch Gravitational Ripple Radiance
+    float distToTouchFrag = length(vPosition - uTouchRipple.xyz);
+    float rippleRing = exp(-abs(distToTouchFrag - 0.35) * 7.0) * uTouchRipple.w;
+    vec3 rippleEmission = vec3(0.35, 0.92, 1.0) * rippleRing * 2.8;
+
+    finalColor += observerAura + rippleEmission;
 
     // Alpha transitions from translucent hologram (0.45) to solid obsidian glass (0.96)
     float finalAlpha = mix(0.45, 0.96, uMaterialLock);

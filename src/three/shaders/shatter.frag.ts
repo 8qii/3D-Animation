@@ -3,6 +3,8 @@ export const shatterFragmentShader = /* glsl */ `
 
   uniform float uTime;
   uniform float uFractureProgress;
+  uniform vec3 uObserverPos;
+  uniform float uObserverAttention;
   uniform vec3 uKeyLightDir;
   uniform vec3 uRimLightDir;
 
@@ -84,7 +86,12 @@ export const shatterFragmentShader = /* glsl */ `
     finalColor += cleavageEmission;
     finalColor += causticEmission;
     finalColor += coreEmission;
-    finalColor += vec3(0.95, 0.65, 0.20) * pow(vFresnel, 3.5) * 0.4;
+    // Observer Proximity Radiance on Facets
+    float distToObs = length(vWorldPosition - uObserverPos);
+    float obsFacetAura = exp(-distToObs * distToObs * 3.0) * uObserverAttention;
+    vec3 obsGlow = mix(vec3(0.3, 0.85, 1.0), vec3(1.0, 0.9, 0.5), uObserverAttention) * obsFacetAura * 1.8;
+
+    finalColor += obsGlow;
 
     gl_FragColor = vec4(finalColor, 0.94);
   }

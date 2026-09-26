@@ -10,6 +10,8 @@ export function CameraRig() {
   const targetCamPos = useRef(new THREE.Vector3(0, 0, 7));
   const targetLookAt = useRef(new THREE.Vector3(0, 0, 0));
   const currentLookAt = useRef(new THREE.Vector3(0, 0, 0));
+  const currentOffset = useRef({ yaw: 0, pitch: 0 });
+  const offsetRelVec = useRef(new THREE.Vector3());
 
   // FPS calculation references
   const frameCounter = useRef(0);
@@ -220,10 +222,26 @@ export function CameraRig() {
       );
     }
 
+    // Interactive Observer Camera Drag (±15° yaw, ±8° pitch)
+    const cameraOffset = store.cameraOffset;
+    currentOffset.current.yaw = damp(currentOffset.current.yaw, cameraOffset.yaw, 3.8, delta);
+    currentOffset.current.pitch = damp(currentOffset.current.pitch, cameraOffset.pitch, 3.8, delta);
+
+    // Apply offset rotation around lookAt target
+    offsetRelVec.current.copy(targetCamPos.current).sub(targetLookAt.current);
+    if (Math.abs(currentOffset.current.yaw) > 0.0001 || Math.abs(currentOffset.current.pitch) > 0.0001) {
+      // Yaw rotation around world Y
+      offsetRelVec.current.applyAxisAngle(new THREE.Vector3(0, 1, 0), currentOffset.current.yaw);
+      // Pitch rotation around horizontal right vector
+      const right = new THREE.Vector3().crossVectors(offsetRelVec.current, new THREE.Vector3(0, 1, 0)).normalize();
+      offsetRelVec.current.applyAxisAngle(right, -currentOffset.current.pitch);
+    }
+    const finalCamPos = targetLookAt.current.clone().add(offsetRelVec.current);
+
     // High-inertia physical damping
-    activeCamera.position.x = damp(activeCamera.position.x, targetCamPos.current.x, 2.6, delta);
-    activeCamera.position.y = damp(activeCamera.position.y, targetCamPos.current.y, 2.6, delta);
-    activeCamera.position.z = damp(activeCamera.position.z, targetCamPos.current.z, 2.6, delta);
+    activeCamera.position.x = damp(activeCamera.position.x, finalCamPos.x, 2.6, delta);
+    activeCamera.position.y = damp(activeCamera.position.y, finalCamPos.y, 2.6, delta);
+    activeCamera.position.z = damp(activeCamera.position.z, finalCamPos.z, 2.6, delta);
 
     currentLookAt.current.x = damp(currentLookAt.current.x, targetLookAt.current.x, 3.0, delta);
     currentLookAt.current.y = damp(currentLookAt.current.y, targetLookAt.current.y, 3.0, delta);

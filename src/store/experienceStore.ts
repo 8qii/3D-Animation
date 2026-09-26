@@ -19,6 +19,12 @@ export type MonolithPhase =
   | 'MEMORY_RESONANCE'
   | 'FINAL_STILLNESS';
 
+export type ObserverRecognitionState =
+  | 'DORMANT'
+  | 'OBSERVER_DETECTED'
+  | 'OBSERVER_SYNCHRONIZED'
+  | 'GENESIS_RESPONSE_ACTIVE';
+
 export interface SceneMeta {
   id: SceneId;
   index: number;
@@ -122,6 +128,21 @@ interface ExperienceState {
   setMouseWorld: (x: number, y: number, z: number) => void;
   attentionLevel: number; // 0 (passive) to 1 (focused observation)
   setAttentionLevel: (level: number) => void;
+
+  // Observer Awakening & Recognition Layer
+  observerState: ObserverRecognitionState;
+  setObserverState: (state: ObserverRecognitionState) => void;
+  observerProximity: number; // 0 (far) to 1 (direct contact)
+  setObserverProximity: (proximity: number) => void;
+  observerHoverDuration: number; // seconds hovered on crystal
+  setObserverHoverDuration: (duration: number) => void;
+  observerStillnessScore: number; // 0 (erratic) to 1 (zen stillness)
+  setObserverStillnessScore: (score: number) => void;
+  cameraOffset: { yaw: number; pitch: number };
+  setCameraOffset: (offset: { yaw: number; pitch: number }) => void;
+  touchRipple: { active: boolean; intensity: number; position: [number, number, number] };
+  triggerTouchRipple: (position: [number, number, number], intensity?: number) => void;
+  setTouchRippleIntensity: (intensity: number) => void;
 
   // Kinetic Scroll Energy (Thermodynamics)
   scrollEnergy: number; // 0 (cold vacuum) to 1 (excited plasma)
@@ -288,6 +309,32 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
   attentionLevel: 0,
   setAttentionLevel: (level: number) =>
     set({ attentionLevel: Math.min(1.0, Math.max(0.0, level)) }),
+
+  // Observer Awakening & Recognition Layer
+  observerState: 'DORMANT',
+  setObserverState: (observerState: ObserverRecognitionState) => set({ observerState }),
+  observerProximity: 0,
+  setObserverProximity: (proximity: number) =>
+    set({ observerProximity: Math.min(1.0, Math.max(0.0, proximity)) }),
+  observerHoverDuration: 0,
+  setObserverHoverDuration: (duration: number) =>
+    set({ observerHoverDuration: Math.max(0, duration) }),
+  observerStillnessScore: 0,
+  setObserverStillnessScore: (score: number) =>
+    set({ observerStillnessScore: Math.min(1.0, Math.max(0.0, score)) }),
+  cameraOffset: { yaw: 0, pitch: 0 },
+  setCameraOffset: (offset: { yaw: number; pitch: number }) => set({ cameraOffset: offset }),
+  touchRipple: { active: false, intensity: 0, position: [0, 0, 0] },
+  triggerTouchRipple: (position: [number, number, number], intensity = 1.0) =>
+    set({ touchRipple: { active: true, intensity, position } }),
+  setTouchRippleIntensity: (intensity: number) =>
+    set((state) => ({
+      touchRipple: {
+        ...state.touchRipple,
+        intensity: Math.max(0, intensity),
+        active: intensity > 0.01,
+      },
+    })),
 
   // Kinetic Scroll Energy
   scrollEnergy: 0,

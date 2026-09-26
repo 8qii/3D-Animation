@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useExperienceStore } from '@/store/experienceStore';
+import { CinematicTextSystem } from './CinematicTextSystem';
 
 export function CinematicTextReveal() {
   const transitionProgress = useExperienceStore((state) => state.transitionProgress);
@@ -20,6 +21,7 @@ export function CinematicTextReveal() {
   const mouseWorld = useExperienceStore((state) => state.mouseWorld);
   const isMuted = useExperienceStore((state) => state.isMuted);
   const toggleMute = useExperienceStore((state) => state.toggleMute);
+  const observerState = useExperienceStore((state) => state.observerState);
 
   // Compute opacities based on narrative progression
   const isAct4 = fractureProgress > 0.001 || collapseProgress > 0.001 || singularityThresholdProgress > 0.001;
@@ -122,8 +124,16 @@ export function CinematicTextReveal() {
           <span className="font-mono text-[9px] tracking-[0.3em] text-slate-500 uppercase">
             STATE: <span className={isAct4 ? 'text-cyan-300 font-semibold' : isAct3 ? 'text-amber-300 font-medium' : isIgnited ? 'text-amber-400/90' : 'text-cyan-400/80'}>{phaseLabel}</span>
           </span>
+          {observerState !== 'DORMANT' && (
+            <div className="mt-0.5">
+              <span className="font-mono text-[8.5px] tracking-[0.25em] text-slate-500 uppercase">
+                OBSERVER: <span className="text-cyan-300 font-medium">{observerState.replace(/_/g, ' ')}</span>
+              </span>
+            </div>
+          )}
         </div>
       </header>
+
 
       {/* Bottom Center: Act I Prompt (Dissolves as observer scrolls) */}
       <footer
@@ -279,6 +289,10 @@ export function CinematicTextReveal() {
           </div>
         </div>
       </div>
+
+      {/* Phase 9.18: Observer Awakening Cinematic Typography & Recognition HUD */}
+      <CinematicTextSystem />
     </>
   );
 }
+

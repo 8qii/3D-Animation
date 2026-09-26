@@ -12,15 +12,24 @@ export function ObserverController() {
   const setMouseWorld = useExperienceStore((state) => state.setMouseWorld);
   const setAttentionLevel = useExperienceStore((state) => state.setAttentionLevel);
   const setBreathPhase = useExperienceStore((state) => state.setBreathPhase);
+  const setObserverState = useExperienceStore((state) => state.setObserverState);
+  const setObserverProximity = useExperienceStore((state) => state.setObserverProximity);
+  const setObserverHoverDuration = useExperienceStore((state) => state.setObserverHoverDuration);
+  const setObserverStillnessScore = useExperienceStore((state) => state.setObserverStillnessScore);
+  const setTouchRippleIntensity = useExperienceStore((state) => state.setTouchRippleIntensity);
 
-  // Pre-allocated plane at z = 0 and intersection vector
+  // Pre-allocated geometries and vectors
   const focalPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
+  const crystalSphere = useRef(new THREE.Sphere(new THREE.Vector3(0, 0.1, 0), 1.9));
   const worldPoint = useRef(new THREE.Vector3(0, 0, 0));
+  const sphereIntersectPoint = useRef(new THREE.Vector3(0, 0, 0));
   const lastWorldPoint = useRef(new THREE.Vector3(0, 0, 0));
 
-  // Attention dynamics
+  // Attention & state tracking dynamics
   const attentionRef = useRef(0.2);
-  const stillnessTimer = useRef(0);
+  const hoverDurationRef = useRef(0);
+  const stillnessScoreRef = useRef(0);
+  const idleTimerRef = useRef(0);
 
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
@@ -31,44 +40,84 @@ export function ObserverController() {
 
     // 2. 3D World Unprojection on focal plane z = 0
     raycaster.setFromCamera(pointer, camera);
-    const hit = raycaster.ray.intersectPlane(focalPlane.current, worldPoint.current);
+    const hitPlane = raycaster.ray.intersectPlane(focalPlane.current, worldPoint.current);
+    const hitSphere = raycaster.ray.intersectSphere(crystalSphere.current, sphereIntersectPoint.current);
 
-    if (hit) {
-      // Smooth world coordinate transition
-      setMouseWorld(worldPoint.current.x, worldPoint.current.y, worldPoint.current.z);
+    // Point on or near the crystal
+    const activePoint = hitSphere ? sphereIntersectPoint.current : worldPoint.current;
 
-      // 3. Attention Estimation: measure pointer speed in 3D world space
-      const distanceMoved = worldPoint.current.distanceTo(lastWorldPoint.current);
-      lastWorldPoint.current.copy(worldPoint.current);
+    if (hitPlane || hitSphere) {
+      setMouseWorld(activePoint.x, activePoint.y, activePoint.z);
 
-      const pointerSpeed = distanceMoved / Math.max(0.001, delta);
+      // Measure motion speed in 3D world space
+      const distanceMoved = activePoint.distanceTo(lastWorldPoint.current);
+      lastWorldPoint.current.copy(activePoint);
 
-      // When the observer is still or moving gently near the focal core, attention rises
-      const distFromCenter = Math.sqrt(
-        worldPoint.current.x * worldPoint.current.x + worldPoint.current.y * worldPoint.current.y
-      );
+      const pointerSpeed = distanceMoved / Math.max(0.0001, delta);
 
-      const isCentrallyObserved = distFromCenter < 3.2;
-      const isStill = pointerSpeed < 1.8;
+      // Stillness metric: 1.0 when perfectly still, decaying as speed exceeds 1.5
+      const instantStillness = Math.max(0, Math.min(1.0, 1.0 - pointerSpeed / 2.0));
+      stillnessScoreRef.current = damp(stillnessScoreRef.current, instantStillness, 3.0, delta);
+      setObserverStillnessScore(stillnessScoreRef.current);
 
-      if (isStill && isCentrallyObserved) {
-        stillnessTimer.current += delta;
-        // Intimacy grows with stillness
-        const targetAttention = Math.min(1.0, 0.4 + stillnessTimer.current * 0.25);
+      // Proximity to crystal center (0, 0.1, 0)
+      const distFromCenter = activePoint.distanceTo(crystalSphere.current.center);
+      // Normalized proximity: 1.0 at center/surface, 0 at radius 4.5
+      const rawProximity = Math.max(0, Math.min(1.0, 1.0 - (distFromCenter - 0.8) / 3.7));
+      setObserverProximity(rawProximity);
+
+      const isHovering = distFromCenter < 2.5 || hitSphere !== null;
+
+      if (isHovering) {
+        hoverDurationRef.current += delta;
+      } else {
+        hoverDurationRef.current = Math.max(0, hoverDurationRef.current - delta * 1.5);
+      }
+      setObserverHoverDuration(hoverDurationRef.current);
+
+      // Attention dynamics
+      if (isHovering && stillnessScoreRef.current > 0.4) {
+        const targetAttention = Math.min(1.0, 0.4 + hoverDurationRef.current * 0.2 + stillnessScoreRef.current * 0.4);
         attentionRef.current = damp(attentionRef.current, targetAttention, 2.0, delta);
       } else {
-        stillnessTimer.current = Math.max(0, stillnessTimer.current - delta * 2.0);
-        const targetAttention = isCentrallyObserved ? 0.35 : 0.1;
+        const targetAttention = isHovering ? 0.45 : 0.15;
         attentionRef.current = damp(attentionRef.current, targetAttention, 3.5, delta);
       }
+
+      // Reset idle timer
+      idleTimerRef.current = 0;
+
+      // 3. Observer Recognition State Progression
+      let nextState: 'DORMANT' | 'OBSERVER_DETECTED' | 'OBSERVER_SYNCHRONIZED' | 'GENESIS_RESPONSE_ACTIVE' = 'OBSERVER_DETECTED';
+
+      if (hoverDurationRef.current > 4.5 && stillnessScoreRef.current > 0.65) {
+        nextState = 'GENESIS_RESPONSE_ACTIVE';
+      } else if (hoverDurationRef.current > 1.8 && stillnessScoreRef.current > 0.4) {
+        nextState = 'OBSERVER_SYNCHRONIZED';
+      }
+      setObserverState(nextState);
     } else {
-      // Observer gaze left canvas
+      idleTimerRef.current += delta;
       attentionRef.current = damp(attentionRef.current, 0.0, 1.5, delta);
-      stillnessTimer.current = 0;
+      hoverDurationRef.current = Math.max(0, hoverDurationRef.current - delta * 2.0);
+      setObserverHoverDuration(hoverDurationRef.current);
+      setObserverProximity(0);
+
+      if (idleTimerRef.current > 4.0) {
+        setObserverState('DORMANT');
+      }
     }
 
     setAttentionLevel(attentionRef.current);
+
+    // 4. Decay touch ripple if active
+    const touchRipple = useExperienceStore.getState().touchRipple;
+    if (touchRipple.active) {
+      const nextIntensity = Math.max(0, touchRipple.intensity - delta * 0.75);
+      setTouchRippleIntensity(nextIntensity);
+    }
   });
 
   return null;
 }
+
