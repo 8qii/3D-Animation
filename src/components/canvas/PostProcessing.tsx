@@ -7,6 +7,7 @@ import {
   Vignette,
   ChromaticAberration,
   ToneMapping,
+  Noise,
 } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import * as THREE from 'three';
@@ -29,7 +30,7 @@ export function PostProcessing({ enableDoF = true }: PostProcessingProps) {
 
   return (
     <EffectComposer multisampling={4} enableNormalPass={false}>
-      {/* Cinematic Bloom - glows bright central fluctuation & particles */}
+      {/* 1. Cinematic Bloom - glows bright central fluctuation & particle layers */}
       <Bloom
         intensity={effectiveBloom}
         luminanceThreshold={0.25}
@@ -38,32 +39,38 @@ export function PostProcessing({ enableDoF = true }: PostProcessingProps) {
         mipmapBlur
       />
 
-      {/* Depth of Field focusing around the central vacuum */}
+      {/* 2. Optical Depth of Field focusing around the central vacuum */}
       {shouldRenderDoF && (
         <DepthOfField
           focusDistance={0.025}
           focalLength={0.045}
-          bokehScale={2.0}
+          bokehScale={2.2}
         />
       )}
 
-      {/* Subtle chromatic lens dispersion at edges */}
+      {/* 3. Micro Anamorphic Chromatic Aberration at frame edges */}
       <ChromaticAberration
         blendFunction={BlendFunction.NORMAL}
         offset={new THREE.Vector2(0.0006, 0.0006)}
         radialModulation
-        modulationOffset={0.3}
+        modulationOffset={0.32}
       />
 
-      {/* Vignette framing the cinematic scene */}
+      {/* 4. Subtle 35mm Celluloid Film Grain to eliminate color banding */}
+      <Noise
+        opacity={0.035}
+        blendFunction={BlendFunction.OVERLAY}
+      />
+
+      {/* 5. Vignette framing the cinematic scene */}
       <Vignette
         eskil={false}
-        offset={0.15}
-        darkness={0.85}
+        offset={0.16}
+        darkness={0.86}
         blendFunction={BlendFunction.NORMAL}
       />
 
-      {/* ACES Filmic Tone Mapping */}
+      {/* 6. ACES Filmic Tone Mapping */}
       <ToneMapping />
     </EffectComposer>
   );

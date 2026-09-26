@@ -9,84 +9,157 @@ import { voidParticlesVertexShader } from '@/three/shaders/voidParticles.vert';
 import { voidParticlesFragmentShader } from '@/three/shaders/voidParticles.frag';
 import { voidAtmosphereVertexShader } from '@/three/shaders/voidAtmosphere.vert';
 import { voidAtmosphereFragmentShader } from '@/three/shaders/voidAtmosphere.frag';
+import { lensDustVertexShader } from '@/three/shaders/lensDust.vert';
+import { lensDustFragmentShader } from '@/three/shaders/lensDust.frag';
+import { deepSpaceVertexShader } from '@/three/shaders/deepSpaceParticles.vert';
+import { deepSpaceFragmentShader } from '@/three/shaders/deepSpaceParticles.frag';
+import { volumetricGlowVertexShader } from '@/three/shaders/volumetricGlow.vert';
+import { volumetricGlowFragmentShader } from '@/three/shaders/volumetricGlow.frag';
 import { useExperienceStore } from '@/store/experienceStore';
 
-const PARTICLE_COUNT = 1400;
+const MID_PARTICLE_COUNT = 1200;
+const LENS_DUST_COUNT = 90;
+const DEEP_SPACE_COUNT = 1800;
 
-// Deterministic PRNG to generate particle instance attributes once outside render
-function generateVoidDustData(count: number) {
+// Deterministic PRNG for pure idempotency during render
+function createPrng(initialSeed: number) {
+  let s = initialSeed;
+  return () => {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+// 1. Foreground Lens Dust (right in front of 45mm camera lens)
+function generateLensDust(count: number) {
+  const rng = createPrng(1103);
   const offsets = new Float32Array(count * 3);
   const scales = new Float32Array(count);
   const phases = new Float32Array(count);
   const speeds = new Float32Array(count);
 
-  let seed = 9821;
-  const rng = () => {
-    seed = (seed * 16807) % 2147483647;
-    return (seed - 1) / 2147483646;
-  };
-
   for (let i = 0; i < count; i++) {
-    // Distributed in a deep volumetric chamber around the focal coordinate
-    offsets[i * 3]     = (rng() - 0.5) * 12.0;
-    offsets[i * 3 + 1] = (rng() - 0.5) * 10.0;
-    offsets[i * 3 + 2] = (rng() - 0.5) * 12.0;
+    offsets[i * 3]     = (rng() - 0.5) * 6.5;
+    offsets[i * 3 + 1] = (rng() - 0.5) * 4.8;
+    offsets[i * 3 + 2] = 5.2 + rng() * 1.6; // Right in front of camera at z=7
 
-    scales[i] = 0.4 + rng() * 1.6;
+    scales[i] = 0.6 + rng() * 1.4;
     phases[i] = rng();
-    speeds[i] = 0.6 + rng() * 0.8;
+    speeds[i] = 0.5 + rng() * 0.7;
   }
-
   return { offsets, scales, phases, speeds };
 }
 
-const VOID_DUST = generateVoidDustData(PARTICLE_COUNT);
+// 2. Mid-Field Reactive Quantum Motes (the primary reactive field)
+function generateMidDust(count: number) {
+  const rng = createPrng(9821);
+  const offsets = new Float32Array(count * 3);
+  const scales = new Float32Array(count);
+  const phases = new Float32Array(count);
+  const speeds = new Float32Array(count);
+
+  for (let i = 0; i < count; i++) {
+    offsets[i * 3]     = (rng() - 0.5) * 11.0;
+    offsets[i * 3 + 1] = (rng() - 0.5) * 9.0;
+    offsets[i * 3 + 2] = (rng() - 0.5) * 8.0;
+
+    scales[i] = 0.4 + rng() * 1.5;
+    phases[i] = rng();
+    speeds[i] = 0.6 + rng() * 0.8;
+  }
+  return { offsets, scales, phases, speeds };
+}
+
+// 3. Deep-Space Celestial Dust (infinite astronomical depth)
+function generateDeepSpace(count: number) {
+  const rng = createPrng(4433);
+  const offsets = new Float32Array(count * 3);
+  const scales = new Float32Array(count);
+  const phases = new Float32Array(count);
+  const speeds = new Float32Array(count);
+
+  for (let i = 0; i < count; i++) {
+    offsets[i * 3]     = (rng() - 0.5) * 32.0;
+    offsets[i * 3 + 1] = (rng() - 0.5) * 26.0;
+    offsets[i * 3 + 2] = -3.0 - rng() * 16.0; // Deep in the void
+
+    scales[i] = 0.5 + rng() * 1.2;
+    phases[i] = rng();
+    speeds[i] = 0.4 + rng() * 0.6;
+  }
+  return { offsets, scales, phases, speeds };
+}
+
+const STATIC_LENS_DUST = generateLensDust(LENS_DUST_COUNT);
+const STATIC_MID_DUST = generateMidDust(MID_PARTICLE_COUNT);
+const STATIC_DEEP_SPACE = generateDeepSpace(DEEP_SPACE_COUNT);
 
 export function VoidScene() {
   const atmosphereMatRef = useRef<THREE.ShaderMaterial>(null);
+  const volumetricGlowMatRef = useRef<THREE.ShaderMaterial>(null);
+  const deepSpaceMatRef = useRef<THREE.ShaderMaterial>(null);
   const fluctuationMatRef = useRef<THREE.ShaderMaterial>(null);
-  const dustMatRef = useRef<THREE.ShaderMaterial>(null);
+  const midDustMatRef = useRef<THREE.ShaderMaterial>(null);
+  const lensDustMatRef = useRef<THREE.ShaderMaterial>(null);
+
   const particleTimeAccumulator = useRef(0);
 
   // Atmosphere Uniforms
-  const atmosphereUniforms = useMemo(() => {
-    return {
-      uBreathPhase: { value: 0 },
-      uExcitation: { value: 0 },
-    };
-  }, []);
+  const atmosphereUniforms = useMemo(() => ({
+    uBreathPhase: { value: 0 },
+    uExcitation: { value: 0 },
+  }), []);
 
-  // Fluctuations Uniforms
-  const fluctuationUniforms = useMemo(() => {
-    return {
-      uTime: { value: 0 },
-      uBreathPhase: { value: 0 },
-      uExcitation: { value: 0 },
-      uAttention: { value: 0 },
-      uColorCore: { value: new THREE.Color('#e0f2fe') },
-      uColorAura: { value: new THREE.Color('#38bdf8') },
-    };
-  }, []);
+  // Volumetric Glow Uniforms
+  const volumetricUniforms = useMemo(() => ({
+    uTime: { value: 0 },
+    uBreathPhase: { value: 0 },
+    uExcitation: { value: 0 },
+  }), []);
 
-  // Dust Particles Uniforms
-  const dustUniforms = useMemo(() => {
-    return {
-      uTime: { value: 0 },
-      uPixelRatio: {
-        value: typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 1,
-      },
-      uMouseWorld: { value: new THREE.Vector3(0, 0, 0) },
-      uAttention: { value: 0 },
-      uExcitation: { value: 0 },
-      uBreathPhase: { value: 0 },
-    };
-  }, []);
+  // Deep Space Particles Uniforms
+  const deepSpaceUniforms = useMemo(() => ({
+    uTime: { value: 0 },
+    uPixelRatio: {
+      value: typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 1,
+    },
+  }), []);
 
-  // Frame update loop
+  // Central Fluctuation Uniforms
+  const fluctuationUniforms = useMemo(() => ({
+    uTime: { value: 0 },
+    uBreathPhase: { value: 0 },
+    uExcitation: { value: 0 },
+    uAttention: { value: 0 },
+    uColorCore: { value: new THREE.Color('#e0f2fe') },
+    uColorAura: { value: new THREE.Color('#38bdf8') },
+  }), []);
+
+  // Mid Dust Reactive Particles Uniforms
+  const midDustUniforms = useMemo(() => ({
+    uTime: { value: 0 },
+    uPixelRatio: {
+      value: typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 1,
+    },
+    uMouseWorld: { value: new THREE.Vector3(0, 0, 0) },
+    uAttention: { value: 0 },
+    uExcitation: { value: 0 },
+    uBreathPhase: { value: 0 },
+  }), []);
+
+  // Foreground Lens Dust Uniforms
+  const lensDustUniforms = useMemo(() => ({
+    uTime: { value: 0 },
+    uPixelRatio: {
+      value: typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 1,
+    },
+  }), []);
+
+  // Frame animation loop
   useFrame((state, delta) => {
     const time = state.clock.getElapsedTime();
 
-    // Read transient state directly to preserve 60FPS without React reconciliation
+    // Transient store access (60 FPS zero-allocation)
     const store = useExperienceStore.getState();
     const mouseWorld = store.mouseWorld;
     const attention = store.attentionLevel;
@@ -94,13 +167,25 @@ export function VoidScene() {
     const breath = store.breathPhase;
     const speedMult = store.particleSpeedMultiplier;
 
-    // 1. Atmosphere Shader Updates
+    // 1. Atmosphere Shader
     if (atmosphereMatRef.current) {
       atmosphereMatRef.current.uniforms.uBreathPhase.value = breath;
       atmosphereMatRef.current.uniforms.uExcitation.value = excitation;
     }
 
-    // 2. Quantum Fluctuation Shader Updates
+    // 2. Volumetric Glow
+    if (volumetricGlowMatRef.current) {
+      volumetricGlowMatRef.current.uniforms.uTime.value = time;
+      volumetricGlowMatRef.current.uniforms.uBreathPhase.value = breath;
+      volumetricGlowMatRef.current.uniforms.uExcitation.value = excitation;
+    }
+
+    // 3. Deep Space Stars
+    if (deepSpaceMatRef.current) {
+      deepSpaceMatRef.current.uniforms.uTime.value = time * 0.5;
+    }
+
+    // 4. Central Quantum Fluctuation (refined life-pulse)
     if (fluctuationMatRef.current) {
       fluctuationMatRef.current.uniforms.uTime.value = time;
       fluctuationMatRef.current.uniforms.uBreathPhase.value = breath;
@@ -108,26 +193,31 @@ export function VoidScene() {
       fluctuationMatRef.current.uniforms.uAttention.value = attention;
     }
 
-    // 3. Accumulate Particle Time with Kinetic Scroll Excitation
+    // 5. Kinetic Particle Time Accumulator
     particleTimeAccumulator.current += delta * speedMult * (1.0 + excitation * 1.6);
 
-    // 4. Reactive Particles Uniform Updates
-    if (dustMatRef.current) {
-      dustMatRef.current.uniforms.uTime.value = particleTimeAccumulator.current;
-      dustMatRef.current.uniforms.uMouseWorld.value.set(
+    // 6. Mid-Field Reactive Particles
+    if (midDustMatRef.current) {
+      midDustMatRef.current.uniforms.uTime.value = particleTimeAccumulator.current;
+      midDustMatRef.current.uniforms.uMouseWorld.value.set(
         mouseWorld[0],
         mouseWorld[1],
         mouseWorld[2]
       );
-      dustMatRef.current.uniforms.uAttention.value = attention;
-      dustMatRef.current.uniforms.uExcitation.value = excitation;
-      dustMatRef.current.uniforms.uBreathPhase.value = breath;
+      midDustMatRef.current.uniforms.uAttention.value = attention;
+      midDustMatRef.current.uniforms.uExcitation.value = excitation;
+      midDustMatRef.current.uniforms.uBreathPhase.value = breath;
+    }
+
+    // 7. Foreground Lens Dust
+    if (lensDustMatRef.current) {
+      lensDustMatRef.current.uniforms.uTime.value = time;
     }
   });
 
   return (
     <group name="act-01-the-void">
-      {/* 1. Deep Indigo Dithered Atmospheric Horizon */}
+      {/* 1. Deep Indigo Atmospheric Horizon Quad */}
       <mesh renderOrder={-1000}>
         <planeGeometry args={[2, 2]} />
         <shaderMaterial
@@ -140,7 +230,56 @@ export function VoidScene() {
         />
       </mesh>
 
-      {/* 2. Central Quantum Light Fluctuation (Slow Breathing Illumination) */}
+      {/* 2. Layer 3: Deep-Space Background Particles */}
+      <instancedMesh
+        args={[undefined, undefined, DEEP_SPACE_COUNT]}
+        renderOrder={-500}
+        frustumCulled={false}
+      >
+        <planeGeometry args={[1, 1]}>
+          <instancedBufferAttribute
+            attach="attributes-aOffset"
+            args={[STATIC_DEEP_SPACE.offsets, 3]}
+          />
+          <instancedBufferAttribute
+            attach="attributes-aScale"
+            args={[STATIC_DEEP_SPACE.scales, 1]}
+          />
+          <instancedBufferAttribute
+            attach="attributes-aPhase"
+            args={[STATIC_DEEP_SPACE.phases, 1]}
+          />
+          <instancedBufferAttribute
+            attach="attributes-aSpeed"
+            args={[STATIC_DEEP_SPACE.speeds, 1]}
+          />
+        </planeGeometry>
+        <shaderMaterial
+          ref={deepSpaceMatRef}
+          vertexShader={deepSpaceVertexShader}
+          fragmentShader={deepSpaceFragmentShader}
+          uniforms={deepSpaceUniforms}
+          transparent
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </instancedMesh>
+
+      {/* 3. Subtle Volumetric Atmosphere Light Shafts */}
+      <mesh position={[0, 0, -0.6]} renderOrder={0}>
+        <planeGeometry args={[7.5, 7.5]} />
+        <shaderMaterial
+          ref={volumetricGlowMatRef}
+          vertexShader={volumetricGlowVertexShader}
+          fragmentShader={volumetricGlowFragmentShader}
+          uniforms={volumetricUniforms}
+          transparent
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+
+      {/* 4. Central Quantum Light Fluctuation */}
       <mesh position={[0, 0, 0]} renderOrder={1}>
         <planeGeometry args={[2.8, 2.8]} />
         <shaderMaterial
@@ -154,35 +293,70 @@ export function VoidScene() {
         />
       </mesh>
 
-      {/* 3. GPU Instanced Brownian Dust Particles (Cathedral Motes) */}
+      {/* 5. Layer 2: Mid-Field Reactive Quantum Particles */}
       <instancedMesh
-        args={[undefined, undefined, PARTICLE_COUNT]}
+        args={[undefined, undefined, MID_PARTICLE_COUNT]}
         renderOrder={2}
         frustumCulled={false}
       >
         <planeGeometry args={[1, 1]}>
           <instancedBufferAttribute
             attach="attributes-aOffset"
-            args={[VOID_DUST.offsets, 3]}
+            args={[STATIC_MID_DUST.offsets, 3]}
           />
           <instancedBufferAttribute
             attach="attributes-aScale"
-            args={[VOID_DUST.scales, 1]}
+            args={[STATIC_MID_DUST.scales, 1]}
           />
           <instancedBufferAttribute
             attach="attributes-aPhase"
-            args={[VOID_DUST.phases, 1]}
+            args={[STATIC_MID_DUST.phases, 1]}
           />
           <instancedBufferAttribute
             attach="attributes-aSpeed"
-            args={[VOID_DUST.speeds, 1]}
+            args={[STATIC_MID_DUST.speeds, 1]}
           />
         </planeGeometry>
         <shaderMaterial
-          ref={dustMatRef}
+          ref={midDustMatRef}
           vertexShader={voidParticlesVertexShader}
           fragmentShader={voidParticlesFragmentShader}
-          uniforms={dustUniforms}
+          uniforms={midDustUniforms}
+          transparent
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </instancedMesh>
+
+      {/* 6. Layer 1: Foreground Defocused Lens Dust */}
+      <instancedMesh
+        args={[undefined, undefined, LENS_DUST_COUNT]}
+        renderOrder={3}
+        frustumCulled={false}
+      >
+        <planeGeometry args={[1, 1]}>
+          <instancedBufferAttribute
+            attach="attributes-aOffset"
+            args={[STATIC_LENS_DUST.offsets, 3]}
+          />
+          <instancedBufferAttribute
+            attach="attributes-aScale"
+            args={[STATIC_LENS_DUST.scales, 1]}
+          />
+          <instancedBufferAttribute
+            attach="attributes-aPhase"
+            args={[STATIC_LENS_DUST.phases, 1]}
+          />
+          <instancedBufferAttribute
+            attach="attributes-aSpeed"
+            args={[STATIC_LENS_DUST.speeds, 1]}
+          />
+        </planeGeometry>
+        <shaderMaterial
+          ref={lensDustMatRef}
+          vertexShader={lensDustVertexShader}
+          fragmentShader={lensDustFragmentShader}
+          uniforms={lensDustUniforms}
           transparent
           depthWrite={false}
           blending={THREE.AdditiveBlending}

@@ -36,7 +36,20 @@ export function CameraRig() {
       timeAccumulator.current = 0;
     }
 
-    // 2. Automatic 30-Second Cinematic Sequence vs. Default Contemplative Drift
+    const activeCamera = state.camera as THREE.PerspectiveCamera;
+
+    // 2. Optical Realism: Cinematic Lens Breathing (45mm equivalent)
+    // Breathing oscillates subtly (0.05 Hz) and compresses on scroll energy surge
+    const baseFov = 45.0;
+    const lensBreathing = Math.sin(time * 0.314159) * 0.25 - scrollEnergy * 0.65;
+    const targetFov = baseFov + lensBreathing;
+
+    if (Math.abs(activeCamera.fov - targetFov) > 0.01) {
+      activeCamera.fov = damp(activeCamera.fov, targetFov, 2.5, delta);
+      activeCamera.updateProjectionMatrix();
+    }
+
+    // 3. Automatic 30-Second Cinematic Sequence vs. Default Contemplative Drift
     if (isPreviewMode) {
       // Advance preview clock (loops continuously at 30 seconds)
       const nextTime = (previewTime + delta) % 30.0;
@@ -94,8 +107,7 @@ export function CameraRig() {
         targetLookAt.current.set(0, 0, 0);
       }
 
-      // Slightly faster damping in choreographed preview mode for responsive flight
-      const activeCamera = state.camera;
+      // Responsive flight damping in preview mode
       activeCamera.position.x = damp(activeCamera.position.x, targetCamPos.current.x, 3.0, delta);
       activeCamera.position.y = damp(activeCamera.position.y, targetCamPos.current.y, 3.0, delta);
       activeCamera.position.z = damp(activeCamera.position.z, targetCamPos.current.z, 3.0, delta);
@@ -106,8 +118,11 @@ export function CameraRig() {
 
       activeCamera.lookAt(currentLookAt.current);
     } else {
-      // Standard Contemplative Mode: 0.05 Hz subtle human breathing motion (20s period)
+      // Cosmic Breath: Master 0.05 Hz harmonic respiration
       const breathingY = Math.sin(time * 0.314159) * 0.045;
+
+      // Life Pulse: Subtle 0.25 Hz micro-pulse heartbeat
+      const lifePulseY = Math.sin(time * 1.5708) * 0.008;
 
       // Extremely slow ancient longitudinal drift
       const driftZ = Math.cos(time * 0.08) * 0.06;
@@ -122,7 +137,7 @@ export function CameraRig() {
 
       targetCamPos.current.set(
         0.0 + driftX + parallaxX,
-        0.0 + breathingY + parallaxY,
+        0.0 + breathingY + lifePulseY + parallaxY,
         7.0 + driftZ + kineticDepth
       );
 
@@ -132,14 +147,13 @@ export function CameraRig() {
         0.0
       );
 
-      const activeCamera = state.camera;
-      activeCamera.position.x = damp(activeCamera.position.x, targetCamPos.current.x, 2.5, delta);
-      activeCamera.position.y = damp(activeCamera.position.y, targetCamPos.current.y, 2.5, delta);
-      activeCamera.position.z = damp(activeCamera.position.z, targetCamPos.current.z, 2.5, delta);
+      activeCamera.position.x = damp(activeCamera.position.x, targetCamPos.current.x, 2.8, delta);
+      activeCamera.position.y = damp(activeCamera.position.y, targetCamPos.current.y, 2.8, delta);
+      activeCamera.position.z = damp(activeCamera.position.z, targetCamPos.current.z, 2.8, delta);
 
-      currentLookAt.current.x = damp(currentLookAt.current.x, targetLookAt.current.x, 3.0, delta);
-      currentLookAt.current.y = damp(currentLookAt.current.y, targetLookAt.current.y, 3.0, delta);
-      currentLookAt.current.z = damp(currentLookAt.current.z, targetLookAt.current.z, 3.0, delta);
+      currentLookAt.current.x = damp(currentLookAt.current.x, targetLookAt.current.x, 3.2, delta);
+      currentLookAt.current.y = damp(currentLookAt.current.y, targetLookAt.current.y, 3.2, delta);
+      currentLookAt.current.z = damp(currentLookAt.current.z, targetLookAt.current.z, 3.2, delta);
 
       activeCamera.lookAt(currentLookAt.current);
     }

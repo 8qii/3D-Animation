@@ -19,7 +19,11 @@ interface ExperienceProps {
 
 export function Experience({ className = '', enablePostProcessing = true }: ExperienceProps) {
   const setPointer = useExperienceStore((state) => state.setPointer);
+  const addScrollEnergy = useExperienceStore((state) => state.addScrollEnergy);
+  const setAttentionLevel = useExperienceStore((state) => state.setAttentionLevel);
+
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastTouchPos = useRef<{ x: number; y: number } | null>(null);
 
   // Mouse move handler with normalized coordinates [-1..1]
   const handlePointerMove = useCallback(
@@ -31,10 +35,53 @@ export function Experience({ className = '', enablePostProcessing = true }: Expe
     [setPointer]
   );
 
+  // Mobile Touch as Observer Input
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
+
+        const { innerWidth, innerHeight } = window;
+        const normalized = getNormalizedPointer(touch.clientX, touch.clientY, innerWidth, innerHeight);
+        setPointer(normalized.x, normalized.y);
+
+        // Immediate tactile contact sparks observer attention
+        setAttentionLevel(0.65);
+      }
+    },
+    [setPointer, setAttentionLevel]
+  );
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        const { innerWidth, innerHeight } = window;
+        const normalized = getNormalizedPointer(touch.clientX, touch.clientY, innerWidth, innerHeight);
+        setPointer(normalized.x, normalized.y);
+
+        // Measure touch drag velocity to inject kinetic energy into the vacuum
+        if (lastTouchPos.current) {
+          const dx = touch.clientX - lastTouchPos.current.x;
+          const dy = touch.clientY - lastTouchPos.current.y;
+          const dragDist = Math.sqrt(dx * dx + dy * dy);
+          addScrollEnergy(Math.min(0.35, dragDist * 0.008));
+        }
+
+        lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
+      }
+    },
+    [setPointer, addScrollEnergy]
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    lastTouchPos.current = null;
+  }, []);
+
   // Clean disposal on unmount
   useEffect(() => {
     return () => {
-      // Force cleanup Three.js cache if canvas unmounts
       THREE.Cache.clear();
     };
   }, []);
@@ -43,6 +90,9 @@ export function Experience({ className = '', enablePostProcessing = true }: Expe
     <div
       ref={containerRef}
       onPointerMove={handlePointerMove}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       className={`fixed inset-0 w-full h-full pointer-events-auto bg-[#030712] ${className}`}
       style={{ zIndex: 0 }}
     >
@@ -64,6 +114,9 @@ export function Experience({ className = '', enablePostProcessing = true }: Expe
         className="w-full h-full"
       >
         <color attach="background" args={['#030712']} />
+
+        {/* Scene depth fog for cathedral spatial composition */}
+        <fogExp2 attach="fog" args={['#030712', 0.038]} />
 
         <Suspense fallback={null}>
           <PerspectiveCamera makeDefault fov={45} position={[0, 0, 7]} />
