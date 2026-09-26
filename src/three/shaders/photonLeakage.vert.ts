@@ -14,8 +14,9 @@ export const photonLeakageVertexShader = /* glsl */ `
     // Escaping photon life cycle (0.0 to 1.0 cycle along fault plane trajectory)
     float cycle = fract(uTime * aSpeed + aSeed);
     
-    // Outward trajectory starting from near the fissure seam (~1.2 to 1.45) outward to ~3.6
-    float dist = mix(1.25, 3.6, pow(cycle, 1.3));
+    // Outward trajectory expanding from the core (~0.85) out to ~5.8 during facet separation
+    float maxTravel = mix(3.6, 5.8, uFractureProgress);
+    float dist = mix(0.85, maxTravel, pow(cycle, 1.25));
     vec3 currentPos = position + aVelocity * dist * (0.3 + 0.7 * uFractureProgress);
 
     // Micro jitter from high quantum energy state

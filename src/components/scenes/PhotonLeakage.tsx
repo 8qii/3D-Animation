@@ -146,7 +146,7 @@ export function PhotonLeakage() {
     []
   );
 
-  const sheetGeometry = useMemo(() => new THREE.RingGeometry(0.3, 3.6, 48), []);
+  const sheetGeometry = useMemo(() => new THREE.RingGeometry(0.2, 5.8, 64), []);
 
   useFrame((state) => {
     const time = state.clock.getElapsedTime();

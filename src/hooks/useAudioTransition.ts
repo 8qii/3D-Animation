@@ -42,10 +42,10 @@ export function useAudioTransition() {
       const isPreDispersion = (monolithPhase === 'MEMORY_RESONANCE' || monolithPhase === 'FINAL_STILLNESS') && fractureProgress <= 0.001;
       soundEngine.preDispersionState(isPreDispersion, stillnessFactor);
 
-      // Phase 9.0 Act IV Fracture Snap & Instability
+      // Phase 9.0 & 9.1 Act IV Fracture Snap & Instability / Debris Evolution
       if (fractureProgress >= 0.02) {
         soundEngine.triggerFractureSnap();
-        soundEngine.updateFractureInstability(fractureProgress);
+        soundEngine.updateFractureInstability(fractureProgress, pointer.x);
       } else if (fractureProgress < 0.01) {
         soundEngine.resetFractureSnap();
       }

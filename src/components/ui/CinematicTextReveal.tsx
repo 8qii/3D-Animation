@@ -33,7 +33,7 @@ export function CinematicTextReveal() {
   // Formatting phase badge text
   let phaseLabel = 'QUANTUM VACUUM';
   if (isAct4) {
-    phaseLabel = `ACT IV: FRACTURE INITIATION [${(fractureProgress * 100).toFixed(0)}%]`;
+    phaseLabel = fractureProgress > 0.45 ? 'ACT IV: GEOMETRIC SEPARATION' : 'ACT IV: FRACTURE INITIATION';
   } else if (monolithPhase === 'FINAL_STILLNESS') {
     phaseLabel = 'ACT III: FINAL STILLNESS';
   } else if (monolithPhase === 'MEMORY_RESONANCE') {
@@ -239,15 +239,20 @@ export function CinematicTextReveal() {
           </div>
 
           <h2 className="text-xl md:text-3xl font-extralight tracking-[0.22em] text-slate-100 uppercase italic">
-            &ldquo;Order fractures not by failure, but by abundance.&rdquo;
+            &ldquo;To become infinite, form must surrender its perimeter.&rdquo;
           </h2>
 
           <p className="max-w-lg font-sans text-xs md:text-sm font-light leading-relaxed tracking-[0.18em] text-slate-300/90">
-            Golden-ratio fault planes breach. The perfect crystalline lattice surrenders its captive light to the void.
+            Golden-ratio fault planes breach. The twenty sacred facets detach, releasing contained energy into the void.
           </p>
 
-          <div className="pt-2 font-mono text-[9px] tracking-[0.32em] text-cyan-400/90 uppercase">
-            {`FRACTURE SEAMS: 6 ACTIVE (φ = 1.618) // PHOTON LEAKAGE: ${(fractureProgress * 100).toFixed(0)}% // MONOLITH: INTACT`}
+          <div className="pt-2 font-mono text-[9px] tracking-[0.32em] text-cyan-400/90 uppercase space-y-1">
+            <div>
+              {`STRUCTURE: SEPARATING // FACET COUNT: ${Math.max(0, Math.round(20 * (1.0 - Math.min(1.0, fractureProgress * 1.1))))} → 0`}
+            </div>
+            <div className="text-amber-400/90">
+              ENERGY CONTAINMENT: FAILED // WAVE: EXPANDING
+            </div>
           </div>
         </div>
       </div>

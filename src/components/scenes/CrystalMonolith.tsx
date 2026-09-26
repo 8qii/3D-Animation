@@ -8,6 +8,7 @@ import { useExperienceStore } from '@/store/experienceStore';
 import { TrappedEnergyField } from './TrappedEnergyField';
 import { CrystalMemoryField } from './CrystalMemoryField';
 import { PhotonLeakage } from './PhotonLeakage';
+import { CrystalShatter } from './CrystalShatter';
 
 export function CrystalMonolith() {
   const groupRef = useRef<THREE.Group>(null);
@@ -44,6 +45,12 @@ export function CrystalMonolith() {
       materialRef.current.setFracture(fracture);
     }
 
+    if (meshRef.current) {
+      // Solid monolithic crystal mesh is visible during material lock and hairline fracture,
+      // then seamlessly hands over to CrystalShatter once facet detachment commences
+      meshRef.current.visible = materialLock > 0.01 && fracture <= 0.02;
+    }
+
     if (groupRef.current) {
       // Visible once material lock begins
       groupRef.current.visible = materialLock > 0.01;
@@ -78,7 +85,10 @@ export function CrystalMonolith() {
       {/* 3. Escaping Photons & Golden-Ratio Light Sheets */}
       <PhotonLeakage />
 
-      {/* 4. Sacred Obsidian Monolith Mesh */}
+      {/* 4. Act IV Golden Ratio Facet Separation System */}
+      <CrystalShatter />
+
+      {/* 5. Sacred Obsidian Monolith Mesh (Hands over to CrystalShatter on separation) */}
       <mesh
         ref={meshRef}
         name="sacred-crystal-monolith"

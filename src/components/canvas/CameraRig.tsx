@@ -158,17 +158,25 @@ export function CameraRig() {
       const closePosY = THREE.MathUtils.lerp(THREE.MathUtils.lerp(basePosY, 1.15, tension), 1.0, contemplationFactor);
       const closePosZ = THREE.MathUtils.lerp(THREE.MathUtils.lerp(basePosZ, 3.45, tension), 3.2, contemplationFactor);
 
-      // Phase 9.0 Act IV Impulse Shock Recoil & Fracture Tremor
+      // Phase 9.1 Act IV Camera Choreography:
+      // Before fracture: [2.1, 1.0, 3.2]
+      // During separation: slow cinematic backward recoil -> [3.5, 2.5, 5.0]
+      const shatterRecoilEase = THREE.MathUtils.smoothstep(fracture, 0.0, 1.0);
+      const recoilPosX = THREE.MathUtils.lerp(closePosX, 3.5, shatterRecoilEase);
+      const recoilPosY = THREE.MathUtils.lerp(closePosY, 2.5, shatterRecoilEase);
+      const recoilPosZ = THREE.MathUtils.lerp(closePosZ, 5.0, shatterRecoilEase);
+
+      // Impulse shock transient on initial crack and high-frequency tremor
       const fractureShock = Math.sin(Math.min(fracture * Math.PI, Math.PI)) * Math.exp(-fracture * 2.2);
-      const recoilZ = fracture * 0.45 + fractureShock * 0.40;
-      const recoilY = fracture * 0.15 + fractureShock * 0.10;
-      const fractureTremorX = Math.sin(time * 74.0) * 0.007 * (1.0 - fracture * 0.5) * Math.min(1.0, fracture * 4.0);
-      const fractureTremorY = Math.cos(time * 82.0) * 0.007 * (1.0 - fracture * 0.5) * Math.min(1.0, fracture * 4.0);
+      const shockZ = fractureShock * 0.35;
+      const shockY = fractureShock * 0.12;
+      const fractureTremorX = Math.sin(time * 74.0) * 0.007 * (1.0 - fracture * 0.6) * Math.min(1.0, fracture * 4.0);
+      const fractureTremorY = Math.cos(time * 82.0) * 0.007 * (1.0 - fracture * 0.6) * Math.min(1.0, fracture * 4.0);
 
       targetCamPos.current.set(
-        closePosX + parallaxX * 0.25 + microTremorX + fractureTremorX,
-        closePosY + breathingY + microTremorY + recoilY + fractureTremorY,
-        closePosZ + driftZ + recoilZ
+        recoilPosX + parallaxX * 0.25 + microTremorX + fractureTremorX,
+        recoilPosY + breathingY + microTremorY + shockY + fractureTremorY,
+        recoilPosZ + driftZ + shockZ
       );
 
       const targetY = THREE.MathUtils.lerp(

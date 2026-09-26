@@ -519,11 +519,10 @@ class SoundEngine {
   }
 
   /**
-   * Phase 9.0 Act IV Fracture Instability:
-   * Continuous modulation during fracture initiation:
-   * Tearing sub-bass overdrive, screaming singing-glass flutter, and spatial turbulence.
+   * Phase 9.1 Act IV Shatter & Fracture Audio Evolution:
+   * Widening stereo field, crystalline debris resonance, and deep harmonic expansion.
    */
-  public updateFractureInstability(fracture: number) {
+  public updateFractureInstability(fracture: number, pointerX = 0) {
     if (!this.ctx || !this.droneOsc || !this.droneFilter || !this.tensionGain || !this.tensionFilter) return;
     if (this.ctx.state === 'suspended') return;
 
@@ -531,23 +530,39 @@ class SoundEngine {
     const clampedFracture = Math.max(0.0, Math.min(1.0, fracture));
     if (clampedFracture <= 0.001) return;
 
-    // 1. Tearing Sub-Bass Drone: Drop frequency into sub-infrasound with high-resonance growl
-    const droneFreq = 38.0 - clampedFracture * 10.0;
+    // 1. Widening Stereo Field: Acoustic space expands from centered to ultra-wide
+    if (this.panner) {
+      const panBreadth = 0.35 + clampedFracture * 0.50; // Widens up to 0.85
+      const spatialDrift = Math.sin(now * 0.45) * 0.25 * clampedFracture;
+      const targetPan = Math.max(-0.85, Math.min(0.85, pointerX * panBreadth + spatialDrift));
+      this.panner.pan.setTargetAtTime(targetPan, now, 0.08);
+    }
+
+    // 2. Deep Harmonic Expansion: Sub-bass fundamental expands with rich undertone
+    const droneFreq = 38.0 - clampedFracture * 8.0; // 38Hz down to 30Hz
     this.droneOsc.frequency.setTargetAtTime(droneFreq, now, 0.06);
+    if (this.subOsc) {
+      this.subOsc.frequency.setTargetAtTime(droneFreq * 0.5, now, 0.06); // 15Hz sub-infrasound
+    }
 
-    const filterCutoff = 400.0 + clampedFracture * 1600.0;
+    const filterCutoff = 450.0 + clampedFracture * 2200.0;
     this.droneFilter.frequency.setTargetAtTime(filterCutoff, now, 0.06);
-    this.droneFilter.Q.setTargetAtTime(6.5 + clampedFracture * 8.0, now, 0.06);
+    this.droneFilter.Q.setTargetAtTime(5.5 + clampedFracture * 6.5, now, 0.06);
 
-    // 2. Chaotic singing glass flutter (intense modal instability)
+    // 3. Crystalline Debris Resonance: High-frequency modal ringing of separating plates
     if (this.crystalResonator1 && this.crystalResonator2) {
-      const flutter1 = 587.33 + Math.sin(now * 26.0) * (clampedFracture * 140.0);
-      const flutter2 = 880.00 + Math.cos(now * 32.0) * (clampedFracture * 180.0);
+      const flutter1 = 1200.0 + Math.sin(now * 18.0) * (clampedFracture * 180.0) + Math.cos(now * 6.5) * 80.0;
+      const flutter2 = 2400.0 + Math.cos(now * 24.0) * (clampedFracture * 220.0) + Math.sin(now * 9.0) * 120.0;
       this.crystalResonator1.frequency.setTargetAtTime(flutter1, now, 0.04);
       this.crystalResonator2.frequency.setTargetAtTime(flutter2, now, 0.04);
     }
 
-    // 3. Tension & Shearing Gain surge
+    if (this.crystalGain) {
+      const debrisLevel = 0.12 + clampedFracture * 0.32;
+      this.crystalGain.gain.setTargetAtTime(debrisLevel, now, 0.08);
+    }
+
+    // 4. Tension & Shearing Gain surge
     const shearFreq = 2200.0 + clampedFracture * 2800.0 + Math.sin(now * 18.0) * 400.0;
     this.tensionFilter.frequency.setTargetAtTime(shearFreq, now, 0.04);
     this.tensionGain.gain.setTargetAtTime(0.12 + clampedFracture * 0.28, now, 0.06);
